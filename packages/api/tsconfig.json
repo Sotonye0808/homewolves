@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "target": "ES2021",
+    "types": ["node"],
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts", "../../packages/types/src/global.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

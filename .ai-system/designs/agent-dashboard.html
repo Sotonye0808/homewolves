@@ -1,0 +1,1921 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="hw-route" content="/dashboard/agent">
+  <meta name="hw-component" content="SideNav,BentoCell,GlassSurface,DataTable,BadgePill,Button,Avatar,FAB,BottomTabBar,PropertyCardMini">
+  <meta name="hw-theme" content="light,dark">
+  <meta name="hw-viewport" content="375,1280">
+  <title>Homewolves — {{agent_name}} Dashboard</title>
+  <style>
+    /* ============================================================
+       DESIGN.md §2.1 — Light Theme (default)
+       All tokens match exact names from DESIGN.md
+       ============================================================ */
+    :root {
+      --color-bg-base:          #F7F6F3;
+      --color-bg-elevated:      #FFFFFF;
+      --color-bg-glass:         rgba(255, 255, 255, 0.55);
+      --color-bg-glass-dark:    rgba(15, 15, 20, 0.60);
+      --color-bg-overlay:       rgba(0, 0, 0, 0.40);
+      --color-brand-primary:    #1A3A5C;
+      --color-brand-secondary:  #2D6A9F;
+      --color-brand-accent:     #C8813A;
+      --color-brand-accent-alt: #E8956A;
+      --color-text-primary:     #0F1117;
+      --color-text-secondary:   #4A5568;
+      --color-text-muted:       #8A9BB0;
+      --color-text-inverse:     #FFFFFF;
+      --color-text-accent:      #C8813A;
+      --color-border-subtle:    rgba(0, 0, 0, 0.06);
+      --color-border-default:   rgba(0, 0, 0, 0.12);
+      --color-border-strong:    rgba(0, 0, 0, 0.24);
+      --color-border-brand:     #2D6A9F;
+      --color-border-glass:     rgba(255, 255, 255, 0.30);
+      --color-success:          #1A7A4A;
+      --color-success-bg:       #E8F7EE;
+      --color-warning:          #B45309;
+      --color-warning-bg:       #FEF3C7;
+      --color-error:            #B91C1C;
+      --color-error-bg:         #FEE2E2;
+      --color-info:             #1D4ED8;
+      --color-info-bg:          #DBEAFE;
+      --color-status-pending:   #D97706;
+      --color-status-active:    #059669;
+      --color-status-complete:  #1A3A5C;
+      --color-status-rejected:  #DC2626;
+      --font-display: 'DM Serif Display', Georgia, serif;
+      --font-body:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+      --text-xs:    clamp(0.70rem, 1.5vw, 0.75rem);
+      --text-sm:    clamp(0.80rem, 1.8vw, 0.875rem);
+      --text-base:  clamp(0.875rem, 2vw, 1rem);
+      --text-md:    clamp(1rem, 2.2vw, 1.125rem);
+      --text-lg:    clamp(1.125rem, 2.5vw, 1.25rem);
+      --text-xl:    clamp(1.25rem, 3vw, 1.5rem);
+      --text-2xl:   clamp(1.5rem, 4vw, 2rem);
+      --text-3xl:   clamp(1.875rem, 5vw, 2.5rem);
+      --text-4xl:   clamp(2.25rem, 6vw, 3.5rem);
+      --text-hero:  clamp(2.5rem, 8vw, 5rem);
+      --font-regular: 400; --font-medium: 500;
+      --font-semibold: 600; --font-bold: 700; --font-black: 900;
+      --leading-tight:  1.2; --leading-snug: 1.375;
+      --leading-normal: 1.5; --leading-relaxed: 1.625;
+      --tracking-tight: -0.025em; --tracking-normal: 0;
+      --tracking-wide: 0.05em; --tracking-wider: 0.1em; --tracking-widest: 0.2em;
+      --space-1: 4px; --space-2: 8px; --space-3: 12px;
+      --space-4: 16px; --space-5: 20px; --space-6: 24px;
+      --space-8: 32px; --space-10: 40px; --space-12: 48px;
+      --space-16: 64px; --space-20: 80px; --space-24: 96px; --space-32: 128px;
+      --glass-blur: blur(16px) saturate(180%);
+      --glass-blur-heavy: blur(24px) saturate(200%);
+      --glass-blur-subtle: blur(8px) saturate(150%);
+      --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 20px rgba(0,0,0,0.10);
+      --shadow-lg: 0 8px 40px rgba(0,0,0,0.14);
+      --shadow-xl: 0 16px 64px rgba(0,0,0,0.18);
+      --shadow-card: 0 2px 12px rgba(26,58,92,0.08), 0 0 0 1px rgba(26,58,92,0.04);
+      --shadow-hover: 0 8px 32px rgba(26,58,92,0.16), 0 0 0 1px rgba(26,58,92,0.08);
+      --shadow-glass: 0 4px 24px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.3);
+      --radius-xs: 4px; --radius-sm: 8px; --radius-md: 12px;
+      --radius-lg: 16px; --radius-xl: 24px; --radius-2xl: 32px; --radius-full: 9999px;
+      --duration-instant: 60ms; --duration-fast: 150ms;
+      --duration-normal: 250ms; --duration-slow: 400ms; --duration-lazy: 600ms;
+      --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-in: cubic-bezier(0.4, 0, 1, 1);
+      --ease-out: cubic-bezier(0, 0, 0.2, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    /* ============================================================
+       DESIGN.md §2.1 — Dark Theme
+       ============================================================ */
+    [data-theme="dark"] {
+      --color-bg-base:          #0D1117;
+      --color-bg-elevated:      #161B22;
+      --color-bg-glass:         rgba(22, 27, 34, 0.72);
+      --color-bg-glass-dark:    rgba(0, 0, 0, 0.75);
+      --color-bg-overlay:       rgba(0, 0, 0, 0.60);
+      --color-brand-primary:    #3B82F6;
+      --color-brand-secondary:  #60A5FA;
+      --color-brand-accent:     #F59E0B;
+      --color-brand-accent-alt: #FB923C;
+      --color-text-primary:     #F0F4F8;
+      --color-text-secondary:   #9BAEC8;
+      --color-text-muted:       #5C6E82;
+      --color-text-inverse:     #0D1117;
+      --color-text-accent:      #F59E0B;
+      --color-border-subtle:    rgba(255, 255, 255, 0.05);
+      --color-border-default:   rgba(255, 255, 255, 0.10);
+      --color-border-strong:    rgba(255, 255, 255, 0.20);
+      --color-border-glass:     rgba(255, 255, 255, 0.12);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* === RESET === */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+    body {
+      background: var(--color-bg-base);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      line-height: var(--leading-relaxed);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+      transition: background-color var(--duration-normal), color var(--duration-normal);
+    }
+    img { display: block; max-width: 100%; }
+    a { text-decoration: none; color: inherit; }
+    button { cursor: pointer; font-family: inherit; border: none; background: none; }
+    input { font-family: inherit; }
+    ul { list-style: none; }
+
+    /* === UTILITY === */
+    .glass-surface {
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--color-border-glass);
+      box-shadow: var(--shadow-glass);
+    }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0;
+      margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;
+    }
+    .skip-link {
+      position: fixed; top: var(--space-2); left: var(--space-2);
+      z-index: 9999; background: var(--color-brand-primary);
+      color: var(--color-text-inverse); padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-sm); transform: translateY(-120%);
+      transition: transform var(--duration-fast);
+    }
+    .skip-link:focus { transform: translateY(0); }
+    *:focus-visible {
+      outline: 2px solid var(--color-brand-secondary);
+      outline-offset: 2px;
+    }
+
+    /* ============================================================
+       §3.2 — Side Navigation (Dashboard — Desktop)
+       Width: 240px expanded, glass surface with left border
+       ============================================================ */
+    .side-nav-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--color-bg-overlay);
+      z-index: 200;
+    }
+    .side-nav-overlay.open { display: block; }
+    .side-nav {
+      position: fixed;
+      top: 0; left: 0;
+      width: 240px;
+      height: 100vh;
+      height: 100dvh;
+      z-index: 201;
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur-heavy);
+      -webkit-backdrop-filter: var(--glass-blur-heavy);
+      border-right: 1px solid var(--color-border-glass);
+      display: flex;
+      flex-direction: column;
+      transition: transform var(--duration-normal) var(--ease-out);
+      overflow-y: auto;
+    }
+    .side-nav.closed { transform: translateX(-240px); }
+    .side-nav-logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-6) var(--space-5);
+      border-bottom: 1px solid var(--color-border-subtle);
+      flex-shrink: 0;
+    }
+    .side-nav-logo .logo-icon {
+      width: 36px; height: 36px;
+      border-radius: var(--radius-sm);
+      background: var(--color-brand-primary);
+      color: var(--color-text-inverse);
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      font-weight: var(--font-bold);
+    }
+    .side-nav-logo .logo-text {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: var(--font-bold);
+      color: var(--color-text-primary);
+    }
+    .side-nav-items {
+      flex: 1;
+      padding: var(--space-4) var(--space-3);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+    .side-nav-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      color: var(--color-text-secondary);
+      transition: all var(--duration-fast) var(--ease-default);
+      cursor: pointer;
+      position: relative;
+    }
+    .side-nav-item:hover {
+      background: var(--color-border-subtle);
+      color: var(--color-text-primary);
+    }
+    .side-nav-item.active {
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur-subtle);
+      color: var(--color-brand-accent);
+      font-weight: var(--font-semibold);
+      border: 1px solid var(--color-border-glass);
+    }
+    .side-nav-item .nav-icon {
+      width: 20px;
+      text-align: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .side-nav-item .nav-badge {
+      margin-left: auto;
+      padding: 1px 8px;
+      border-radius: var(--radius-full);
+      background: var(--color-brand-accent);
+      color: var(--color-text-inverse);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      min-width: 20px;
+      text-align: center;
+    }
+    .side-nav-divider {
+      height: 1px;
+      background: var(--color-border-subtle);
+      margin: var(--space-3) var(--space-4);
+    }
+    .side-nav-footer {
+      padding: var(--space-4) var(--space-3);
+      border-top: 1px solid var(--color-border-subtle);
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      flex-shrink: 0;
+    }
+    .side-nav-footer .footer-avatar {
+      width: 36px; height: 36px;
+      border-radius: var(--radius-full);
+      background: var(--color-brand-accent);
+      color: var(--color-text-inverse);
+      display: grid;
+      place-items: center;
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      flex-shrink: 0;
+    }
+    .side-nav-footer .footer-info { flex: 1; min-width: 0; }
+    .side-nav-footer .footer-name {
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .side-nav-footer .footer-role {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+    }
+    .side-nav-toggle {
+      width: 28px; height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radius-full);
+      color: var(--color-text-muted);
+      font-size: 16px;
+      transition: background var(--duration-fast);
+    }
+    .side-nav-toggle:hover { background: var(--color-border-subtle); }
+
+    /* ============================================================
+       Dashboard Layout
+       ============================================================ */
+    .dashboard-wrap {
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* Desktop: content area beside side-nav */
+    .dashboard-main {
+      flex: 1;
+      min-width: 0;
+      padding: 0 var(--space-4) var(--space-20);
+    }
+    @media (min-width: 1024px) {
+      .dashboard-main {
+        margin-left: 240px;
+        padding: 0 var(--space-8) var(--space-8);
+      }
+    }
+
+    /* ============================================================
+       Dashboard Header
+       ============================================================ */
+    .dash-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-bottom: 1px solid var(--color-border-glass);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      gap: var(--space-3);
+    }
+    @media (min-width: 1024px) {
+      .dash-header {
+        padding: var(--space-5) 0;
+        background: transparent;
+        backdrop-filter: none;
+        border-bottom: none;
+        position: static;
+      }
+    }
+    .dash-header-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .dash-hamburger {
+      width: 40px; height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radius-full);
+      color: var(--color-text-primary);
+      font-size: 20px;
+      transition: background var(--duration-fast);
+    }
+    .dash-hamburger:hover { background: var(--color-border-subtle); }
+    @media (min-width: 1024px) {
+      .dash-hamburger { display: none; }
+    }
+    .dash-title-area { }
+    .dash-greeting {
+      font-family: var(--font-display);
+      font-size: var(--text-xl);
+      font-weight: var(--font-bold);
+      color: var(--color-text-primary);
+      line-height: var(--leading-tight);
+    }
+    @media (min-width: 1024px) {
+      .dash-greeting { font-size: var(--text-2xl); }
+    }
+    .dash-subtitle {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      letter-spacing: var(--tracking-wide);
+      text-transform: uppercase;
+      font-weight: var(--font-semibold);
+    }
+    .dash-header-right {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .dash-theme-btn {
+      width: 40px; height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radius-full);
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur-subtle);
+      border: 1px solid var(--color-border-glass);
+      font-size: 18px;
+      color: var(--color-text-primary);
+      transition: all var(--duration-fast);
+    }
+    .dash-theme-btn:hover {
+      background: var(--color-bg-elevated);
+      box-shadow: var(--shadow-sm);
+    }
+    .dash-avatar-btn {
+      width: 36px; height: 36px;
+      border-radius: var(--radius-full);
+      background: var(--color-brand-accent);
+      color: var(--color-text-inverse);
+      display: grid;
+      place-items: center;
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      border: 2px solid transparent;
+      transition: border-color var(--duration-fast);
+    }
+    .dash-avatar-btn:hover { border-color: var(--color-brand-accent); }
+
+    /* ============================================================
+       Dashboard Tab Bar (desktop: inline tabs, mobile: scrollable)
+       ============================================================ */
+    .dash-tabs {
+      display: flex;
+      gap: var(--space-1);
+      padding: var(--space-4) 0;
+      border-bottom: 1px solid var(--color-border-subtle);
+      margin-bottom: var(--space-5);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .dash-tabs::-webkit-scrollbar { display: none; }
+    .dash-tab {
+      padding: var(--space-2) var(--space-5);
+      border-radius: var(--radius-full);
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      color: var(--color-text-muted);
+      background: transparent;
+      border: 1px solid transparent;
+      transition: all var(--duration-fast);
+      white-space: nowrap;
+    }
+    .dash-tab:hover {
+      color: var(--color-text-primary);
+      background: var(--color-border-subtle);
+    }
+    .dash-tab.active {
+      background: var(--color-brand-accent);
+      color: var(--color-text-inverse);
+      font-weight: var(--font-semibold);
+      box-shadow: var(--shadow-sm);
+    }
+    @media (min-width: 1024px) {
+      .dash-tabs { padding: var(--space-5) 0; margin-bottom: var(--space-6); }
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ============================================================
+       §3.4 — Bento Grid
+       4-column desktop, 1-column mobile
+       Cell sizes: bento-1x1, bento-2x1, bento-2x2, bento-full
+       ============================================================ */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-4);
+    }
+    @media (min-width: 1024px) {
+      .bento-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--space-5);
+      }
+    }
+    .bento-cell {
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur-subtle);
+      -webkit-backdrop-filter: var(--glass-blur-subtle);
+      border: 1px solid var(--color-border-glass);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      padding: var(--space-5);
+      transition: transform var(--duration-normal) var(--ease-out),
+                  box-shadow var(--duration-normal) var(--ease-out);
+    }
+    .bento-cell:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-hover);
+    }
+    /* Cell sizes — desktop only */
+    @media (min-width: 1024px) {
+      .bento-2x1 { grid-column: span 2; }
+      .bento-1x1 { grid-column: span 1; }
+      .bento-2x2 { grid-column: span 2; }
+      .bento-full { grid-column: 1 / -1; }
+    }
+    .bento-title {
+      font-family: var(--font-body);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-widest);
+      margin-bottom: var(--space-4);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .bento-title .title-badge {
+      padding: 1px 8px;
+      border-radius: var(--radius-full);
+      background: var(--color-brand-accent);
+      color: var(--color-text-inverse);
+      font-size: 10px;
+      letter-spacing: var(--tracking-normal);
+    }
+    .bento-title .title-link {
+      font-family: var(--font-body);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      color: var(--color-brand-accent);
+      text-transform: none;
+      letter-spacing: var(--tracking-normal);
+      cursor: pointer;
+    }
+    .bento-title .title-link:hover { color: var(--color-brand-accent-alt); }
+
+    /* === Bento Cell: Active Clients (2×1) === */
+    .client-stats {
+      display: flex;
+      gap: var(--space-5);
+    }
+    .client-stat-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+    .client-stat-value {
+      font-family: var(--font-display);
+      font-size: var(--text-3xl);
+      font-weight: var(--font-bold);
+      color: var(--color-text-accent);
+      line-height: var(--leading-tight);
+    }
+    .client-stat-label {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      letter-spacing: var(--tracking-wide);
+      text-transform: uppercase;
+    }
+    .client-stat-trend {
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+    .client-stat-trend.up { color: var(--color-success); }
+    .client-stat-trend.down { color: var(--color-error); }
+    .client-list-preview {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      margin-top: var(--space-3);
+    }
+    .client-list-preview .client-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-2) 0;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+    .client-list-preview .client-row:last-child { border-bottom: none; }
+    .client-list-preview .cli-ava {
+      width: 32px; height: 32px;
+      border-radius: var(--radius-full);
+      display: grid;
+      place-items: center;
+      color: var(--color-text-inverse);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      flex-shrink: 0;
+    }
+    .client-list-preview .cli-info { flex: 1; min-width: 0; }
+    .client-list-preview .cli-name {
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .client-list-preview .cli-property {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+    }
+    .client-list-preview .cli-status {
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      padding: 1px 8px;
+      border-radius: var(--radius-full);
+      flex-shrink: 0;
+    }
+
+    /* === Bento Cell: Today's Inspections (1×1) === */
+    .inspection-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .inspection-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-2) 0;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+    .inspection-item:last-child { border-bottom: none; }
+    .inspection-time {
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      color: var(--color-brand-accent);
+      background: var(--color-warning-bg);
+      padding: 2px 6px;
+      border-radius: var(--radius-xs);
+      flex-shrink: 0;
+      min-width: 48px;
+      text-align: center;
+    }
+    .inspection-info { flex: 1; min-width: 0; }
+    .inspection-address {
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .inspection-client {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+    }
+    .inspection-status {
+      width: 8px; height: 8px;
+      border-radius: var(--radius-full);
+      flex-shrink: 0;
+    }
+    .inspection-status.upcoming { background: var(--color-warning); }
+    .inspection-status.ongoing { background: var(--color-success); }
+
+    /* === Bento Cell: Unread Messages (1×1) === */
+    .msg-preview-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .msg-preview-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-2) 0;
+      border-bottom: 1px solid var(--color-border-subtle);
+      cursor: pointer;
+    }
+    .msg-preview-item:last-child { border-bottom: none; }
+    .msg-preview-item .msg-ava {
+      width: 36px; height: 36px;
+      border-radius: var(--radius-full);
+      display: grid;
+      place-items: center;
+      color: var(--color-text-inverse);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      flex-shrink: 0;
+      position: relative;
+    }
+    .msg-preview-item .msg-ava .online-dot {
+      position: absolute;
+      bottom: 0; right: 0;
+      width: 10px; height: 10px;
+      border-radius: var(--radius-full);
+      background: var(--color-success);
+      border: 2px solid var(--color-bg-elevated);
+    }
+    .msg-preview-item .msg-body { flex: 1; min-width: 0; }
+    .msg-preview-item .msg-name {
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+    }
+    .msg-preview-item .msg-snippet {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .msg-preview-item .msg-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .msg-preview-item .msg-time {
+      font-size: 10px;
+      color: var(--color-text-muted);
+    }
+    .msg-preview-item .msg-unread {
+      width: 18px; height: 18px;
+      border-radius: var(--radius-full);
+      background: var(--color-brand-accent);
+      color: var(--color-text-inverse);
+      font-size: 9px;
+      font-weight: var(--font-bold);
+      display: grid;
+      place-items: center;
+    }
+    .msg-see-all {
+      display: block;
+      text-align: center;
+      padding: var(--space-2);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      color: var(--color-brand-accent);
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: background var(--duration-fast);
+    }
+    .msg-see-all:hover { background: var(--color-border-subtle); }
+
+    /* === Bento Cell: Listing Performance Chart (2×2) === */
+    .chart-container {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      display: flex;
+      align-items: flex-end;
+      gap: var(--space-2);
+      padding-top: var(--space-4);
+    }
+    .chart-bar-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-1);
+      height: 100%;
+      justify-content: flex-end;
+    }
+    .chart-bar {
+      width: 100%;
+      max-width: 40px;
+      border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+      transition: height var(--duration-slow) var(--ease-smooth);
+      min-height: 4px;
+      position: relative;
+    }
+    .chart-bar.views { background: var(--color-brand-primary); opacity: 0.6; }
+    .chart-bar.inquiries { background: var(--color-brand-accent); opacity: 0.8; }
+    .chart-bar-label {
+      font-size: 9px;
+      color: var(--color-text-muted);
+      text-align: center;
+    }
+    .chart-legend {
+      display: flex;
+      gap: var(--space-5);
+      padding: var(--space-3) 0 0;
+      justify-content: center;
+    }
+    .chart-legend-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+    }
+    .chart-legend-dot {
+      width: 8px; height: 8px;
+      border-radius: var(--radius-full);
+    }
+    .chart-legend-dot.views { background: var(--color-brand-primary); opacity: 0.6; }
+    .chart-legend-dot.inquiries { background: var(--color-brand-accent); }
+
+    /* === Bento Cell: Recent Activity Feed (2×2) === */
+    .activity-feed {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .activity-item {
+      display: flex;
+      gap: var(--space-3);
+      padding: var(--space-3) 0;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-icon {
+      width: 36px; height: 36px;
+      border-radius: var(--radius-full);
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+      flex-shrink: 0;
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur-subtle);
+      border: 1px solid var(--color-border-glass);
+    }
+    .activity-body { flex: 1; min-width: 0; }
+    .activity-text {
+      font-size: var(--text-sm);
+      color: var(--color-text-primary);
+    }
+    .activity-text strong { font-weight: var(--font-semibold); }
+    .activity-time {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      margin-top: 2px;
+    }
+
+    /* === Bento Cell: Commission Tracker (2×1) === */
+    .commission-display {
+      display: flex;
+      align-items: center;
+      gap: var(--space-6);
+    }
+    .commission-total {
+      flex-shrink: 0;
+    }
+    .commission-amount {
+      font-family: var(--font-display);
+      font-size: var(--text-3xl);
+      font-weight: var(--font-bold);
+      color: var(--color-text-accent);
+      line-height: var(--leading-tight);
+    }
+    .commission-label {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-wide);
+    }
+    .commission-breakdown {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .commission-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: var(--text-sm);
+    }
+    .commission-row .com-prop {
+      color: var(--color-text-secondary);
+    }
+    .commission-row .com-amt {
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+    }
+    .commission-bar {
+      width: 100%;
+      height: 6px;
+      border-radius: var(--radius-full);
+      background: var(--color-border-subtle);
+      overflow: hidden;
+      margin-top: var(--space-2);
+    }
+    .commission-bar-fill {
+      height: 100%;
+      border-radius: var(--radius-full);
+      background: var(--color-brand-accent);
+      transition: width var(--duration-slow) var(--ease-smooth);
+    }
+
+    /* === Bento Cell: Lead Funnel (2×1) === */
+    .funnel-stages {
+      display: flex;
+      gap: var(--space-3);
+    }
+    .funnel-stage {
+      flex: 1;
+      text-align: center;
+      padding: var(--space-3) var(--space-2);
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur-subtle);
+      border: 1px solid var(--color-border-glass);
+      border-radius: var(--radius-md);
+    }
+    .funnel-stage .funnel-count {
+      font-family: var(--font-display);
+      font-size: var(--text-xl);
+      font-weight: var(--font-bold);
+      color: var(--color-text-accent);
+    }
+    .funnel-stage .funnel-label {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      margin-top: var(--space-1);
+      letter-spacing: var(--tracking-wide);
+      text-transform: uppercase;
+    }
+    .funnel-stage .funnel-arrow {
+      font-size: 14px;
+      color: var(--color-text-muted);
+      margin-top: var(--space-1);
+    }
+
+    /* === Bento Cell: Quick Actions (full width) === */
+    .quick-actions-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-3);
+    }
+    @media (min-width: 1024px) {
+      .quick-actions-row {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+    .quick-action-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      padding: var(--space-4) var(--space-3);
+      border-radius: var(--radius-md);
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur-subtle);
+      border: 1px solid var(--color-border-glass);
+      color: var(--color-text-primary);
+      transition: all var(--duration-fast) var(--ease-default);
+      cursor: pointer;
+      text-align: center;
+    }
+    .quick-action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+      background: var(--color-bg-elevated);
+    }
+    .quick-action-btn .qa-icon {
+      width: 40px; height: 40px;
+      border-radius: var(--radius-full);
+      background: var(--color-brand-primary);
+      color: var(--color-text-inverse);
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+    }
+    .quick-action-btn .qa-label {
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-secondary);
+    }
+
+    /* ============================================================
+       §4.4 — CRM Tab: Data Table
+       ============================================================ */
+    .crm-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+      flex-wrap: wrap;
+    }
+    .crm-search {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur-subtle);
+      border: 1px solid var(--color-border-glass);
+      border-radius: var(--radius-full);
+      flex: 1;
+      max-width: 320px;
+    }
+    .crm-search input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-size: var(--text-sm);
+      color: var(--color-text-primary);
+    }
+    .crm-search input::placeholder { color: var(--color-text-muted); }
+    .crm-filter-btn {
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-full);
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur-subtle);
+      border: 1px solid var(--color-border-glass);
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      transition: background var(--duration-fast);
+    }
+    .crm-filter-btn:hover { background: var(--color-bg-elevated); }
+    .crm-table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border-subtle);
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur-subtle);
+    }
+    .crm-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+    }
+    .crm-table th {
+      text-align: left;
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-wider);
+      border-bottom: 1px solid var(--color-border-subtle);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    .crm-table th:hover { color: var(--color-text-primary); }
+    .crm-table th .sort-indicator {
+      margin-left: var(--space-1);
+      opacity: 0.5;
+    }
+    .crm-table td {
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--color-border-subtle);
+      vertical-align: middle;
+    }
+    .crm-table tr:last-child td { border-bottom: none; }
+    .crm-table tr:hover td { background: var(--color-border-subtle); }
+    .crm-table .cell-client {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .crm-table .cell-client .cli-avatar {
+      width: 36px; height: 36px;
+      border-radius: var(--radius-full);
+      display: grid;
+      place-items: center;
+      color: var(--color-text-inverse);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      flex-shrink: 0;
+    }
+    .crm-table .cell-client .cli-name {
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+      white-space: nowrap;
+    }
+    .crm-table .cell-client .cli-phone {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+    }
+    .crm-table .cell-status .status-pill {
+      display: inline-flex;
+      padding: 2px 10px;
+      border-radius: var(--radius-full);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+    }
+    .crm-table .cell-property {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .crm-table .cell-property .prop-thumb {
+      width: 48px;
+      aspect-ratio: 16 / 9;
+      border-radius: var(--radius-xs);
+      background: var(--color-border-subtle);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .crm-table .cell-property .prop-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .crm-table .cell-property .prop-addr {
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .crm-table .cell-more {
+      text-align: center;
+    }
+    .crm-table .cell-more button {
+      width: 32px; height: 32px;
+      border-radius: var(--radius-full);
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      color: var(--color-text-muted);
+      transition: background var(--duration-fast);
+    }
+    .crm-table .cell-more button:hover {
+      background: var(--color-border-subtle);
+    }
+
+    /* ============================================================
+       §3.7 & Bottom Tab Bar (Mobile)
+       ============================================================ */
+    .bottom-tabs {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      height: 80px;
+      height: calc(80px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur-heavy);
+      -webkit-backdrop-filter: var(--glass-blur-heavy);
+      border-top: 1px solid var(--color-border-glass);
+    }
+    @media (min-width: 1024px) {
+      .bottom-tabs { display: none; }
+    }
+    .bottom-tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-md);
+      font-size: 10px;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      transition: color var(--duration-fast);
+      background: none;
+      border: none;
+      min-width: 48px;
+    }
+    .bottom-tab-item .tab-icon {
+      font-size: 20px;
+      line-height: 1;
+    }
+    .bottom-tab-item.active { color: var(--color-brand-accent); }
+    .bottom-tab-item .tab-label { font-size: 9px; font-weight: var(--font-semibold); letter-spacing: 0.03em; }
+    .bottom-tab-item.fab-tab {
+      position: relative;
+    }
+    .bottom-tab-item.fab-tab .fab-btn {
+      width: 56px; height: 56px;
+      border-radius: var(--radius-full);
+      background: var(--color-brand-accent);
+      color: var(--color-text-inverse);
+      font-size: 24px;
+      border: none;
+      display: grid;
+      place-items: center;
+      box-shadow: var(--shadow-xl);
+      margin-top: -20px;
+      transition: transform var(--duration-fast) var(--ease-spring);
+    }
+    .bottom-tab-item.fab-tab .fab-btn:hover { transform: scale(1.05); }
+
+    /* ============================================================
+       Responsive helpers
+       ============================================================ */
+    @media (max-width: 1023px) {
+      .hide-mobile { display: none !important; }
+    }
+    @media (min-width: 1024px) {
+      .hide-desktop { display: none !important; }
+    }
+
+    /* ============================================================
+       Skeleton shimmer animation
+       §2.6: linear gradient sweep, 1.5s infinite
+       ============================================================ */
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, var(--color-border-subtle) 25%, var(--color-border-default) 50%, var(--color-border-subtle) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius-xs);
+    }
+    .skeleton-text {
+      height: 14px;
+      width: 80%;
+      margin-bottom: var(--space-2);
+    }
+    .skeleton-text.w60 { width: 60%; }
+    .skeleton-text.w40 { width: 40%; }
+
+    /* ============================================================
+       Loading spinner (for button loading state)
+       ============================================================ */
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid var(--color-border-subtle);
+      border-top-color: currentColor;
+      border-radius: var(--radius-full);
+      animation: spin 0.6s linear infinite;
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <a href="#main-content" class="skip-link">Skip to dashboard content</a>
+
+  <!-- §3.2 Side Navigation Overlay (mobile) -->
+  <div class="side-nav-overlay" id="sideNavOverlay" onclick="toggleSideNav()"></div>
+
+  <!-- §3.2 Side Navigation — Desktop expanded 240px -->
+  <nav class="side-nav closed" id="sideNav" aria-label="Dashboard navigation">
+    <div class="side-nav-logo">
+      <div class="logo-icon">Hw</div>
+      <span class="logo-text">Homewolves</span>
+    </div>
+    <div class="side-nav-items">
+      <!-- Dashboard — active -->
+      <a class="side-nav-item active" href="#" data-nav="dashboard">
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+      </a>
+      <a class="side-nav-item" href="#" data-nav="listings">
+        <span class="nav-icon">🏠</span>
+        <span>Listings</span>
+        <span class="nav-badge">12</span>
+      </a>
+      <a class="side-nav-item" href="#" data-nav="clients">
+        <span class="nav-icon">👥</span>
+        <span>Clients</span>
+      </a>
+      <a class="side-nav-item" href="#" data-nav="transactions">
+        <span class="nav-icon">📄</span>
+        <span>Transactions</span>
+      </a>
+      <a class="side-nav-item" href="#" data-nav="analytics">
+        <span class="nav-icon">📈</span>
+        <span>Analytics</span>
+      </a>
+      <a class="side-nav-item" href="#" data-nav="messages">
+        <span class="nav-icon">💬</span>
+        <span>Messages</span>
+        <span class="nav-badge">5</span>
+      </a>
+      <div class="side-nav-divider"></div>
+      <a class="side-nav-item" href="#" data-nav="settings">
+        <span class="nav-icon">⚙️</span>
+        <span>Settings</span>
+      </a>
+      <a class="side-nav-item" href="#" data-nav="help">
+        <span class="nav-icon">❓</span>
+        <span>Help</span>
+      </a>
+    </div>
+    <!-- §3.2 Side Nav Footer — avatar + name -->
+    <div class="side-nav-footer">
+      <div class="footer-avatar">{{agent_initials}}</div>
+      <div class="footer-info">
+        <div class="footer-name">{{agent_name}}</div>
+        <div class="footer-role">{{agent_role}}</div>
+      </div>
+      <button class="side-nav-toggle" onclick="toggleSideNav()" aria-label="Collapse sidebar">◀</button>
+    </div>
+  </nav>
+
+  <!-- === Dashboard Main Content === -->
+  <div class="dashboard-wrap">
+    <main class="dashboard-main" id="main-content">
+
+      <!-- Dashboard Header -->
+      <header class="dash-header">
+        <div class="dash-header-left">
+          <button class="dash-hamburger" onclick="toggleSideNav()" aria-label="Open navigation menu">☰</button>
+          <div class="dash-title-area">
+            <h1 class="dash-greeting">{{agent_greeting}}</h1>
+            <span class="dash-subtitle">{{dash_subtitle}}</span>
+          </div>
+        </div>
+        <div class="dash-header-right">
+          <button class="dash-theme-btn" onclick="toggleTheme()" aria-label="Toggle theme" id="themeToggle">🌙</button>
+          <button class="dash-avatar-btn hide-mobile" aria-label="Profile">{{agent_initials}}</button>
+        </div>
+      </header>
+
+      <!-- Tab Bar: Dashboard | CRM -->
+      <div class="dash-tabs" role="tablist">
+        <button class="dash-tab active" role="tab" aria-selected="true" data-tab="overview" onclick="switchTab('overview')">{{tab_dashboard}}</button>
+        <button class="dash-tab" role="tab" aria-selected="false" data-tab="crm" onclick="switchTab('crm')">{{tab_crm}}</button>
+      </div>
+
+      <!-- ============================================================
+           Tab 1: Dashboard Overview — Bento Grid (§4.4)
+           ============================================================ -->
+      <div class="tab-panel active" id="panel-overview">
+        <div class="bento-grid">
+
+          <!-- §4.4 Row 1: [Active Clients 2×1] [Inspections 1×1] [Messages 1×1] -->
+          <!-- §3.4 BentoCell 2x1 — Active Clients -->
+          <div class="bento-cell bento-2x1">
+            <div class="bento-title">
+              {{clients_title}}
+              <span class="title-link">{{view_all_link}}</span>
+            </div>
+            <div class="client-stats">
+              <div class="client-stat-group">
+                <div class="client-stat-value">{{active_clients_count}}</div>
+                <div class="client-stat-label">{{active_clients_label}}</div>
+                <div class="client-stat-trend up">↑ {{client_growth}}%</div>
+              </div>
+              <div class="client-stat-group">
+                <div class="client-stat-value">{{new_clients_this_month}}</div>
+                <div class="client-stat-label">{{new_clients_label}}</div>
+                <div class="client-stat-trend up">↑ {{new_growth}}%</div>
+              </div>
+              <div class="client-stat-group">
+                <div class="client-stat-value">{{pending_clients}}</div>
+                <div class="client-stat-label">{{pending_label}}</div>
+                <div class="client-stat-trend down">↓ {{pending_change}}%</div>
+              </div>
+            </div>
+            <div class="client-list-preview">
+              <div class="client-row">
+                <div class="cli-ava" style="background:#2D6A9F;">AO</div>
+                <div class="cli-info">
+                  <div class="cli-name">{{client_1_name}}</div>
+                  <div class="cli-property">{{client_1_property}}</div>
+                </div>
+                <span class="cli-status" style="background:#E8F7EE;color:#1A7A4A;">{{status_active}}</span>
+              </div>
+              <div class="client-row">
+                <div class="cli-ava" style="background:#C8813A;">TM</div>
+                <div class="cli-info">
+                  <div class="cli-name">{{client_2_name}}</div>
+                  <div class="cli-property">{{client_2_property}}</div>
+                </div>
+                <span class="cli-status" style="background:#FEF3C7;color:#B45309;">{{status_pending}}</span>
+              </div>
+              <div class="client-row">
+                <div class="cli-ava" style="background:#1A3A5C;">EK</div>
+                <div class="cli-info">
+                  <div class="cli-name">{{client_3_name}}</div>
+                  <div class="cli-property">{{client_3_property}}</div>
+                </div>
+                <span class="cli-status" style="background:#DBEAFE;color:#1D4ED8;">{{status_doc}}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- §3.4 BentoCell 1x1 — Today's Inspections -->
+          <div class="bento-cell bento-1x1">
+            <div class="bento-title">
+              {{inspections_title}}
+              <span class="title-badge">{{today_count}}</span>
+            </div>
+            <div class="inspection-list">
+              <div class="inspection-item">
+                <span class="inspection-time">10:00</span>
+                <div class="inspection-info">
+                  <div class="inspection-address">{{inspect_1_address}}</div>
+                  <div class="inspection-client">{{inspect_1_client}}</div>
+                </div>
+                <span class="inspection-status upcoming"></span>
+              </div>
+              <div class="inspection-item">
+                <span class="inspection-time">14:30</span>
+                <div class="inspection-info">
+                  <div class="inspection-address">{{inspect_2_address}}</div>
+                  <div class="inspection-client">{{inspect_2_client}}</div>
+                </div>
+                <span class="inspection-status upcoming"></span>
+              </div>
+              <div class="inspection-item">
+                <span class="inspection-time" style="background:#D1FAE5;color:#065F46;">Now</span>
+                <div class="inspection-info">
+                  <div class="inspection-address">{{inspect_3_address}}</div>
+                  <div class="inspection-client">{{inspect_3_client}}</div>
+                </div>
+                <span class="inspection-status ongoing"></span>
+              </div>
+            </div>
+            <div class="msg-see-all">{{schedule_new_link}}</div>
+          </div>
+
+          <!-- §3.4 BentoCell 1x1 — Unread Messages -->
+          <div class="bento-cell bento-1x1">
+            <div class="bento-title">
+              {{messages_title}}
+              <span class="title-badge">{{unread_count}}</span>
+            </div>
+            <div class="msg-preview-list">
+              <div class="msg-preview-item">
+                <div class="msg-ava" style="background:#2D6A9F;">
+                  CO
+                  <span class="online-dot"></span>
+                </div>
+                <div class="msg-body">
+                  <div class="msg-name">{{msg_1_name}}</div>
+                  <div class="msg-snippet">{{msg_1_snippet}}</div>
+                </div>
+                <div class="msg-meta">
+                  <span class="msg-time">{{msg_1_time}}</span>
+                  <span class="msg-unread">2</span>
+                </div>
+              </div>
+              <div class="msg-preview-item">
+                <div class="msg-ava" style="background:#C8813A;">AO</div>
+                <div class="msg-body">
+                  <div class="msg-name">{{msg_2_name}}</div>
+                  <div class="msg-snippet">{{msg_2_snippet}}</div>
+                </div>
+                <div class="msg-meta">
+                  <span class="msg-time">{{msg_2_time}}</span>
+                  <span class="msg-unread">1</span>
+                </div>
+              </div>
+              <div class="msg-preview-item">
+                <div class="msg-ava" style="background:#1A3A5C;">
+                  EK
+                  <span class="online-dot"></span>
+                </div>
+                <div class="msg-body">
+                  <div class="msg-name">{{msg_3_name}}</div>
+                  <div class="msg-snippet">{{msg_3_snippet}}</div>
+                </div>
+                <div class="msg-meta">
+                  <span class="msg-time">{{msg_3_time}}</span>
+                </div>
+              </div>
+            </div>
+            <div class="msg-see-all">{{view_all_messages}}</div>
+          </div>
+
+          <!-- §4.4 Row 2: [Listing Performance Chart 2×2] [Recent Activity 2×2] -->
+          <!-- §3.4 BentoCell 2x2 — Listing Performance Chart -->
+          <div class="bento-cell bento-2x2">
+            <div class="bento-title">
+              {{performance_title}}
+              <span class="title-link">{{view_full_link}}</span>
+            </div>
+            <div class="chart-container" id="perfChart">
+              <div class="chart-bar-group">
+                <div class="chart-bar views" style="height:45%"></div>
+                <div class="chart-bar inquiries" style="height:30%"></div>
+                <span class="chart-bar-label">{{chart_jan}}</span>
+              </div>
+              <div class="chart-bar-group">
+                <div class="chart-bar views" style="height:55%"></div>
+                <div class="chart-bar inquiries" style="height:35%"></div>
+                <span class="chart-bar-label">{{chart_feb}}</span>
+              </div>
+              <div class="chart-bar-group">
+                <div class="chart-bar views" style="height:40%"></div>
+                <div class="chart-bar inquiries" style="height:25%"></div>
+                <span class="chart-bar-label">{{chart_mar}}</span>
+              </div>
+              <div class="chart-bar-group">
+                <div class="chart-bar views" style="height:60%"></div>
+                <div class="chart-bar inquiries" style="height:40%"></div>
+                <span class="chart-bar-label">{{chart_apr}}</span>
+              </div>
+              <div class="chart-bar-group">
+                <div class="chart-bar views" style="height:70%"></div>
+                <div class="chart-bar inquiries" style="height:50%"></div>
+                <span class="chart-bar-label">{{chart_may}}</span>
+              </div>
+              <div class="chart-bar-group">
+                <div class="chart-bar views" style="height:65%"></div>
+                <div class="chart-bar inquiries" style="height:55%"></div>
+                <span class="chart-bar-label">{{chart_jun}}</span>
+              </div>
+              <div class="chart-bar-group">
+                <div class="chart-bar views" style="height:80%"></div>
+                <div class="chart-bar inquiries" style="height:60%"></div>
+                <span class="chart-bar-label">{{chart_jul}}</span>
+              </div>
+            </div>
+            <div class="chart-legend">
+              <div class="chart-legend-item">
+                <span class="chart-legend-dot views"></span>
+                {{legend_views}}
+              </div>
+              <div class="chart-legend-item">
+                <span class="chart-legend-dot inquiries"></span>
+                {{legend_inquiries}}
+              </div>
+            </div>
+          </div>
+
+          <!-- §3.4 BentoCell 2x2 — Recent Activity Feed -->
+          <div class="bento-cell bento-2x2">
+            <div class="bento-title">
+              {{activity_title}}
+              <span class="title-link">{{view_all_link}}</span>
+            </div>
+            <div class="activity-feed">
+              <div class="activity-item">
+                <div class="activity-icon">📋</div>
+                <div class="activity-body">
+                  <div class="activity-text"><strong>{{activity_1_title}}</strong> {{activity_1_desc}}</div>
+                  <div class="activity-time">{{activity_1_time}}</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-icon">📞</div>
+                <div class="activity-body">
+                  <div class="activity-text"><strong>{{activity_2_title}}</strong> {{activity_2_desc}}</div>
+                  <div class="activity-time">{{activity_2_time}}</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-icon">💰</div>
+                <div class="activity-body">
+                  <div class="activity-text"><strong>{{activity_3_title}}</strong> {{activity_3_desc}}</div>
+                  <div class="activity-time">{{activity_3_time}}</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-icon">🏠</div>
+                <div class="activity-body">
+                  <div class="activity-text"><strong>{{activity_4_title}}</strong> {{activity_4_desc}}</div>
+                  <div class="activity-time">{{activity_4_time}}</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-icon">✓</div>
+                <div class="activity-body">
+                  <div class="activity-text"><strong>{{activity_5_title}}</strong> {{activity_5_desc}}</div>
+                  <div class="activity-time">{{activity_5_time}}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- §4.4 Row 3: [Commission Tracker 2×1] [Lead Funnel 2×1] -->
+          <!-- §3.4 BentoCell 2x1 — Commission Tracker -->
+          <div class="bento-cell bento-2x1">
+            <div class="bento-title">
+              {{commission_title}}
+              <span class="title-link">{{view_breakdown}}</span>
+            </div>
+            <div class="commission-display">
+              <div class="commission-total">
+                <div class="commission-amount">{{commission_total}}</div>
+                <div class="commission-label">{{commission_period}}</div>
+              </div>
+              <div class="commission-breakdown">
+                <div class="commission-row">
+                  <span class="com-prop">{{commission_prop_1}}</span>
+                  <span class="com-amt">{{commission_amt_1}}</span>
+                </div>
+                <div class="commission-row">
+                  <span class="com-prop">{{commission_prop_2}}</span>
+                  <span class="com-amt">{{commission_amt_2}}</span>
+                </div>
+                <div class="commission-row">
+                  <span class="com-prop">{{commission_prop_3}}</span>
+                  <span class="com-amt">{{commission_amt_3}}</span>
+                </div>
+                <div class="commission-bar">
+                  <div class="commission-bar-fill" style="width:65%"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:var(--text-xs);color:var(--color-text-muted);">
+                  <span>{{progress_label}}</span>
+                  <span>{{progress_percent}}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- §3.4 BentoCell 2x1 — Lead Funnel -->
+          <div class="bento-cell bento-2x1">
+            <div class="bento-title">
+              {{funnel_title}}
+              <span class="title-link">{{view_funnel}}</span>
+            </div>
+            <div class="funnel-stages">
+              <div class="funnel-stage">
+                <div class="funnel-count">{{funnel_leads}}</div>
+                <div class="funnel-label">{{funnel_leads_label}}</div>
+                <div class="funnel-arrow">→</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-count">{{funnel_contacted}}</div>
+                <div class="funnel-label">{{funnel_contacted_label}}</div>
+                <div class="funnel-arrow">→</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-count">{{funnel_viewings}}</div>
+                <div class="funnel-label">{{funnel_viewings_label}}</div>
+                <div class="funnel-arrow">→</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-count">{{funnel_offers}}</div>
+                <div class="funnel-label">{{funnel_offers_label}}</div>
+                <div class="funnel-arrow">→</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-count">{{funnel_closed}}</div>
+                <div class="funnel-label">{{funnel_closed_label}}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- §4.4 Row 4: Quick Actions (full width) -->
+          <!-- §3.4 BentoCell full — Quick Actions Row -->
+          <div class="bento-cell bento-full">
+            <div class="bento-title">
+              {{quick_actions_title}}
+            </div>
+            <div class="quick-actions-row">
+              <button class="quick-action-btn" data-state="default">
+                <div class="qa-icon">＋</div>
+                <span class="qa-label">{{qa_new_listing}}</span>
+              </button>
+              <button class="quick-action-btn" data-state="default">
+                <div class="qa-icon" style="background:var(--color-brand-secondary);">📅</div>
+                <span class="qa-label">{{qa_inspection}}</span>
+              </button>
+              <button class="quick-action-btn" data-state="default">
+                <div class="qa-icon" style="background:var(--color-brand-accent);">🔗</div>
+                <span class="qa-label">{{qa_referral}}</span>
+              </button>
+              <button class="quick-action-btn" data-state="default">
+                <div class="qa-icon" style="background:var(--color-success);">📊</div>
+                <span class="qa-label">{{qa_analytics}}</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ============================================================
+           Tab 2: CRM — Data Table (§4.4)
+           ============================================================ -->
+      <div class="tab-panel" id="panel-crm">
+        <div class="crm-toolbar">
+          <div class="crm-search">
+            <span style="color:var(--color-text-muted);font-size:14px;">🔍</span>
+            <input type="text" placeholder="{{search_placeholder}}" />
+          </div>
+          <button class="crm-filter-btn">
+            <span>▼</span>
+            {{filter_label}}
+          </button>
+        </div>
+        <div class="crm-table-wrap">
+          <table class="crm-table">
+            <thead>
+              <tr>
+                <th onclick="sortTable(0)">{{th_client}} <span class="sort-indicator">↕</span></th>
+                <th onclick="sortTable(1)">{{th_status}} <span class="sort-indicator">↕</span></th>
+                <th onclick="sortTable(2)">{{th_last_activity}} <span class="sort-indicator">↕</span></th>
+                <th onclick="sortTable(3)">{{th_next_action}} <span class="sort-indicator">↕</span></th>
+                <th onclick="sortTable(4)">{{th_property}} <span class="sort-indicator">↕</span></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="crmBody">
+              <tr>
+                <td>
+                  <div class="cell-client">
+                    <div class="cli-avatar" style="background:#2D6A9F;">CO</div>
+                    <div>
+                      <div class="cli-name">{{row_1_name}}</div>
+                      <div class="cli-phone">{{row_1_phone}}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-status"><span class="status-pill" style="background:#E8F7EE;color:#1A7A4A;">{{status_active}}</span></td>
+                <td style="font-size:var(--text-xs);color:var(--color-text-muted);">{{row_1_last}}</td>
+                <td style="font-size:var(--text-sm);">{{row_1_next}}</td>
+                <td>
+                  <div class="cell-property">
+                    <div class="prop-thumb"><img src="" alt="{{prop_thumbnail_alt}}" /></div>
+                    <span class="prop-addr">{{row_1_property}}</span>
+                  </div>
+                </td>
+                <td class="cell-more">
+                  <button aria-label="{{more_actions_label}}">⋮</button>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="cell-client">
+                    <div class="cli-avatar" style="background:#C8813A;">TM</div>
+                    <div>
+                      <div class="cli-name">{{row_2_name}}</div>
+                      <div class="cli-phone">{{row_2_phone}}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-status"><span class="status-pill" style="background:#FEF3C7;color:#B45309;">{{status_pending}}</span></td>
+                <td style="font-size:var(--text-xs);color:var(--color-text-muted);">{{row_2_last}}</td>
+                <td style="font-size:var(--text-sm);">{{row_2_next}}</td>
+                <td>
+                  <div class="cell-property">
+                    <div class="prop-thumb"><img src="" alt="{{prop_thumbnail_alt}}" /></div>
+                    <span class="prop-addr">{{row_2_property}}</span>
+                  </div>
+                </td>
+                <td class="cell-more"><button aria-label="{{more_actions_label}}">⋮</button></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="cell-client">
+                    <div class="cli-avatar" style="background:#1A3A5C;">EK</div>
+                    <div>
+                      <div class="cli-name">{{row_3_name}}</div>
+                      <div class="cli-phone">{{row_3_phone}}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-status"><span class="status-pill" style="background:#DBEAFE;color:#1D4ED8;">{{status_doc}}</span></td>
+                <td style="font-size:var(--text-xs);color:var(--color-text-muted);">{{row_3_last}}</td>
+                <td style="font-size:var(--text-sm);">{{row_3_next}}</td>
+                <td>
+                  <div class="cell-property">
+                    <div class="prop-thumb"><img src="" alt="{{prop_thumbnail_alt}}" /></div>
+                    <span class="prop-addr">{{row_3_property}}</span>
+                  </div>
+                </td>
+                <td class="cell-more"><button aria-label="{{more_actions_label}}">⋮</button></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="cell-client">
+                    <div class="cli-avatar" style="background:#059669;">FN</div>
+                    <div>
+                      <div class="cli-name">{{row_4_name}}</div>
+                      <div class="cli-phone">{{row_4_phone}}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-status"><span class="status-pill" style="background:#E8F7EE;color:#1A7A4A;">{{status_active}}</span></td>
+                <td style="font-size:var(--text-xs);color:var(--color-text-muted);">{{row_4_last}}</td>
+                <td style="font-size:var(--text-sm);">{{row_4_next}}</td>
+                <td>
+                  <div class="cell-property">
+                    <div class="prop-thumb"><img src="" alt="{{prop_thumbnail_alt}}" /></div>
+                    <span class="prop-addr">{{row_4_property}}</span>
+                  </div>
+                </td>
+                <td class="cell-more"><button aria-label="{{more_actions_label}}">⋮</button></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="cell-client">
+                    <div class="cli-avatar" style="background:#6B21A8;">OS</div>
+                    <div>
+                      <div class="cli-name">{{row_5_name}}</div>
+                      <div class="cli-phone">{{row_5_phone}}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-status"><span class="status-pill" style="background:#FEE2E2;color:#991B1B;">{{status_rejected}}</span></td>
+                <td style="font-size:var(--text-xs);color:var(--color-text-muted);">{{row_5_last}}</td>
+                <td style="font-size:var(--text-sm);">{{row_5_next}}</td>
+                <td>
+                  <div class="cell-property">
+                    <div class="prop-thumb"><img src="" alt="{{prop_thumbnail_alt}}" /></div>
+                    <span class="prop-addr">{{row_5_property}}</span>
+                  </div>
+                </td>
+                <td class="cell-more"><button aria-label="{{more_actions_label}}">⋮</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- §3.7 FAB — Post Property (mobile only) -->
+  <button class="dash-theme-btn hide-desktop" style="position:fixed;bottom:96px;right:var(--space-4);z-index:90;width:56px;height:56px;background:var(--color-brand-accent);color:var(--color-text-inverse);font-size:24px;box-shadow:var(--shadow-xl);border:none;border-radius:var(--radius-full);" aria-label="{{fab_label}}">
+    ＋
+  </button>
+
+  <!-- §3.2 Bottom Tab Bar (mobile) -->
+  <nav class="bottom-tabs" aria-label="Mobile navigation">
+    <button class="bottom-tab-item active">
+      <span class="tab-icon">🏠</span>
+      <span class="tab-label">{{tab_explore}}</span>
+    </button>
+    <button class="bottom-tab-item">
+      <span class="tab-icon">🔍</span>
+      <span class="tab-label">{{tab_search}}</span>
+    </button>
+    <button class="bottom-tab-item fab-tab">
+      <span class="fab-btn">＋</span>
+    </button>
+    <button class="bottom-tab-item">
+      <span class="tab-icon">💬</span>
+      <span class="tab-label">{{tab_chat}}</span>
+    </button>
+    <button class="bottom-tab-item">
+      <span class="tab-icon">👤</span>
+      <span class="tab-label">{{tab_profile}}</span>
+    </button>
+  </nav>
+
+  <script>
+    /* ============================================================
+       Theme toggle — persists to localStorage
+       ============================================================ */
+    function toggleTheme() {
+      var el = document.body;
+      var cur = el.getAttribute('data-theme');
+      var next = cur === 'dark' ? 'light' : 'dark';
+      el.setAttribute('data-theme', next);
+      document.getElementById('themeToggle').textContent = next === 'dark' ? '☀️' : '🌙';
+      try { localStorage.setItem('hw-theme', next); } catch (_) {}
+    }
+
+    (function () {
+      try {
+        var saved = localStorage.getItem('hw-theme');
+        if (saved === 'dark' || saved === 'light') {
+          document.body.setAttribute('data-theme', saved);
+          document.getElementById('themeToggle').textContent = saved === 'dark' ? '☀️' : '🌙';
+        }
+      } catch (_) {}
+    })();
+
+    /* ============================================================
+       Side nav toggle
+       ============================================================ */
+    function toggleSideNav() {
+      var nav = document.getElementById('sideNav');
+      var overlay = document.getElementById('sideNavOverlay');
+      var isOpen = !nav.classList.contains('closed');
+      nav.classList.toggle('closed', isOpen);
+      overlay.classList.toggle('open', !isOpen);
+    }
+
+    /* ============================================================
+       Tab switching (Dashboard / CRM)
+       ============================================================ */
+    function switchTab(tabId) {
+      document.querySelectorAll('.dash-tab').forEach(function (t) {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      document.querySelectorAll('.tab-panel').forEach(function (p) {
+        p.classList.remove('active');
+      });
+      document.querySelector('.dash-tab[data-tab="' + tabId + '"]').classList.add('active');
+      document.querySelector('.dash-tab[data-tab="' + tabId + '"]').setAttribute('aria-selected', 'true');
+      document.getElementById('panel-' + tabId).classList.add('active');
+    }
+
+    /* ============================================================
+       CRM table — simple sort by column
+       ============================================================ */
+    var sortAsc = {};
+    function sortTable(colIdx) {
+      var tbody = document.getElementById('crmBody');
+      var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+      var asc = sortAsc[colIdx] !== true;
+      sortAsc[colIdx] = asc;
+      rows.sort(function (a, b) {
+        var aVal = a.cells[colIdx] ? a.cells[colIdx].textContent.trim() : '';
+        var bVal = b.cells[colIdx] ? b.cells[colIdx].textContent.trim() : '';
+        // Try numeric sort
+        var aNum = parseFloat(aVal.replace(/[^0-9.-]/g, ''));
+        var bNum = parseFloat(bVal.replace(/[^0-9.-]/g, ''));
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+          return asc ? aNum - bNum : bNum - aNum;
+        }
+        return asc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      });
+      rows.forEach(function (r) { tbody.appendChild(r); });
+      // Update sort indicators
+      document.querySelectorAll('.crm-table th .sort-indicator').forEach(function (el) {
+        el.textContent = '↕';
+      });
+      if (colIdx < document.querySelectorAll('.crm-table th').length) {
+        document.querySelectorAll('.crm-table th')[colIdx].querySelector('.sort-indicator').textContent = asc ? '↑' : '↓';
+      }
+    }
+  </script>
+</body>
+</html>

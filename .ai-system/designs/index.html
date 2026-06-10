@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="hw-route" content="design-system">
+  <meta name="hw-component" content="DesignSystemOverview">
+  <title>Homewolves Design System</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #F7F6F3;
+      color: #0F1117;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 48px 24px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { max-width: 720px; margin: 0 auto; text-align: center; }
+    h1 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: 2.5rem;
+      color: #1A3A5C;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: #8A9BB0;
+      margin-bottom: 48px;
+      font-size: 0.875rem;
+    }
+    .cards {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 32px 24px;
+      text-decoration: none;
+      color: inherit;
+      border: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 2px 12px rgba(26,58,92,0.08);
+      transition: all 250ms ease;
+    }
+    .card:hover {
+      box-shadow: 0 8px 32px rgba(26,58,92,0.16);
+      transform: translateY(-4px);
+    }
+    .card .emoji { font-size: 36px; margin-bottom: 12px; }
+    .card h2 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: 1.25rem;
+      color: #1A3A5C;
+      margin-bottom: 8px;
+    }
+    .card p {
+      font-size: 0.8rem;
+      color: #4A5568;
+      line-height: 1.5;
+    }
+    .card .tag {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      background: #DBEAFE;
+      color: #1D4ED8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🐺 Homewolves Design System</h1>
+    <p class="subtitle">African real estate PropTech — generated from DESIGN.md</p>
+    <div class="cards">
+      <a class="card" href="tokens.html">
+        <div class="emoji">🎨</div>
+        <h2>Tokens</h2>
+        <p>Colour themes (Light/Dark/HC), typography, effects, spacing, grid system</p>
+        <span class="tag">96 tokens</span>
+      </a>
+      <a class="card" href="components.html">
+        <div class="emoji">🧱</div>
+        <h2>Components</h2>
+        <p>Button, Badge, Input, PropertyCard, Navigation, Modal, Drawer, Bento, Filter, Avatar</p>
+        <span class="tag">9 components</span>
+      </a>
+      <a class="card" href="patterns.html">
+        <div class="emoji">📐</div>
+        <h2>Patterns</h2>
+        <p>Landing page, Agent Dashboard, Transaction Workflow, Auth Flow, Map Split, Messaging</p>
+        <span class="tag">6 patterns</span>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

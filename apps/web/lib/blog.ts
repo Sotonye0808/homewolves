@@ -1,0 +1,85 @@
+const API = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1'}/blog`;
+
+function authHeaders(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  const raw = localStorage.getItem('hw-auth');
+  if (!raw) return {};
+  try {
+    const { state } = JSON.parse(raw);
+    if (!state.accessToken) return {};
+    return { Authorization: `Bearer ${state.accessToken}` };
+  } catch {
+    return {};
+  }
+}
+
+async function handleRes(r: Response) {
+  if (!r.ok) {
+    const body = await r.json().catch(() => ({}));
+    throw new Error(body.message ?? `Request failed: ${r.status}`);
+  }
+  return r.json();
+}
+
+export async function fetchBlogPosts(params?: {
+  category?: string;
+  tag?: string;
+  featured?: boolean;
+  page?: number;
+  limit?: number;
+}) {
+  const qs = new URLSearchParams();
+  if (params?.category) qs.set('category', params.category);
+  if (params?.tag) qs.set('tag', params.tag);
+  if (params?.featured != null) qs.set('featured', String(params.featured));
+  if (params?.page) qs.set('page', String(params.page));
+  if (params?.limit) qs.set('limit', String(params.limit));
+  const q = qs.toString();
+  const r = await fetch(`${API}${q ? `?${q}` : ''}`);
+  return handleRes(r);
+}
+
+export async function fetchBlogPost(slug: string) {
+  const r = await fetch(`${API}/${slug}`);
+  return handleRes(r);
+}
+
+export async function fetchBlogCategories() {
+  const r = await fetch(`${API}/categories`);
+  return handleRes(r);
+}
+
+export async function createBlogPost(data: {
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  coverImage?: string;
+  categories?: string[];
+  tags?: string[];
+  published?: boolean;
+}) {
+  const r = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  return handleRes(r);
+}
+
+export async function updateBlogPost(id: string, data: any) {
+  const r = await fetch(`${API}/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  return handleRes(r);
+}
+
+export async function deleteBlogPost(id: string) {
+  const r = await fetch(`${API}/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  return handleRes(r);
+}

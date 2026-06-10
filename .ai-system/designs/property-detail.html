@@ -1,0 +1,1598 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="hw-route" content="/properties/:id">
+  <meta name="hw-component" content="ImageGallery,StickyActionBar,PropertyMeta,VerificationBanner,Description, AmenityGrid,LocationMap,AgentCard,PropertyCard,TransactionStepper">
+  <meta name="hw-theme" content="light,dark">
+  <meta name="hw-viewport" content="375,1280">
+  <title>Homewolves — {{property_title}} | {{property_address}}</title>
+  <style>
+    /* ============================================================
+       DESIGN.md §2.1 — Light Theme (default)
+       ============================================================ */
+    :root {
+      --color-bg-base:          #F7F6F3;
+      --color-bg-elevated:      #FFFFFF;
+      --color-bg-glass:         rgba(255, 255, 255, 0.55);
+      --color-bg-glass-dark:    rgba(15, 15, 20, 0.60);
+      --color-bg-overlay:       rgba(0, 0, 0, 0.40);
+      --color-brand-primary:    #1A3A5C;
+      --color-brand-secondary:  #2D6A9F;
+      --color-brand-accent:     #C8813A;
+      --color-brand-accent-alt: #E8956A;
+      --color-text-primary:     #0F1117;
+      --color-text-secondary:   #4A5568;
+      --color-text-muted:       #8A9BB0;
+      --color-text-inverse:     #FFFFFF;
+      --color-text-accent:      #C8813A;
+      --color-border-subtle:    rgba(0, 0, 0, 0.06);
+      --color-border-default:   rgba(0, 0, 0, 0.12);
+      --color-border-strong:    rgba(0, 0, 0, 0.24);
+      --color-border-brand:     #2D6A9F;
+      --color-border-glass:     rgba(255, 255, 255, 0.30);
+      --color-success:          #1A7A4A;
+      --color-success-bg:       #E8F7EE;
+      --color-warning:          #B45309;
+      --color-warning-bg:       #FEF3C7;
+      --color-error:            #B91C1C;
+      --color-error-bg:         #FEE2E2;
+      --color-info:             #1D4ED8;
+      --color-info-bg:          #DBEAFE;
+      --color-status-pending:   #D97706;
+      --color-status-active:    #059669;
+      --color-status-complete:  #1A3A5C;
+      --color-status-rejected:  #DC2626;
+
+      --font-display: 'DM Serif Display', Georgia, serif;
+      --font-body:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+
+      --text-xs:    clamp(0.70rem, 1.5vw, 0.75rem);
+      --text-sm:    clamp(0.80rem, 1.8vw, 0.875rem);
+      --text-base:  clamp(0.875rem, 2vw, 1rem);
+      --text-md:    clamp(1rem, 2.2vw, 1.125rem);
+      --text-lg:    clamp(1.125rem, 2.5vw, 1.25rem);
+      --text-xl:    clamp(1.25rem, 3vw, 1.5rem);
+      --text-2xl:   clamp(1.5rem, 4vw, 2rem);
+      --text-3xl:   clamp(1.875rem, 5vw, 2.5rem);
+      --text-4xl:   clamp(2.25rem, 6vw, 3.5rem);
+      --text-hero:  clamp(2.5rem, 8vw, 5rem);
+
+      --font-regular: 400; --font-medium: 500;
+      --font-semibold: 600; --font-bold: 700; --font-black: 900;
+
+      --leading-tight:  1.2; --leading-snug: 1.375;
+      --leading-normal: 1.5; --leading-relaxed: 1.625;
+
+      --tracking-tight: -0.025em; --tracking-normal: 0;
+      --tracking-wide: 0.05em; --tracking-wider: 0.1em; --tracking-widest: 0.2em;
+
+      --space-1: 4px; --space-2: 8px; --space-3: 12px;
+      --space-4: 16px; --space-5: 20px; --space-6: 24px;
+      --space-8: 32px; --space-10: 40px; --space-12: 48px;
+      --space-16: 64px; --space-20: 80px; --space-24: 96px; --space-32: 128px;
+
+      --glass-blur: blur(16px) saturate(180%);
+      --glass-blur-heavy: blur(24px) saturate(200%);
+      --glass-blur-subtle: blur(8px) saturate(150%);
+
+      --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 20px rgba(0,0,0,0.10);
+      --shadow-lg: 0 8px 40px rgba(0,0,0,0.14);
+      --shadow-xl: 0 16px 64px rgba(0,0,0,0.18);
+      --shadow-card: 0 2px 12px rgba(26,58,92,0.08), 0 0 0 1px rgba(26,58,92,0.04);
+      --shadow-hover: 0 8px 32px rgba(26,58,92,0.16), 0 0 0 1px rgba(26,58,92,0.08);
+      --shadow-glass: 0 4px 24px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.3);
+
+      --radius-xs: 4px; --radius-sm: 8px; --radius-md: 12px;
+      --radius-lg: 16px; --radius-xl: 24px; --radius-2xl: 32px; --radius-full: 9999px;
+
+      --duration-instant: 60ms; --duration-fast: 150ms;
+      --duration-normal: 250ms; --duration-slow: 400ms; --duration-lazy: 600ms;
+      --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-in: cubic-bezier(0.4, 0, 1, 1);
+      --ease-out: cubic-bezier(0, 0, 0.2, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    /* ============================================================
+       DESIGN.md §2.1 — Dark Theme
+       ============================================================ */
+    [data-theme="dark"] {
+      --color-bg-base:          #0D1117;
+      --color-bg-elevated:      #161B22;
+      --color-bg-glass:         rgba(22, 27, 34, 0.72);
+      --color-bg-glass-dark:    rgba(0, 0, 0, 0.75);
+      --color-bg-overlay:       rgba(0, 0, 0, 0.60);
+      --color-brand-primary:    #3B82F6;
+      --color-brand-secondary:  #60A5FA;
+      --color-brand-accent:     #F59E0B;
+      --color-brand-accent-alt: #FB923C;
+      --color-text-primary:     #F0F4F8;
+      --color-text-secondary:   #9BAEC8;
+      --color-text-muted:       #5C6E82;
+      --color-text-inverse:     #0D1117;
+      --color-text-accent:      #F59E0B;
+      --color-border-subtle:    rgba(255, 255, 255, 0.05);
+      --color-border-default:   rgba(255, 255, 255, 0.10);
+      --color-border-strong:    rgba(255, 255, 255, 0.20);
+      --color-border-glass:     rgba(255, 255, 255, 0.12);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* === RESET === */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+    body {
+      background: var(--color-bg-base);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      line-height: var(--leading-relaxed);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+      transition: background-color var(--duration-normal), color var(--duration-normal);
+    }
+    img { display: block; max-width: 100%; }
+    a { text-decoration: none; color: inherit; }
+    button { cursor: pointer; font-family: inherit; border: none; background: none; }
+    input { font-family: inherit; }
+    ul { list-style: none; }
+
+    /* === UTILITY === */
+    .glass-surface {
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--color-border-glass);
+      box-shadow: var(--shadow-glass);
+    }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0;
+      margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;
+    }
+    .skip-link {
+      position: fixed; top: var(--space-2); left: var(--space-2);
+      z-index: 9999; background: var(--color-brand-primary);
+      color: var(--color-text-inverse); padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-sm); transform: translateY(-120%);
+      transition: transform var(--duration-fast);
+    }
+    .skip-link:focus { transform: translateY(0); }
+    *:focus-visible {
+      outline: 2px solid var(--color-brand-secondary);
+      outline-offset: 2px;
+    }
+
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 var(--space-4);
+    }
+    @media (min-width: 1024px) {
+      .container { padding: 0 var(--space-10); }
+    }
+
+    /* ============================================================
+       §4.3 Zone 1 — Image Gallery
+       Full-bleed on mobile, thumbnail strip desktop
+       ============================================================ */
+    .gallery {
+      position: relative;
+      width: 100%;
+      background: var(--color-bg-overlay);
+    }
+    .gallery .gallery-main {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+    }
+    @media (min-width: 1024px) {
+      .gallery .gallery-main { aspect-ratio: 16 / 9; max-height: 600px; }
+    }
+    .gallery .gallery-main img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .gallery .gallery-nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px; height: 40px;
+      border-radius: var(--radius-full);
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--color-border-glass);
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      color: var(--color-text-inverse);
+      transition: background var(--duration-fast);
+      z-index: 5;
+    }
+    .gallery .gallery-nav-btn:hover { background: rgba(255,255,255,0.3); }
+    .gallery .gallery-nav-btn.prev { left: var(--space-3); }
+    .gallery .gallery-nav-btn.next { right: var(--space-3); }
+    .gallery .gallery-dots {
+      position: absolute;
+      bottom: var(--space-3);
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: var(--space-2);
+      z-index: 5;
+    }
+    .gallery .gallery-dots .dot {
+      width: 8px; height: 8px;
+      border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.4);
+      transition: all var(--duration-fast);
+    }
+    .gallery .gallery-dots .dot.active {
+      background: var(--color-brand-accent);
+      width: 24px;
+      border-radius: var(--radius-full);
+    }
+
+    /* Gallery count badge */
+    .gallery .gallery-count {
+      position: absolute;
+      top: var(--space-3);
+      right: var(--space-3);
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      background: var(--color-bg-glass-dark);
+      color: var(--color-text-inverse);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      z-index: 5;
+    }
+
+    /* Thumbnail strip — desktop only */
+    .gallery .thumbnail-strip {
+      display: none;
+      gap: var(--space-2);
+      padding: var(--space-3) 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .gallery .thumbnail-strip::-webkit-scrollbar { display: none; }
+    .gallery .thumbnail-strip .thumb {
+      flex-shrink: 0;
+      width: 80px;
+      aspect-ratio: 16 / 9;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      cursor: pointer;
+      opacity: 0.5;
+      border: 2px solid transparent;
+      transition: all var(--duration-fast);
+    }
+    .gallery .thumbnail-strip .thumb:hover,
+    .gallery .thumbnail-strip .thumb.active {
+      opacity: 1;
+      border-color: var(--color-brand-accent);
+    }
+    .gallery .thumbnail-strip .thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    @media (min-width: 1024px) {
+      .gallery .thumbnail-strip { display: flex; justify-content: center; }
+      .gallery .gallery-dots { display: none; }
+      .gallery .gallery-nav-btn.prev { left: var(--space-6); }
+      .gallery .gallery-nav-btn.next { right: var(--space-6); }
+    }
+
+    /* ============================================================
+       §4.3 Zone 2 — Sticky Action Bar
+       Mobile bottom, desktop column-right
+       ============================================================ */
+    .action-bar-mobile {
+      display: flex;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: var(--space-3) var(--space-4);
+      padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur-heavy);
+      -webkit-backdrop-filter: var(--glass-blur-heavy);
+      border-top: 1px solid var(--color-border-glass);
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .action-bar-mobile .ab-price {
+      font-family: var(--font-display);
+      font-size: var(--text-xl);
+      font-weight: var(--font-bold);
+      color: var(--color-text-accent);
+      line-height: var(--leading-tight);
+      white-space: nowrap;
+    }
+    .action-bar-mobile .ab-price span {
+      font-family: var(--font-body);
+      font-size: var(--text-xs);
+      font-weight: var(--font-regular);
+      color: var(--color-text-muted);
+    }
+    .action-bar-mobile .ab-actions {
+      display: flex;
+      gap: var(--space-2);
+      flex: 1;
+      justify-content: flex-end;
+    }
+    .action-bar-mobile .ab-btn {
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-full);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      transition: all var(--duration-fast);
+      white-space: nowrap;
+    }
+    .action-bar-mobile .ab-btn.primary {
+      background: var(--color-brand-accent);
+      color: var(--color-text-inverse);
+      box-shadow: var(--shadow-sm);
+    }
+    .action-bar-mobile .ab-btn.primary:hover {
+      background: var(--color-brand-accent-alt);
+      box-shadow: var(--shadow-md);
+    }
+    .action-bar-mobile .ab-btn.ghost {
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur-subtle);
+      border: 1px solid var(--color-border-glass);
+      color: var(--color-text-primary);
+    }
+    .action-bar-mobile .ab-btn.icon {
+      width: 40px; height: 40px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+    }
+    @media (min-width: 1024px) {
+      .action-bar-mobile { display: none; }
+    }
+
+    /* Desktop action row — inline, not fixed */
+    .action-bar-desktop {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      padding: var(--space-4) 0 var(--space-6);
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+    .action-bar-desktop .ab-price {
+      font-family: var(--font-display);
+      font-size: var(--text-3xl);
+      font-weight: var(--font-bold);
+      color: var(--color-text-accent);
+    }
+    .action-bar-desktop .ab-price span {
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      font-weight: var(--font-regular);
+      color: var(--color-text-muted);
+    }
+    .action-bar-desktop .ab-actions { display: flex; gap: var(--space-3); align-items: center; }
+    .action-bar-desktop .ab-btn {
+      padding: var(--space-3) var(--space-6);
+      border-radius: var(--radius-full);
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      transition: all var(--duration-fast);
+    }
+    .action-bar-desktop .ab-btn.primary {
+      background: var(--color-brand-accent);
+      color: var(--color-text-inverse);
+      box-shadow: var(--shadow-sm);
+    }
+    .action-bar-desktop .ab-btn.primary:hover {
+      background: var(--color-brand-accent-alt);
+      box-shadow: var(--shadow-md);
+    }
+    .action-bar-desktop .ab-btn.secondary {
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur-subtle);
+      border: 1px solid var(--color-border-glass);
+      color: var(--color-text-primary);
+    }
+    .action-bar-desktop .ab-btn.secondary:hover {
+      background: var(--color-bg-elevated);
+      border-color: var(--color-border-default);
+    }
+    .action-bar-desktop .ab-btn.icon {
+      width: 44px; height: 44px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+    }
+    @media (min-width: 1024px) {
+      .action-bar-desktop { display: flex; }
+    }
+
+    /* ============================================================
+       Content layout — mobile single col, desktop two-col
+       ============================================================ */
+    .detail-content {
+      padding: var(--space-4);
+      padding-bottom: calc(var(--space-4) + 80px);
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    @media (min-width: 1024px) {
+      .detail-content {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: var(--space-10);
+        padding: var(--space-8) var(--space-10);
+        padding-bottom: var(--space-16);
+      }
+    }
+
+    .detail-main {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-8);
+    }
+    .detail-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-6);
+    }
+    @media (min-width: 1024px) {
+      .detail-sidebar {
+        position: sticky;
+        top: 86px;
+        align-self: start;
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+      }
+    }
+
+    /* ============================================================
+       §4.3 Zone 3 — Property Meta Row
+       ============================================================ */
+    .property-meta-row {
+      display: flex;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+      padding: var(--space-4) 0;
+    }
+    .property-meta-row .meta-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+    }
+    .property-meta-row .meta-item .meta-icon {
+      width: 40px; height: 40px;
+      border-radius: var(--radius-full);
+      background: var(--color-border-subtle);
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+    }
+    .property-meta-row .meta-item .meta-value {
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+    }
+
+    /* ============================================================
+       §4.3 Zone 4 — Verification Banner
+       Amber background, above content area
+       ============================================================ */
+    .verification-banner {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-warning-bg);
+      color: var(--color-warning);
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+    }
+    .verification-banner .v-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    /* ============================================================
+       §4.3 Zone 5 — Description with "Read more" collapse
+       ============================================================ */
+    .description-section {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .description-section h2 {
+      font-family: var(--font-display);
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      color: var(--color-text-primary);
+    }
+    .description-section .desc-text {
+      font-size: var(--text-base);
+      color: var(--color-text-secondary);
+      line-height: var(--leading-relaxed);
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      transition: -webkit-line-clamp var(--duration-slow);
+    }
+    .description-section .desc-text.expanded {
+      -webkit-line-clamp: unset;
+    }
+    .description-section .read-more-btn {
+      align-self: flex-start;
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      background: transparent;
+      color: var(--color-brand-accent);
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      transition: background var(--duration-fast);
+    }
+    .description-section .read-more-btn:hover {
+      background: var(--color-border-subtle);
+    }
+
+    /* ============================================================
+       §4.3 Zone 6 — Amenities Icon Grid
+       ============================================================ */
+    .amenities-section {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+    .amenities-section h2 {
+      font-family: var(--font-display);
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      color: var(--color-text-primary);
+    }
+    .amenities-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-3);
+    }
+    @media (min-width: 1024px) {
+      .amenities-grid { grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+    }
+    .amenities-grid .amenity-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-3) var(--space-2);
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-md);
+      text-align: center;
+      transition: box-shadow var(--duration-fast);
+    }
+    .amenities-grid .amenity-item:hover {
+      box-shadow: var(--shadow-sm);
+    }
+    .amenities-grid .amenity-item .amenity-icon {
+      width: 36px; height: 36px;
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+    }
+    .amenities-grid .amenity-item .amenity-label {
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+      line-height: var(--leading-tight);
+    }
+    .amenities-grid .amenity-overflow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-brand-accent);
+      color: var(--color-text-inverse);
+      font-weight: var(--font-bold);
+      font-size: var(--text-lg);
+      border: none;
+    }
+
+    /* ============================================================
+       §4.3 Zone 7 — Location Map Embed
+       ============================================================ */
+    .location-section {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .location-section h2 {
+      font-family: var(--font-display);
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      color: var(--color-text-primary);
+    }
+    .location-section .map-embed {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: linear-gradient(135deg, #E8EDF2 0%, #D5DEE8 100%);
+      position: relative;
+    }
+    .location-section .map-embed .map-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      color: var(--color-text-muted);
+      font-size: var(--text-sm);
+      text-align: center;
+    }
+    .location-section .map-embed .map-overlay .big-icon {
+      font-size: 40px;
+    }
+    .location-section .neighbourhood-label {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+    .location-section .neighbourhood-label strong {
+      color: var(--color-text-primary);
+      font-weight: var(--font-semibold);
+    }
+
+    /* ============================================================
+       §4.3 Zone 8 — Agent Glass Card
+       ============================================================ */
+    .agent-card {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      padding: var(--space-5);
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--color-border-glass);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-glass);
+    }
+    .agent-card .agent-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .agent-card .agent-header .agent-avatar {
+      width: 56px; height: 56px;
+      border-radius: var(--radius-full);
+      background: var(--color-brand-primary);
+      color: var(--color-text-inverse);
+      display: grid;
+      place-items: center;
+      font-size: var(--text-lg);
+      font-weight: var(--font-bold);
+      flex-shrink: 0;
+      position: relative;
+    }
+    .agent-card .agent-header .agent-avatar .online-dot {
+      position: absolute;
+      bottom: 2px; right: 2px;
+      width: 14px; height: 14px;
+      background: var(--color-success);
+      border: 2px solid var(--color-bg-elevated);
+      border-radius: var(--radius-full);
+    }
+    .agent-card .agent-header .agent-info { flex: 1; }
+    .agent-card .agent-header .agent-info .agent-name {
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+    }
+    .agent-card .agent-header .agent-info .agent-title {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+    }
+    .agent-card .agent-header .agent-stars {
+      color: var(--color-brand-accent);
+      font-size: var(--text-sm);
+      letter-spacing: 2px;
+    }
+    .agent-card .agent-badges {
+      display: flex;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+    .agent-card .agent-badges .resp-badge {
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      background: var(--color-success-bg);
+      color: var(--color-success);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+    }
+    .agent-card .agent-badges .resp-badge.verified-agent {
+      background: var(--color-info-bg);
+      color: var(--color-info);
+    }
+    .agent-card .agent-actions {
+      display: flex;
+      gap: var(--space-3);
+    }
+    .agent-card .agent-actions button {
+      flex: 1;
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-full);
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      transition: all var(--duration-fast);
+    }
+    .agent-card .agent-actions .chat-btn {
+      background: var(--color-brand-accent);
+      color: var(--color-text-inverse);
+    }
+    .agent-card .agent-actions .chat-btn:hover {
+      background: var(--color-brand-accent-alt);
+    }
+    .agent-card .agent-actions .call-btn {
+      background: var(--color-bg-glass);
+      border: 1px solid var(--color-border-glass);
+      color: var(--color-text-primary);
+    }
+    .agent-card .agent-actions .call-btn:hover {
+      background: var(--color-bg-elevated);
+      border-color: var(--color-border-default);
+    }
+
+    /* ============================================================
+       §4.3 Zone 9+10 — Similar Properties / Recently Viewed
+       Horizontal scroll
+       ============================================================ */
+    .scroll-section {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+    .scroll-section h2 {
+      font-family: var(--font-display);
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      color: var(--color-text-primary);
+    }
+    .scroll-section .scroll-row {
+      display: flex;
+      gap: var(--space-4);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding-bottom: var(--space-2);
+    }
+    .scroll-section .scroll-row::-webkit-scrollbar { display: none; }
+
+    /* Horizontal scroll card — compact variant §3.1 */
+    .scroll-card {
+      flex-shrink: 0;
+      width: 240px;
+      background: var(--color-bg-elevated);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+      transition: all var(--duration-normal) var(--ease-out);
+      cursor: pointer;
+    }
+    .scroll-card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+    }
+    .scroll-card .sc-image {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      background: var(--color-border-subtle);
+    }
+    .scroll-card .sc-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform var(--duration-slow) var(--ease-out);
+    }
+    .scroll-card:hover .sc-image img { transform: scale(1.03); }
+    .scroll-card .sc-body { padding: var(--space-2) var(--space-3) var(--space-3); }
+    .scroll-card .sc-body .sc-price {
+      font-family: var(--font-display);
+      font-size: var(--text-md);
+      font-weight: var(--font-bold);
+      color: var(--color-text-accent);
+    }
+    .scroll-card .sc-body .sc-meta {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      margin-top: 2px;
+    }
+    .scroll-card .sc-body .sc-title {
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+      margin-top: var(--space-1);
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    @media (min-width: 1024px) {
+      .scroll-card { width: 260px; }
+    }
+
+    /* ============================================================
+       §4.3 Zone 11 — Transaction Status Bar
+       Glass progress stepper, 8 steps
+       ============================================================ */
+    .transaction-bar {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      padding: var(--space-5);
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--color-border-glass);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-glass);
+    }
+    .transaction-bar .tx-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .transaction-bar .tx-header h3 {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: var(--font-bold);
+    }
+    .transaction-bar .tx-header .tx-status {
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      background: var(--color-status-active);
+      color: var(--color-text-inverse);
+    }
+    .transaction-bar .tx-progress {
+      display: flex;
+      gap: var(--space-1);
+      justify-content: space-between;
+      position: relative;
+      padding: var(--space-2) 0;
+    }
+    .transaction-bar .tx-progress::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 8px;
+      right: 8px;
+      height: 2px;
+      background: var(--color-border-default);
+      transform: translateY(-50%);
+      z-index: 0;
+    }
+    .transaction-bar .tx-progress .tx-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-1);
+      position: relative;
+      z-index: 1;
+      flex: 1;
+    }
+    .transaction-bar .tx-progress .tx-step .step-dot {
+      width: 24px; height: 24px;
+      border-radius: var(--radius-full);
+      background: var(--color-bg-elevated);
+      border: 2px solid var(--color-border-default);
+      display: grid;
+      place-items: center;
+      font-size: 10px;
+      color: var(--color-text-muted);
+      transition: all var(--duration-normal);
+    }
+    .transaction-bar .tx-progress .tx-step.completed .step-dot {
+      background: var(--color-status-complete);
+      border-color: var(--color-status-complete);
+      color: var(--color-text-inverse);
+    }
+    .transaction-bar .tx-progress .tx-step.active .step-dot {
+      background: var(--color-status-active);
+      border-color: var(--color-status-active);
+      color: var(--color-text-inverse);
+      box-shadow: 0 0 0 4px rgba(5,150,105,0.2);
+    }
+    .transaction-bar .tx-progress .tx-step .step-label {
+      font-size: 9px;
+      color: var(--color-text-muted);
+      text-align: center;
+      max-width: 48px;
+      line-height: var(--leading-tight);
+    }
+    .transaction-bar .tx-progress .tx-step.active .step-label {
+      color: var(--color-text-primary);
+      font-weight: var(--font-semibold);
+    }
+    .transaction-bar .tx-progress .tx-step.completed .step-label {
+      color: var(--color-text-secondary);
+    }
+
+    /* ============================================================
+       Mobile Top Bar
+       ============================================================ */
+    .top-bar-mobile-detail {
+      display: flex;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      height: 56px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--space-4);
+      background: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 100%);
+    }
+    .top-bar-mobile-detail button {
+      width: 40px; height: 40px;
+      border-radius: var(--radius-full);
+      background: var(--color-bg-glass-dark);
+      backdrop-filter: var(--glass-blur);
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      color: var(--color-text-inverse);
+      border: none;
+      transition: background var(--duration-fast);
+    }
+    .top-bar-mobile-detail button:hover { background: rgba(0,0,0,0.5); }
+    .top-bar-mobile-detail .top-bar-title {
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-inverse);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    @media (min-width: 1024px) {
+      .top-bar-mobile-detail { display: none; }
+    }
+
+    /* Desktop top nav for detail page */
+    .top-nav-detail {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      height: 64px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--space-10);
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-bottom: 1px solid var(--color-border-glass);
+    }
+    .top-nav-detail.scrolled {
+      background: var(--color-bg-elevated);
+      border-bottom: 1px solid var(--color-border-default);
+    }
+    .top-nav-detail .logo {
+      font-family: var(--font-display);
+      font-size: var(--text-xl);
+      font-weight: var(--font-bold);
+      color: var(--color-brand-primary);
+    }
+    .top-nav-detail .nav-actions { display: flex; gap: var(--space-3); align-items: center; }
+    .top-nav-detail .nav-actions button {
+      width: 40px; height: 40px;
+      border-radius: var(--radius-full);
+      display: grid;
+      place-items: center;
+      background: transparent;
+      color: var(--color-text-secondary);
+      font-size: 20px;
+      transition: background var(--duration-fast);
+    }
+    .top-nav-detail .nav-actions button:hover { background: var(--color-border-subtle); }
+    .top-nav-detail .back-link {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      font-weight: var(--font-medium);
+      transition: color var(--duration-fast);
+    }
+    .top-nav-detail .back-link:hover { color: var(--color-brand-primary); }
+    @media (min-width: 1024px) {
+      .top-nav-detail { display: flex; }
+    }
+
+    /* Bottom tab bar (mobile) */
+    .bottom-tab-bar {
+      display: flex;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 200;
+      height: 80px;
+      padding-bottom: env(safe-area-inset-bottom, 8px);
+      background: var(--color-bg-glass);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-top: 1px solid var(--color-border-glass);
+      align-items: center;
+      justify-content: space-around;
+    }
+    .bottom-tab-bar .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      font-size: 10px;
+      color: var(--color-text-muted);
+      transition: color var(--duration-fast);
+      min-width: 44px; min-height: 44px;
+      justify-content: center;
+    }
+    .bottom-tab-bar .tab-item .tab-icon { font-size: 22px; line-height: 1; }
+    .bottom-tab-bar .tab-item.active { color: var(--color-brand-accent); }
+    .bottom-tab-bar .tab-item.active::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 20px; height: 3px;
+      background: var(--color-brand-accent);
+      border-radius: var(--radius-full);
+    }
+    .bottom-tab-bar .tab-post-btn {
+      width: 56px; height: 56px;
+      border-radius: var(--radius-full);
+      background: var(--color-brand-accent);
+      color: var(--color-text-inverse);
+      font-size: 24px;
+      display: grid;
+      place-items: center;
+      box-shadow: var(--shadow-xl);
+      margin-top: -20px;
+      border: 3px solid var(--color-bg-base);
+      transition: all var(--duration-fast);
+    }
+    @media (min-width: 1024px) {
+      .bottom-tab-bar { display: none; }
+    }
+
+    /* Desktop breadcrumb */
+    .breadcrumb {
+      display: none;
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-4);
+    }
+    @media (min-width: 1024px) {
+      .breadcrumb { display: block; }
+    }
+    .breadcrumb a { color: var(--color-text-muted); }
+    .breadcrumb a:hover { color: var(--color-brand-secondary); }
+    .breadcrumb .sep { margin: 0 var(--space-1); }
+    .breadcrumb .current { color: var(--color-text-primary); font-weight: var(--font-semibold); }
+
+    /* FAB */
+    .fab-post {
+      position: fixed;
+      bottom: 96px;
+      right: var(--space-4);
+      z-index: 150;
+      width: 56px; height: 56px;
+      border-radius: var(--radius-full);
+      background: var(--color-brand-accent);
+      color: var(--color-text-inverse);
+      font-size: 24px;
+      box-shadow: var(--shadow-xl);
+      display: none;
+      place-items: center;
+    }
+    @media (max-width: 1023px) {
+      .fab-post { display: grid; }
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <a href="#detail-main" class="skip-link">{{skip_to_content}}</a>
+
+  <!-- ============================================================
+       Desktop Top Nav
+       ============================================================ -->
+  <nav class="top-nav-detail" aria-label="Main navigation">
+    <a href="{{properties_route}}" class="back-link">&#x2190; {{back_to_properties}}</a>
+    <div class="logo">Homewolves</div>
+    <div class="nav-actions">
+      <button aria-label="{{theme_toggle_label}}" id="themeToggle">&#x1F319;</button>
+      <button aria-label="{{share_label}}">&#x2197;</button>
+      <button aria-label="{{save_label}}">&#x2661;</button>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       Mobile Top Bar
+       ============================================================ -->
+  <header class="top-bar-mobile-detail">
+    <button aria-label="{{back_label}}">&#x2190;</button>
+    <span class="top-bar-title">{{property_title_short}}</span>
+    <button aria-label="{{share_label}}">&#x2197;</button>
+  </header>
+
+  <!-- ============================================================
+       §4.3 Zone 1 — Image Gallery
+       ============================================================ -->
+  <section class="gallery" aria-label="{{gallery_label}}">
+    <div class="gallery-main">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1280' height='720'%3E%3Crect fill='%231A3A5C' width='1280' height='720'/%3E%3Ctext x='640' y='380' text-anchor='middle' fill='rgba(255,255,255,0.6)' font-family='Inter,sans-serif' font-size='20'%3E{{gallery_image_placeholder}}%3C/text%3E%3C/svg%3E"
+           alt="{{gallery_image_alt}}" id="galleryImg" />
+      <button class="gallery-nav-btn prev" aria-label="{{previous_image_label}}">&#x2039;</button>
+      <button class="gallery-nav-btn next" aria-label="{{next_image_label}}">&#x203A;</button>
+      <div class="gallery-dots">
+        <span class="dot active"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+      </div>
+      <span class="gallery-count">1/{{gallery_count}}</span>
+    </div>
+    <!-- Thumbnail strip — desktop -->
+    <div class="thumbnail-strip">
+      <div class="thumb active"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='45'%3E%3Crect fill='%231A3A5C' width='80' height='45'/%3E%3C/svg%3E" alt="{{gallery_thumb_alt}}" /></div>
+      <div class="thumb"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='45'%3E%3Crect fill='%232D6A9F' width='80' height='45'/%3E%3C/svg%3E" alt="{{gallery_thumb_alt}}" /></div>
+      <div class="thumb"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='45'%3E%3Crect fill='%23C8813A' width='80' height='45'/%3E%3C/svg%3E" alt="{{gallery_thumb_alt}}" /></div>
+      <div class="thumb"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='45'%3E%3Crect fill='%234A5568' width='80' height='45'/%3E%3C/svg%3E" alt="{{gallery_thumb_alt}}" /></div>
+      <div class="thumb"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='45'%3E%3Crect fill='%238A9BB0' width='80' height='45'/%3E%3C/svg%3E" alt="{{gallery_thumb_alt}}" /></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       §4.3 Zone 2 — Sticky Action Bar (Mobile)
+       ============================================================ -->
+  <div class="action-bar-mobile">
+    <div class="ab-price">&#x20A6;{{property_price}} <span>/ {{price_period}}</span></div>
+    <div class="ab-actions">
+      <button class="ab-btn icon" aria-label="{{save_label}}" data-state="default">&#x2661;</button>
+      <button class="ab-btn icon" aria-label="{{share_label}}" data-state="default">&#x2197;</button>
+      <button class="ab-btn primary" data-state="default">{{chat_agent_label}}</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       Detail content area
+       ============================================================ -->
+  <main id="detail-main" class="detail-content">
+
+    <!-- Left / main column -->
+    <div class="detail-main">
+
+      <!-- Breadcrumb (desktop) -->
+      <div class="breadcrumb">
+        <a href="{{home_route}}">{{home_label}}</a>
+        <span class="sep">/</span>
+        <a href="{{properties_route}}">{{properties_label}}</a>
+        <span class="sep">/</span>
+        <span class="current">{{property_title}}</span>
+      </div>
+
+      <!-- ============================================================
+           §4.3 Zone 2 — Desktop Action Bar
+           ============================================================ -->
+      <div class="action-bar-desktop">
+        <div class="ab-price">&#x20A6;{{property_price}} <span>/ {{price_period}}</span></div>
+        <div class="ab-actions">
+          <button class="ab-btn icon" aria-label="{{save_label}}" data-state="default">&#x2661;</button>
+          <button class="ab-btn icon" aria-label="{{share_label}}" data-state="default">&#x2197;</button>
+          <button class="ab-btn secondary" data-state="default">{{schedule_inspection_label}}</button>
+          <button class="ab-btn primary" data-state="default">{{chat_agent_label}}</button>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           §4.3 Zone 4 — Verification Banner
+           ============================================================ -->
+      <div class="verification-banner" data-state="visible">
+        <span class="v-icon">&#x2713;</span>
+        {{verified_banner_text}}
+      </div>
+
+      <!-- ============================================================
+           §4.3 Zone 3 — Property Meta Row
+           ============================================================ -->
+      <div class="property-meta-row">
+        <div class="meta-item">
+          <div class="meta-icon">&#x1F6CF;</div>
+          <div><span class="meta-value">{{meta_beds}}</span> {{bed_label}}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-icon">&#x1F6BF;</div>
+          <div><span class="meta-value">{{meta_baths}}</span> {{bath_label}}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-icon">&#x25A6;</div>
+          <div><span class="meta-value">{{meta_size}}</span> {{size_unit}}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-icon">&#x1F3E0;</div>
+          <div><span class="meta-value">{{property_type}}</span></div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-icon">&#x1F4C5;</div>
+          <div><span class="meta-value">{{listing_date}}</span></div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           §4.3 Zone 5 — Description
+           ============================================================ -->
+      <section class="description-section">
+        <h2>{{description_heading}}</h2>
+        <div class="desc-text" id="propertyDesc">
+          {{property_description}}
+        </div>
+        <button class="read-more-btn" id="readMoreBtn" data-state="collapsed" aria-expanded="false">{{read_more_label}}</button>
+      </section>
+
+      <!-- ============================================================
+           §4.3 Zone 6 — Amenities Grid
+           ============================================================ -->
+      <section class="amenities-section">
+        <h2>{{amenities_heading}}</h2>
+        <div class="amenities-grid">
+          <div class="amenity-item">
+            <div class="amenity-icon">&#x1F6D2;</div>
+            <span class="amenity-label">{{amenity_parking}}</span>
+          </div>
+          <div class="amenity-item">
+            <div class="amenity-icon">&#x1F6CA;</div>
+            <span class="amenity-label">{{amenity_swimming_pool}}</span>
+          </div>
+          <div class="amenity-item">
+            <div class="amenity-icon">&#x1F509;</div>
+            <span class="amenity-label">{{amenity_security}}</span>
+          </div>
+          <div class="amenity-item">
+            <div class="amenity-icon">&#x26A1;</div>
+            <span class="amenity-label">{{amenity_generator}}</span>
+          </div>
+          <div class="amenity-item">
+            <div class="amenity-icon">&#x1F4E1;</div>
+            <span class="amenity-label">{{amenity_wifi}}</span>
+          </div>
+          <div class="amenity-item">
+            <div class="amenity-icon">&#x1F3E0;</div>
+            <span class="amenity-label">{{amenity_cctv}}</span>
+          </div>
+          <div class="amenity-item">
+            <div class="amenity-icon">&#x1F4F6;</div>
+            <span class="amenity-label">{{amenity_water_supply}}</span>
+          </div>
+          <div class="amenity-item">
+            <div class="amenity-icon">&#x1F527;</div>
+            <span class="amenity-label">{{amenity_serviced}}</span>
+          </div>
+          <div class="amenity-item amenity-overflow">+{{amenity_overflow_count}}</div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           §4.3 Zone 7 — Location Map
+           ============================================================ -->
+      <section class="location-section">
+        <h2>{{location_heading}}</h2>
+        <div class="neighbourhood-label">
+          {{neighbourhood_label}}: <strong>{{neighbourhood_name}}</strong>
+        </div>
+        <div class="map-embed">
+          <div class="map-overlay">
+            <span class="big-icon">&#x1F5FA;</span>
+            <span>{{map_placeholder_label}}</span>
+            <span style="font-size:11px;color:var(--color-text-muted);">{{map_powered_by}}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           §4.3 Zone 9 — Similar Properties
+           ============================================================ -->
+      <section class="scroll-section">
+        <h2>{{similar_properties_heading}}</h2>
+        <div class="scroll-row">
+          <article class="scroll-card" data-component="PropertyCard" data-variant="compact" data-state="default">
+            <div class="sc-image"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='146'%3E%3Crect fill='%23C8D5E2' width='260' height='146'/%3E%3C/svg%3E" alt="{{property_image_alt}}" loading="lazy" /></div>
+            <div class="sc-body">
+              <div class="sc-price">&#x20A6;{{property_price}}</div>
+              <div class="sc-meta">{{meta_beds}} {{bed_label}} &middot; {{meta_baths}} {{bath_label}}</div>
+              <div class="sc-title">{{property_title}}</div>
+            </div>
+          </article>
+          <article class="scroll-card" data-component="PropertyCard" data-variant="compact" data-state="default">
+            <div class="sc-image"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='146'%3E%3Crect fill='%23D5DEE8' width='260' height='146'/%3E%3C/svg%3E" alt="{{property_image_alt}}" loading="lazy" /></div>
+            <div class="sc-body">
+              <div class="sc-price">&#x20A6;{{property_price}}</div>
+              <div class="sc-meta">{{meta_beds}} {{bed_label}} &middot; {{meta_baths}} {{bath_label}}</div>
+              <div class="sc-title">{{property_title}}</div>
+            </div>
+          </article>
+          <article class="scroll-card" data-component="PropertyCard" data-variant="compact" data-state="default">
+            <div class="sc-image"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='146'%3E%3Crect fill='%23E0E7Ef' width='260' height='146'/%3E%3C/svg%3E" alt="{{property_image_alt}}" loading="lazy" /></div>
+            <div class="sc-body">
+              <div class="sc-price">&#x20A6;{{property_price}}</div>
+              <div class="sc-meta">{{meta_beds}} {{bed_label}} &middot; {{meta_baths}} {{bath_label}}</div>
+              <div class="sc-title">{{property_title}}</div>
+            </div>
+          </article>
+          <article class="scroll-card" data-component="PropertyCard" data-variant="compact" data-state="default">
+            <div class="sc-image"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='146'%3E%3Crect fill='%23CDD8E6' width='260' height='146'/%3E%3C/svg%3E" alt="{{property_image_alt}}" loading="lazy" /></div>
+            <div class="sc-body">
+              <div class="sc-price">&#x20A6;{{property_price}}</div>
+              <div class="sc-meta">{{meta_beds}} {{bed_label}} &middot; {{meta_baths}} {{bath_label}}</div>
+              <div class="sc-title">{{property_title}}</div>
+            </div>
+          </article>
+          <article class="scroll-card" data-component="PropertyCard" data-variant="compact" data-state="default">
+            <div class="sc-image"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='146'%3E%3Crect fill='%23B8C9DD' width='260' height='146'/%3E%3C/svg%3E" alt="{{property_image_alt}}" loading="lazy" /></div>
+            <div class="sc-body">
+              <div class="sc-price">&#x20A6;{{property_price}}</div>
+              <div class="sc-meta">{{meta_beds}} {{bed_label}} &middot; {{meta_baths}} {{bath_label}}</div>
+              <div class="sc-title">{{property_title}}</div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           §4.3 Zone 10 — Recently Viewed
+           ============================================================ -->
+      <section class="scroll-section">
+        <h2>{{recently_viewed_heading}}</h2>
+        <div class="scroll-row">
+          <article class="scroll-card" data-component="PropertyCard" data-variant="compact" data-state="default">
+            <div class="sc-image"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='146'%3E%3Crect fill='%23D1DDE8' width='260' height='146'/%3E%3C/svg%3E" alt="{{property_image_alt}}" loading="lazy" /></div>
+            <div class="sc-body">
+              <div class="sc-price">&#x20A6;{{property_price}}</div>
+              <div class="sc-meta">{{meta_beds}} {{bed_label}} &middot; {{meta_location}}</div>
+              <div class="sc-title">{{property_title}}</div>
+            </div>
+          </article>
+          <article class="scroll-card" data-component="PropertyCard" data-variant="compact" data-state="default">
+            <div class="sc-image"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='146'%3E%3Crect fill='%23C5D5E8' width='260' height='146'/%3E%3C/svg%3E" alt="{{property_image_alt}}" loading="lazy" /></div>
+            <div class="sc-body">
+              <div class="sc-price">&#x20A6;{{property_price}}</div>
+              <div class="sc-meta">{{meta_beds}} {{bed_label}} &middot; {{meta_location}}</div>
+              <div class="sc-title">{{property_title}}</div>
+            </div>
+          </article>
+          <article class="scroll-card" data-component="PropertyCard" data-variant="compact" data-state="default">
+            <div class="sc-image"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='146'%3E%3Crect fill='%23D8E2EE' width='260' height='146'/%3E%3C/svg%3E" alt="{{property_image_alt}}" loading="lazy" /></div>
+            <div class="sc-body">
+              <div class="sc-price">&#x20A6;{{property_price}}</div>
+              <div class="sc-meta">{{meta_beds}} {{bed_label}} &middot; {{meta_location}}</div>
+              <div class="sc-title">{{property_title}}</div>
+            </div>
+          </article>
+          <article class="scroll-card" data-component="PropertyCard" data-variant="compact" data-state="default">
+            <div class="sc-image"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='146'%3E%3Crect fill='%23CAD8E6' width='260' height='146'/%3E%3C/svg%3E" alt="{{property_image_alt}}" loading="lazy" /></div>
+            <div class="sc-body">
+              <div class="sc-price">&#x20A6;{{property_price}}</div>
+              <div class="sc-meta">{{meta_beds}} {{bed_label}} &middot; {{meta_location}}</div>
+              <div class="sc-title">{{property_title}}</div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Right / sidebar column -->
+    <aside class="detail-sidebar">
+
+      <!-- ============================================================
+           §4.3 Zone 8 — Agent Glass Card
+           ============================================================ -->
+      <div class="agent-card" data-component="AgentCard" data-state="default">
+        <div class="agent-header">
+          <div class="agent-avatar">
+            {{agent_initials}}
+            <span class="online-dot"></span>
+          </div>
+          <div class="agent-info">
+            <div class="agent-name">{{agent_name}}</div>
+            <div class="agent-title">{{agent_title}}</div>
+            <div class="agent-stars">&#x2605;&#x2605;&#x2605;&#x2605;&#x2606;</div>
+          </div>
+        </div>
+        <div class="agent-badges">
+          <span class="resp-badge">{{response_time_badge}}</span>
+          <span class="resp-badge verified-agent">{{verified_agent_badge}}</span>
+        </div>
+        <div class="agent-actions">
+          <button class="chat-btn" data-state="default">&#x1F4AC; {{chat_label}}</button>
+          <button class="call-btn" data-state="default">&#x1F4DE; {{call_label}}</button>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           §4.3 Zone 11 — Transaction Status Bar
+           ============================================================ -->
+      <div class="transaction-bar" data-component="TransactionStepper" data-state="active" role="region" aria-label="{{transaction_status_label}}">
+        <div class="tx-header">
+          <h3>{{transaction_heading}}</h3>
+          <span class="tx-status">{{transaction_status_active}}</span>
+        </div>
+        <div class="tx-progress">
+          <div class="tx-step completed" data-state="completed">
+            <div class="step-dot">&#x2713;</div>
+            <span class="step-label">{{step_inspection_scheduled}}</span>
+          </div>
+          <div class="tx-step active" data-state="active">
+            <div class="step-dot">&#x2713;</div>
+            <span class="step-label">{{step_inspection_completed}}</span>
+          </div>
+          <div class="tx-step" data-state="default">
+            <div class="step-dot">3</div>
+            <span class="step-label">{{step_documents_received}}</span>
+          </div>
+          <div class="tx-step" data-state="default">
+            <div class="step-dot">4</div>
+            <span class="step-label">{{step_due_diligence}}</span>
+          </div>
+          <div class="tx-step" data-state="default">
+            <div class="step-dot">5</div>
+            <span class="step-label">{{step_contract_signed}}</span>
+          </div>
+          <div class="tx-step" data-state="default">
+            <div class="step-dot">6</div>
+            <span class="step-label">{{step_payment_submitted}}</span>
+          </div>
+          <div class="tx-step" data-state="default">
+            <div class="step-dot">7</div>
+            <span class="step-label">{{step_admin_approval}}</span>
+          </div>
+          <div class="tx-step" data-state="default">
+            <div class="step-dot">8</div>
+            <span class="step-label">{{step_completed}}</span>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- Bottom tab bar (mobile) -->
+  <nav class="bottom-tab-bar" aria-label="{{bottom_nav_label}}">
+    <button class="tab-item active" data-state="active" aria-label="{{nav_explore_label}}">
+      <span class="tab-icon">&#x1F3E0;</span>
+      {{nav_explore_label}}
+    </button>
+    <button class="tab-item" data-state="default" aria-label="{{nav_search_label}}">
+      <span class="tab-icon">&#x1F50D;</span>
+      {{nav_search_label}}
+    </button>
+    <button class="tab-post-btn" aria-label="{{nav_post_label}}" data-state="default">+</button>
+    <button class="tab-item" data-state="default" aria-label="{{nav_chat_label}}">
+      <span class="tab-icon">&#x1F4AC;</span>
+      {{nav_chat_label}}
+    </button>
+    <button class="tab-item" data-state="default" aria-label="{{nav_profile_label}}">
+      <span class="tab-icon">&#x1F464;</span>
+      {{nav_profile_label}}
+    </button>
+  </nav>
+
+  <!-- FAB -->
+  <button class="fab-post" aria-label="{{post_property_label}}" data-state="default">+</button>
+
+  <script>
+    (function() {
+      /* Theme toggle */
+      var themeBtn = document.getElementById('themeToggle');
+      var body = document.body;
+      if (themeBtn) {
+        themeBtn.addEventListener('click', function() {
+          var current = body.getAttribute('data-theme') || 'light';
+          var next = current === 'dark' ? 'light' : 'dark';
+          body.setAttribute('data-theme', next);
+          themeBtn.textContent = next === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19';
+          try { localStorage.setItem('hw-theme', next); } catch(_) {}
+        });
+        try {
+          var saved = localStorage.getItem('hw-theme');
+          if (saved === 'dark') {
+            body.setAttribute('data-theme', 'dark');
+            if (themeBtn) themeBtn.textContent = '\u2600\uFE0F';
+          }
+        } catch(_) {}
+      }
+
+      /* Read more toggle */
+      var desc = document.getElementById('propertyDesc');
+      var readMoreBtn = document.getElementById('readMoreBtn');
+      if (desc && readMoreBtn) {
+        readMoreBtn.addEventListener('click', function() {
+          var expanded = desc.classList.toggle('expanded');
+          readMoreBtn.textContent = expanded ? '{{show_less_label}}' : '{{read_more_label}}';
+          readMoreBtn.setAttribute('aria-expanded', expanded);
+        });
+      }
+
+      /* Gallery nav */
+      var prevBtn = document.querySelector('.gallery-nav-btn.prev');
+      var nextBtn = document.querySelector('.gallery-nav-btn.next');
+      var dots = document.querySelectorAll('.gallery-dots .dot');
+      var thumbs = document.querySelectorAll('.thumbnail-strip .thumb');
+      var countSpan = document.querySelector('.gallery-count');
+      var galleryImg = document.getElementById('galleryImg');
+      var images = [
+        'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"%3E%3Crect fill="%231A3A5C" width="1280" height="720"/%3E%3Ctext x="640" y="380" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-family="Inter,sans-serif" font-size="20"%3E{{gallery_image_placeholder}}%3C/text%3E%3C/svg%3E',
+        'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"%3E%3Crect fill="%232D6A9F" width="1280" height="720"/%3E%3Ctext x="640" y="380" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-family="Inter,sans-serif" font-size="20"%3E{{gallery_image_placeholder}}%3C/text%3E%3C/svg%3E',
+        'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"%3E%3Crect fill="%23C8813A" width="1280" height="720"/%3E%3Ctext x="640" y="380" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-family="Inter,sans-serif" font-size="20"%3E{{gallery_image_placeholder}}%3C/text%3E%3C/svg%3E',
+        'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"%3E%3Crect fill="%234A5568" width="1280" height="720"/%3E%3Ctext x="640" y="380" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-family="Inter,sans-serif" font-size="20"%3E{{gallery_image_placeholder}}%3C/text%3E%3C/svg%3E',
+        'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"%3E%3Crect fill="%238A9BB0" width="1280" height="720"/%3E%3Ctext x="640" y="380" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-family="Inter,sans-serif" font-size="20"%3E{{gallery_image_placeholder}}%3C/text%3E%3C/svg%3E'
+      ];
+      var currentIdx = 0;
+
+      function goToImage(idx) {
+        if (!galleryImg || idx < 0 || idx >= images.length) return;
+        currentIdx = idx;
+        galleryImg.setAttribute('src', images[idx]);
+        if (countSpan) countSpan.textContent = (idx + 1) + '/' + images.length;
+        dots.forEach(function(d, i) {
+          d.classList.toggle('active', i === idx);
+        });
+        thumbs.forEach(function(t, i) {
+          t.classList.toggle('active', i === idx);
+        });
+      }
+
+      if (prevBtn) prevBtn.addEventListener('click', function() {
+        goToImage(currentIdx - 1 < 0 ? images.length - 1 : currentIdx - 1);
+      });
+      if (nextBtn) nextBtn.addEventListener('click', function() {
+        goToImage(currentIdx + 1 >= images.length ? 0 : currentIdx + 1);
+      });
+      dots.forEach(function(d, i) {
+        d.addEventListener('click', function() { goToImage(i); });
+      });
+      thumbs.forEach(function(t, i) {
+        t.addEventListener('click', function() { goToImage(i); });
+      });
+
+      /* Nav scroll shadow */
+      var topNav = document.querySelector('.top-nav-detail');
+      if (topNav) {
+        window.addEventListener('scroll', function() {
+          topNav.classList.toggle('scrolled', window.scrollY > 80);
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

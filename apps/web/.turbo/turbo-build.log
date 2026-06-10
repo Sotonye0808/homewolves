@@ -1,0 +1,101 @@
+
+> @hw/web@1.0.0 build
+> next build
+
+  ▲ Next.js 14.2.35
+
+   Creating an optimized production build ...
+ ⚠ Found lockfile missing swc dependencies, patching...
+npm error code ENOWORKSPACES
+npm error This command does not support workspaces.
+npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-06-10T16_23_40_743Z-debug-0.log
+ ⚠ Found lockfile missing swc dependencies, patching...
+npm error code ENOWORKSPACES
+npm error This command does not support workspaces.
+npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-06-10T16_23_45_599Z-debug-0.log
+ ⚠ Found lockfile missing swc dependencies, patching...
+npm error code ENOWORKSPACES
+npm error This command does not support workspaces.
+npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-06-10T16_23_47_555Z-debug-0.log
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+
+./app/(dashboard)/dashboard/agent/listings/page.tsx
+16:13  Warning: Empty block statement.  no-empty
+
+./app/(public)/auth/page.tsx
+37:13  Warning: Empty block statement.  no-empty
+47:13  Warning: Empty block statement.  no-empty
+55:13  Warning: Empty block statement.  no-empty
+
+./lib/messaging.ts
+79:5  Warning: Unexpected console statement.  no-console
+83:5  Warning: Unexpected console statement.  no-console
+
+./lib/notifications.ts
+7:72  Warning: Empty block statement.  no-empty
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules
+   Collecting page data ...
+ ⚠ Found lockfile missing swc dependencies, patching...
+npm error code ENOWORKSPACES
+npm error This command does not support workspaces.
+npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-06-10T16_24_03_915Z-debug-0.log
+   Generating static pages (0/20) ...
+(node:25848) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:18876) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:17308) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:480) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21156) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:18268) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+   Generating static pages (5/20) 
+   Generating static pages (10/20) 
+   Generating static pages (15/20) 
+ ✓ Generating static pages (20/20)
+   Finalizing page optimization ...
+   Collecting build traces ...
+ ⨯ Failed to patch lockfile, please try uninstalling and reinstalling next in this workspace
+TypeError: Cannot read properties of undefined (reading 'os')
+    at fetchPkgInfo (C:\Users\Harvesters WebDev\Downloads\web-dev\homewolves\node_modules\next\dist\lib\patch-incorrect-lockfile.js:73:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async Promise.all (index 7)
+    at async patchIncorrectLockfile (C:\Users\Harvesters WebDev\Downloads\web-dev\homewolves\node_modules\next\dist\lib\patch-incorrect-lockfile.js:162:26)
+
+Route (app)                              Size     First Load JS
+┌ ○ /                                    3.23 kB        97.6 kB
+├ ○ /_not-found                          873 B          88.2 kB
+├ ○ /auth                                5.98 kB        95.8 kB
+├ ○ /blog                                2.33 kB         108 kB
+├ ƒ /blog/[slug]                         2.72 kB         116 kB
+├ ○ /dashboard                           5.06 kB         116 kB
+├ ○ /dashboard/admin                     5.25 kB         113 kB
+├ ○ /dashboard/admin/moderation          4.27 kB         117 kB
+├ ○ /dashboard/admin/payments            4.6 kB          109 kB
+├ ○ /dashboard/agent/clients             4.91 kB         104 kB
+├ ƒ /dashboard/agent/clients/[id]        4.14 kB         115 kB
+├ ○ /dashboard/agent/listings            1.5 kB          113 kB
+├ ○ /dashboard/agent/listings/new        4.85 kB         107 kB
+├ ○ /dashboard/agent/transactions        3.78 kB         122 kB
+├ ƒ /dashboard/agent/transactions/[id]   10.7 kB         115 kB
+├ ○ /dashboard/client                    5.06 kB         129 kB
+├ ○ /dashboard/notifications             1.49 kB         117 kB
+├ ○ /messages                            5.03 kB         117 kB
+├ ○ /pricing                             5.07 kB         105 kB
+├ ○ /properties                          6.9 kB          118 kB
+├ ƒ /properties/[id]                     6.63 kB         118 kB
+└ ○ /transactions                        142 B          87.4 kB
++ First Load JS shared by all            87.3 kB
+  ├ chunks/1dd3208c-5605c2b2cda07292.js  53.6 kB
+  ├ chunks/528-da1f559bfe3a44dc.js       31.7 kB
+  └ other shared chunks (total)          1.95 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

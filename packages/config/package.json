@@ -1,0 +1,11 @@
+{
+  "name": "@hw/config",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/fallbacks.ts",
+  "types": "src/fallbacks.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/"
+  }
+}
