@@ -5,8 +5,8 @@ interface CrmClient {
   status: string;
   createdAt: string;
   updatedAt: string;
-  agent?: import('@prisma/client').User;
-  buyer?: import('@prisma/client').User;
+  agent?: Record<string, unknown>;
+  buyer?: Record<string, unknown>;
   notes?: NoteEntry[];
   ratings?: RatingEntry[];
   inspections?: InspectionEntry[];
@@ -18,7 +18,7 @@ interface NoteEntry {
   content: string;
   authorId: string;
   createdAt: string;
-  author?: import('@prisma/client').User;
+  author?: Record<string, unknown>;
 }
 
 interface RatingEntry {
@@ -28,7 +28,7 @@ interface RatingEntry {
   review?: string;
   authorId: string;
   createdAt: string;
-  author?: import('@prisma/client').User;
+  author?: Record<string, unknown>;
 }
 
 interface InspectionEntry {
@@ -42,8 +42,8 @@ interface InspectionEntry {
   createdAt: string;
   updatedAt: string;
   client?: CrmClient;
-  listing?: import('@prisma/client').Listing & { media?: import('@prisma/client').Media[] };
-  author?: import('@prisma/client').User;
+  listing?: Record<string, unknown>;
+  author?: Record<string, unknown>;
 }
 
 interface DashboardStats {

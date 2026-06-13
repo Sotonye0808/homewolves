@@ -8,27 +8,15 @@
  ⚠ Found lockfile missing swc dependencies, patching...
 npm error code ENOWORKSPACES
 npm error This command does not support workspaces.
-npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-06-13T10_09_22_080Z-debug-0.log
- ⨯ Failed to patch lockfile, please try uninstalling and reinstalling next in this workspace
-TypeError: Cannot read properties of undefined (reading 'os')
-    at fetchPkgInfo (C:\Users\Harvesters WebDev\Downloads\web-dev\homewolves\node_modules\next\dist\lib\patch-incorrect-lockfile.js:73:25)
-    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async Promise.all (index 7)
-    at async patchIncorrectLockfile (C:\Users\Harvesters WebDev\Downloads\web-dev\homewolves\node_modules\next\dist\lib\patch-incorrect-lockfile.js:162:26)
+npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-06-13T10_18_25_854Z-debug-0.log
  ⚠ Found lockfile missing swc dependencies, patching...
 npm error code ENOWORKSPACES
 npm error This command does not support workspaces.
-npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-06-13T10_09_32_220Z-debug-0.log
+npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-06-13T10_18_31_478Z-debug-0.log
  ⚠ Found lockfile missing swc dependencies, patching...
 npm error code ENOWORKSPACES
 npm error This command does not support workspaces.
-npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-06-13T10_09_34_995Z-debug-0.log
- ⨯ Failed to patch lockfile, please try uninstalling and reinstalling next in this workspace
-TypeError: Cannot read properties of undefined (reading 'os')
-    at fetchPkgInfo (C:\Users\Harvesters WebDev\Downloads\web-dev\homewolves\node_modules\next\dist\lib\patch-incorrect-lockfile.js:73:25)
-    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async Promise.all (index 7)
-    at async patchIncorrectLockfile (C:\Users\Harvesters WebDev\Downloads\web-dev\homewolves\node_modules\next\dist\lib\patch-incorrect-lockfile.js:162:26)
+npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-06-13T10_18_33_561Z-debug-0.log
  ✓ Compiled successfully
    Linting and checking validity of types ...
 
@@ -52,25 +40,25 @@ info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/d
  ⚠ Found lockfile missing swc dependencies, patching...
 npm error code ENOWORKSPACES
 npm error This command does not support workspaces.
-npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-06-13T10_09_54_876Z-debug-0.log
+npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-06-13T10_18_47_384Z-debug-0.log
    Generating static pages (0/20) ...
-(node:24388) Warning: `--localstorage-file` was provided without a valid path
+(node:752) Warning: `--localstorage-file` was provided without a valid path
 (Use `node --trace-warnings ...` to show where the warning was created)
-(node:19592) Warning: `--localstorage-file` was provided without a valid path
+(node:7836) Warning: `--localstorage-file` was provided without a valid path
 (Use `node --trace-warnings ...` to show where the warning was created)
-(node:14108) Warning: `--localstorage-file` was provided without a valid path
+(node:25520) Warning: `--localstorage-file` was provided without a valid path
 (Use `node --trace-warnings ...` to show where the warning was created)
-(node:6732) Warning: `--localstorage-file` was provided without a valid path
+(node:19008) Warning: `--localstorage-file` was provided without a valid path
 (Use `node --trace-warnings ...` to show where the warning was created)
-(node:26104) Warning: `--localstorage-file` was provided without a valid path
+(node:25204) Warning: `--localstorage-file` was provided without a valid path
 (Use `node --trace-warnings ...` to show where the warning was created)
-(node:18068) Warning: `--localstorage-file` was provided without a valid path
+(node:6596) Warning: `--localstorage-file` was provided without a valid path
 (Use `node --trace-warnings ...` to show where the warning was created)
    Generating static pages (5/20) 
-(node:9448) Warning: `--localstorage-file` was provided without a valid path
-(Use `node --trace-warnings ...` to show where the warning was created)
    Generating static pages (10/20) 
+(node:20512) Warning: `--localstorage-file` was provided without a valid path
    Generating static pages (15/20) 
+(Use `node --trace-warnings ...` to show where the warning was created)
  ✓ Generating static pages (20/20)
    Finalizing page optimization ...
    Collecting build traces ...
