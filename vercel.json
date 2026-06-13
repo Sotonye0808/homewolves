@@ -3,6 +3,5 @@
   "buildCommand": "npx turbo run build --filter=@hw/web...",
   "outputDirectory": ".next",
   "installCommand": "npm install",
-  "devCommand": "next dev",
-  "ignoreCommand": "npx turbo-ignore @hw/web"
+  "devCommand": "next dev"
 }
