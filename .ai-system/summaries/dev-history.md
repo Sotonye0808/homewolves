@@ -35,6 +35,7 @@
 Homewolves development begins. The `.ai-system/` documentation structure has been fully populated with project-specific content derived from DESIGN.md and ROADMAP.md. Design HTML exports (12 screens) are complete. Zero application code exists — the project is at the scaffolding threshold.
 
 **Completed:**
+
 - `.ai-system/agents/system-architecture.md` populated — full architecture diagram, module breakdown, data flows, config points
 - `.ai-system/agents/project-context.md` populated — project identity, target users, constraints, tech decisions, integrations
 - `.ai-system/agents/design-system.md` populated — colour tokens, typography, spacing, component patterns, breakpoints, a11y
@@ -48,20 +49,22 @@ Homewolves development begins. The `.ai-system/` documentation structure has bee
 - `.ai-system/summaries/dev-history.md` — this entry
 
 **Key Changes:**
+
 - All `.ai-system/` template files ([FILL IN]) replaced with project-specific content
-- Architectural foundations documented — metadata-driven UI, OOP domain model, audit-by-default, RBAC, Hw* wrapper pattern, global types
+- Architectural foundations documented — metadata-driven UI, OOP domain model, audit-by-default, RBAC, Hw\* wrapper pattern, global types
 
 **Next Sprint Focus:**
-Monorepo scaffolding — Turborepo setup, Next.js 14 app, NestJS project, Prisma schema, global types package, first Hw* UI wrappers, and the initial vertical slice (auth → listing creation → public feed → property detail).
+Monorepo scaffolding — Turborepo setup, Next.js 14 app, NestJS project, Prisma schema, global types package, first Hw\* UI wrappers, and the initial vertical slice (auth → listing creation → public feed → property detail).
 
 ---
 
 ## 2026-06-10 — Sprint 1: Core Marketplace MVP
 
 **Summary:**
-Complete MVP scaffolding and all core features: Turborepo monorepo, NestJS + Next.js apps, Prisma schema, auth flow, listing CRUD, public feed with infinite scroll, property detail page, recently viewed, and save/favorite system. Full design token system, shadcn/ui Hw* wrappers, landing page, and PlatformConfig metadata-driven config system.
+Complete MVP scaffolding and all core features: Turborepo monorepo, NestJS + Next.js apps, Prisma schema, auth flow, listing CRUD, public feed with infinite scroll, property detail page, recently viewed, and save/favorite system. Full design token system, shadcn/ui Hw\* wrappers, landing page, and PlatformConfig metadata-driven config system.
 
 **Completed:**
+
 - Turborepo monorepo initialized — root configs, path aliases, strict TypeScript
 - `packages/types/` — 13 type files + global.d.ts triple-slash imports, zero-import pattern
 - `apps/web/` — Next.js 14 App Router, route groups, Tailwind with CSS variable tokens, globals.css with DESIGN.md tokens + shadcn theme mapping + dark/high-contrast + utilities
@@ -77,6 +80,7 @@ Complete MVP scaffolding and all core features: Turborepo monorepo, NestJS + Nex
 - FEATURES 6-7 — Recently Viewed & Save: backend modules + use-interactions hooks
 
 **Key Changes:**
+
 - Global TypeScript zero-import pattern via global.d.ts — eliminates import boilerplate across monorepo
 - Metadata-driven UI: all config from PlatformConfig DB with Redis + fallback chain
 - Audit by default on all mutations at service layer
@@ -92,6 +96,7 @@ Sprint 2 — Agent CRM, dashboard bento grid, real-time messaging, notification 
 Built agent CRM backend + frontend (Client/Note/Rating/Inspection), Bento grid agent dashboard matching design spec, real-time messaging with Socket.io, and notification pipeline. All typecheck clean.
 
 **Completed:**
+
 - CRM backend module — Prisma models (Client, Note, Rating, Inspection), CRUD service with audit logging, dashboard stats endpoint, REST controller + DTOs
 - CRM frontend — API client, TanStack Query hooks, client data table with search/filter/sort, client detail page with notes timeline, interactive rating stars, inspection scheduling form
 - Agent Dashboard — full Bento grid with 8 cell types matching agent-dashboard.html (Active Clients, Inspections, Messages, Performance Chart, Activity Feed, Commission Tracker, Lead Funnel, Quick Actions), sidebars, glass surfaces
@@ -101,6 +106,7 @@ Built agent CRM backend + frontend (Client/Note/Rating/Inspection), Bento grid a
 - Price Drop & Match Alerts — AlertsModule integrated into ListingService
 
 **Key Changes:**
+
 - Socket.io gateway on /ws namespace shared by messaging and notifications
 - Messages placed in (public) route group for full-screen layout
 
@@ -115,6 +121,7 @@ Sprint 3 — Transaction deal stepper, payment evidence, activity points, admin 
 Complete client portal and deal lifecycle: Transaction stepper with role-based transitions, payment evidence upload with admin review, activity points gamification, admin listing moderation queue, and CMS-driven blog module. All typecheck clean. Sprint 3 fully completed.
 
 **Completed:**
+
 - Transaction module — backend CRUD with 5-step deal lifecycle (offer→inspection→documentation→payment→handover), advance/reject/cancel, payment management. Frontend agent list + detail with visual step stepper, payment modals, client dashboard integration
 - Payment evidence upload + admin approval — backend `attachEvidence`/`getPendingPayments` endpoints; admin review page at `/dashboard/admin/payments` with confirm/reject; per-payment evidence attach UI
 - Activity Points system — 9 configurable rules, tier system (bronze→diamond), leaderboard, activity stats with category breakdown; agent dashboard bento cell showing total points + tier + recent activity
@@ -123,6 +130,7 @@ Complete client portal and deal lifecycle: Transaction stepper with role-based t
 - Role-aware dashboard sidebar — agents see Listings/Clients, buyers see My Dashboard, admins see Moderation
 
 **Key Changes:**
+
 - 4 new Prisma models: ActivityRule, AgentActivity, AgentPoints, BlogPost
 - 3 new backend modules: TransactionsModule, ActivityModule, BlogModule
 - Transaction steps stored as JSON in `stepsJson` column
@@ -130,3 +138,44 @@ Complete client portal and deal lifecycle: Transaction stepper with role-based t
 
 **Next Sprint Focus:**
 Sprint 3 complete. Proceed to Backlog or Phase 2.
+
+## 2026-06-16 — Navigation Audit and Route Repairs
+
+**Summary:**
+Audited the web app for dead navigation paths and inert CTAs that blocked user flow. Rewired the most visible landing interactions to real routes, restored footer/legal destinations, and added missing public route pages so the app no longer dead-ends on those links.
+
+**Completed:**
+
+- Wired landing CTAs and hero search into actual app routes
+- Converted the mobile bar from local-state tabs to route-based navigation
+- Added missing public routes for About, Contact, FAQ, Privacy, and Terms
+- Fixed auth footer links and property card chat routing
+
+**Key Changes:**
+
+- Navigation now points at real, reachable destinations instead of placeholder buttons
+- Public/legal route coverage restored for the footer and auth screens
+
+**Next Sprint Focus:**
+Continue the audit for any remaining placeholder interactions and then tackle the app-wide inline style cleanup on the properties feed if it remains in scope
+
+## 2026-06-16 — Build Repair Pass
+
+**Summary:**
+Resolved the lint and formatting issues that were preventing `npm run build` from finishing cleanly in the web app. The build now completes successfully, with only Next’s SWC lockfile patch warning remaining during the dependency check stage.
+
+**Completed:**
+
+- Removed an unused footer import
+- Replaced empty catch blocks with explicit no-op handling
+- Removed console noise from the websocket client
+- Converted the agent listings page away from inline styles so it passes lint
+- Verified `npm run build` succeeds end-to-end
+
+**Key Changes:**
+
+- Build failures were caused by lint-level issues, not runtime regressions
+- The remaining Next warning is environmental/lockfile-related and does not block the build
+
+**Next Sprint Focus:**
+If needed, address the Next SWC lockfile patch warning by reinstalling dependencies in the workspace; otherwise proceed with feature work

@@ -1,6 +1,13 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Search, ArrowRight } from 'lucide-react';
 
 export function HeroSection() {
+  const [query, setQuery] = useState('');
+  const router = useRouter();
+
   return (
     <section className="relative w-full h-[500px] lg:h-[600px] overflow-hidden" role="banner">
       <img
@@ -26,10 +33,28 @@ export function HeroSection() {
             type="text"
             placeholder="Search by city, property type, or agent..."
             aria-label="Search properties"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                router.push(
+                  query.trim()
+                    ? `/properties?search=${encodeURIComponent(query.trim())}`
+                    : '/properties',
+                );
+              }
+            }}
             className="flex-1 bg-transparent border-none outline-none font-body text-base text-[var(--color-text-inverse)] placeholder:text-white/55 py-2"
           />
           <button
             type="button"
+            onClick={() =>
+              router.push(
+                query.trim()
+                  ? `/properties?search=${encodeURIComponent(query.trim())}`
+                  : '/properties',
+              )
+            }
             className="flex items-center gap-2 px-6 py-2 border-none rounded-full bg-accent text-accent-foreground font-body text-base font-semibold shrink-0 hover:bg-[var(--color-brand-accent-alt)] transition-colors duration-fast"
           >
             Search

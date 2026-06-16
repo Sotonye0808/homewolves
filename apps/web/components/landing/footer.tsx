@@ -1,5 +1,5 @@
+import Link from 'next/link';
 import { Instagram, Twitter, Linkedin, Youtube } from 'lucide-react';
-import { HwButton } from '@/components/ui';
 
 const footerNav = [
   {
@@ -29,15 +29,17 @@ const socialLinks = [
 
 export function Footer() {
   return (
-    <footer className="w-full py-16 lg:py-20 px-4 lg:px-10 bg-[var(--color-bg-elevated)] border-t border-border" role="contentinfo">
+    <footer
+      className="w-full py-16 lg:py-20 px-4 lg:px-10 bg-[var(--color-bg-elevated)] border-t border-border"
+      role="contentinfo"
+    >
       <div className="max-w-[1120px] mx-auto">
         <div className="flex flex-col lg:flex-row justify-between gap-8 lg:gap-16 mb-12">
           <div className="max-w-[260px]">
-            <div className="font-display text-2xl font-bold text-primary mb-4">
-              Homewolves
-            </div>
+            <div className="font-display text-2xl font-bold text-primary mb-4">Homewolves</div>
             <p className="font-body text-sm text-muted-foreground leading-relaxed">
-              Africa&apos;s real estate operating system — connecting agents, buyers, developers, and homeowners with verified listings and seamless transactions.
+              Africa&apos;s real estate operating system — connecting agents, buyers, developers,
+              and homeowners with verified listings and seamless transactions.
             </p>
           </div>
 
@@ -87,16 +89,15 @@ export function Footer() {
 
           <div className="flex items-center gap-6 bg-[var(--color-bg-glass)] backdrop-blur-[var(--glass-blur-subtle)] border border-[var(--color-border-glass)] rounded-lg px-6 py-4 shadow-glass order-1 lg:order-2">
             <div>
-              <div className="font-body text-base font-semibold text-foreground">
-                Go Pro
-              </div>
-              <div className="font-body text-sm text-muted-foreground">
-                Unlock premium features
-              </div>
+              <div className="font-body text-base font-semibold text-foreground">Go Pro</div>
+              <div className="font-body text-sm text-muted-foreground">Unlock premium features</div>
             </div>
-            <HwButton variant="primary" size="sm">
+            <Link
+              href="/pricing"
+              className="inline-flex items-center justify-center gap-2 font-body font-semibold transition-all duration-fast ease-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-h-[44px] bg-accent text-accent-foreground rounded-full shadow-sm hover:bg-[var(--color-brand-accent-alt)] hover:shadow-md hover:-translate-y-px px-4 py-1.5 text-xs"
+            >
               View Plans
-            </HwButton>
+            </Link>
           </div>
         </div>
       </div>
