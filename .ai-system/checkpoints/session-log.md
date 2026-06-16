@@ -39,6 +39,7 @@
 ## Session 3 — 2026-06-10
 
 **Completed:**
+
 - Updated task-queue.md — Sprint 1 fully checked off, Sprint 2 (Agent & Communication) marked current with CRM + Messaging checked
 - Added 4 new Prisma models (Client, Note, Rating, Inspection) with relations to User and Listing
 - Built CRM backend module (8 files): NestJS service with full CRUD + AuditEvent logging + dashboard stats endpoint, controller with REST routes, DTOs for all entities
@@ -54,6 +55,7 @@
 - `tsc --noEmit` passes on all packages — zero errors
 
 **Files Modified:**
+
 - `.ai-system/planning/task-queue.md` — Sprint 1 ✅, Sprint 2 CRM + Messaging ✅
 - `.ai-system/summaries/guided-summary.md` — updated with all new features
 - `packages/api/prisma/schema.prisma` — added Client, Note, Rating, Inspection models
@@ -79,9 +81,11 @@
 - `apps/web/app/(dashboard)/layout.tsx` — added Clients nav link
 
 **Next Task:**
+
 - Notification pipeline — BullMQ queue with NotificationService, multi-channel dispatch (WebSocket, email via Resend, SMS via Termii), template resolution from PlatformConfig
 
 **Notes / Blockers:**
+
 - Prisma client not regenerated — new models accessed via `(this.prisma as any)` pattern matching audit.service.ts
 - Next.js SWC lockfile issue prevents `npm run build` — use `tsc --noEmit` for type verification
 
@@ -90,6 +94,7 @@
 ## Session 4 — 2026-06-10
 
 **Completed:**
+
 - Fixed turbo.json — renamed `pipeline` to `tasks` for Turborepo v2 compatibility
 - Built Notification System backend: `NotificationsModule` with service (CRUD + multi-channel dispatch), controller (REST: list, unread count, mark read, mark all read, preferences), gateway (Socket.io `/ws` for `notification:new` events), DTOs
 - Built Notification System frontend: API client (`lib/notifications.ts`), hooks (`hooks/use-notifications.ts` with WebSocket listener, auto-polling, bell state), notification bell + dropdown in dashboard layout (both mobile + desktop), full notifications inbox page at `/dashboard/notifications` with all/unread filter, type icons, timestamps
@@ -99,6 +104,7 @@
 - All packages pass `tsc --noEmit`
 
 **Files Modified:**
+
 - `turbo.json` — pipeline → tasks
 - `packages/api/src/app.module.ts` — added NotificationsModule, AlertsModule
 - `packages/api/src/modules/notifications/` — 6 new files (module, service, controller, gateway, 2 DTOs)
@@ -113,6 +119,7 @@
 - `.ai-system/planning/task-queue.md` — Sprint 3 updated with completed items
 
 **Next Task:**
+
 - Transaction module — full deal lifecycle stepper with role-based transitions
 - Payment evidence upload + admin approval workflow
 - Activity Points system for agent gamification
@@ -120,6 +127,7 @@
 - Blog module — CMS-driven with magazine layout
 
 **Notes / Blockers:**
+
 - Notifications use direct dispatch (sync) — BullMQ queue integration would add async delivery with retries for email/SMS channels
 - Price Drop alerts fire synchronously on listing update — for production, this should be a background job
 - Client Dashboard Transactions and Documents tabs show empty states — those modules are not built yet
@@ -129,6 +137,7 @@
 ## Session 5 — 2026-06-10
 
 **Completed:**
+
 - Built Transaction module — full deal lifecycle stepper:
   - Backend: `TransactionsService` with create, findAll, findById, advance (step progression), reject, cancel, addPayment, confirmPayment — all audited
   - Backend: `TransactionsController` with REST endpoints under `/transactions` — JWT-guarded
@@ -164,6 +173,7 @@
 - Sprint 3 fully completed
 
 **Files Modified:**
+
 - `.ai-system/summaries/dev-history.md` — added Sprint 1 + Sprint 2 entries
 - `.ai-system/planning/task-queue.md` — all Sprint 3 items checked off
 - `.ai-system/checkpoints/session-log.md` — this entry
@@ -195,6 +205,7 @@
 Sprint 3 complete. Proceed to Backlog items or begin Phase 2 (Mobile app, WhatsApp integration, Analytics).
 
 **Notes / Blockers:**
+
 - All Sprint 3 features use `db()` helper pattern for new Prisma models (not regenerated)
 - Blog posts use `dangerouslySetInnerHTML` for content rendering — should be paired with sanitization in production
 - Activity points are awarded on-demand via API endpoint — should be wired into service layer hooks for automatic awarding
@@ -204,18 +215,21 @@ Sprint 3 complete. Proceed to Backlog items or begin Phase 2 (Mobile app, WhatsA
 ## Session 6 — 2026-06-10
 
 **Completed:**
+
 - Comprehensive pixel-perfect audit comparing `.ai-system/designs/` HTML files against all implemented pages
 - **Admin Panel fix**: Added 240px glass side navigation matching `admin-panel.html` — 8 nav items with SVG icons, badges, footer with avatar/name/role. Added theme toggle button to top bar. Replaced all raw Tailwind color classes with CSS variable references (`color-success-bg`, `color-status-active`, etc.)
 - **Transaction Workflow fix**: Added `@keyframes celebrate-pulse` animation to globals.css matching `transaction-workflow.html` design. Replaced all raw Tailwind color classes (`text-emerald-600`, `bg-emerald-100`, etc.) with CSS variable references in the transaction detail page. Fixed stepper connector and step icon colors to use design tokens
 - Written comprehensive audit log covering all 6 areas
 
 **Files Modified:**
+
 - `apps/web/app/(dashboard)/dashboard/admin/page.tsx` — added side navigation, theme toggle, replaced raw tailwind colors with CSS vars
 - `apps/web/app/(dashboard)/dashboard/agent/transactions/[id]/page.tsx` — celebration animation, CSS variable colors for all stepper states and badges
 - `apps/web/app/globals.css` — added `@keyframes celebrate-pulse` and `.skeleton` + `@keyframes shimmer` utilities
 - `.ai-system/checkpoints/session-log.md` — this entry
 
 **Next Task:**
+
 - Performance audit — Lighthouse for all pages, fix LCP > 2.5s, route-level `dynamic()` imports
 - SEO — `generateMetadata()` on listing pages, dynamic sitemap.xml, robots.txt, JSON-LD schema
 - Security — audit all tRPC routes for guards, rate limiting, input validation
@@ -223,17 +237,20 @@ Sprint 3 complete. Proceed to Backlog items or begin Phase 2 (Mobile app, WhatsA
 - Testing — unit tests for core services, component tests, E2E Playwright journeys
 
 **Notes / Blockers:**
+
 - All design files exist but with file names not matching the README.md index — see `.ai-system/designs/README.md` for the canonical list vs actual files
 - Admin side nav only shows on lg breakpoint (1024px+); mobile uses existing dashboard sidebar
 - Celebration animation uses `ease-spring` easing — confirmed matching design spec
 - Raw hex colors still exist in some pages (properties, auth, blog) — only admin + transaction pages were refactored this session
 
 **Completed:**
+
 - Full `.ai-system/` bootstrap executed
 - Scanned existing repository structure (design assets only, zero code)
 - Populated all agent files with project-specific content derived from DESIGN.md and ROADMAP.md
 
 **Files Modified:**
+
 - `.ai-system/agents/system-architecture.md` — populated with full architecture diagram, module breakdown, data flow, config points, tech stack
 - `.ai-system/agents/project-context.md` — populated with project purpose, target users, constraints, tech decisions, out-of-scope, integrations
 - `.ai-system/agents/design-system.md` — populated with DESIGN.md summary: tokens, component patterns, UX principles, breakpoints, a11y
@@ -250,6 +267,7 @@ Sprint 3 complete. Proceed to Backlog items or begin Phase 2 (Mobile app, WhatsA
 Initialize the Turborepo monorepo — create root `package.json`, `turbo.json`, `tsconfig.base.json`
 
 **Notes / Blockers:**
+
 - No application code exists yet — the entire `apps/` and `packages/` structure is target-only
 - Design exports are complete in `.ai-system/designs/` — 12 HTML files covering all core routes
 - Next session should begin with `dev-cycle.md` command and start scaffolding
@@ -259,13 +277,14 @@ Initialize the Turborepo monorepo — create root `package.json`, `turbo.json`, 
 ## Session 2 — 2026-06-09
 
 **Completed:**
+
 - Full project scaffolding per ROADMAP.md §10 structure — all directories created
 - Turborepo monorepo configured — root `package.json`, `turbo.json`, `tsconfig.base.json`, `.eslintrc.json`, `.gitignore`
 - Global types package (`packages/types/`) — all 12 type files + `global.d.ts` + tsconfig
   - Entities: User hierarchy (BaseUser, Agent, BuyerClient, Admin, etc.), Listing, Transaction, AuditEvent, Notification
   - Config: PlatformConfig, FeatureFlag, AmenityConfig, FilterPillConfig, NavItemConfig, PropertyTypeConfig, SubscriptionPlan
   - API: CreateListingDto, UpdateListingDto, RegisterDto, LoginDto, SearchParams, PaginatedResponse, ApiError
-  - UI: ComponentConfig, PropertyCardConfig, BentoCellConfig, Hw*Props for all 11 components
+  - UI: ComponentConfig, PropertyCardConfig, BentoCellConfig, Hw\*Props for all 11 components
 - Web app (`apps/web/`) — Next.js 14, App Router route groups ((public), (dashboard), (admin)), Tailwind config with CSS variable theme extension
   - `globals.css` with all design tokens from DESIGN.md §2 + shadcn/ui theme mapping + dark/high-contrast themes
   - `ThemeProvider` with localStorage persistence and prefers-color-scheme detection
@@ -279,6 +298,7 @@ Initialize the Turborepo monorepo — create root `package.json`, `turbo.json`, 
 - `tsc --noEmit` passes cleanly on all three packages (types, web, api) — zero errors
 
 **Files Modified:**
+
 - `package.json` — root monorepo config
 - `turbo.json` — pipeline definition
 - `tsconfig.base.json` — strict mode, paths aliases
@@ -306,10 +326,71 @@ Initialize the Turborepo monorepo — create root `package.json`, `turbo.json`, 
 - `.ai-system/planning/task-queue.md` — updated with completed items
 
 **Next Task:**
-Install shadcn/ui (`npx shadcn-ui@latest init`) and create the first Hw* wrapper components (HwButton, HwInput, HwBadge, HwCard) with barrel export.
+Install shadcn/ui (`npx shadcn-ui@latest init`) and create the first Hw\* wrapper components (HwButton, HwInput, HwBadge, HwCard) with barrel export.
 
 **Notes / Blockers:**
+
 - Prisma client generated successfully; `tsc --noEmit` passes on all packages
 - shadcn/ui not yet initialized (will prompt during install)
 - No .env files created yet — DATABASE_URL, REDIS_URL, JWT_SECRET etc. are unset
 - The `apps/mobile/` directory has placeholder structure only — Expo setup is not yet done
+
+## Session 7 — 2026-06-16
+
+**Completed:**
+
+- Audited the web app navigation surface for dead links and inert CTAs
+- Wired landing-page CTAs to real routes: Post Property → `/dashboard/agent/listings/new`, Become an Agent → `/pricing`, View Plans → `/pricing`
+- Made the mobile bottom bar route-aware and linked each tab to a concrete page instead of toggling local state only
+- Added hero search navigation to `/properties` and made the top-nav search submit route to the listings feed
+- Fixed the property card Chat action to open `/messages`
+- Replaced auth terms/privacy placeholders with valid `/terms` and `/privacy` links
+- Added missing public pages for `/about`, `/contact`, `/faq`, `/privacy`, and `/terms` so the footer no longer 404s
+- Added an anchor target on the properties feed search area for in-page navigation support
+
+**Files Modified:**
+
+- `apps/web/components/landing/top-nav.tsx` — logo link, search submit, notifications/profile routes, Post Property route
+- `apps/web/components/landing/agent-cta.tsx` — Become an Agent routes to pricing
+- `apps/web/components/landing/footer.tsx` — View Plans now links to pricing
+- `apps/web/components/landing/mobile-bar.tsx` — route-based navigation tabs and post-property action
+- `apps/web/components/landing/hero-section.tsx` — search input/button route to properties feed
+- `apps/web/components/landing/property-card.tsx` — Chat action routes to messages
+- `apps/web/app/(public)/auth/page.tsx` — Terms and Privacy links fixed
+- `apps/web/app/(public)/properties/page.tsx` — added search anchor
+- `apps/web/app/(public)/about/page.tsx` — new
+- `apps/web/app/(public)/contact/page.tsx` — new
+- `apps/web/app/(public)/faq/page.tsx` — new
+- `apps/web/app/(public)/privacy/page.tsx` — new
+- `apps/web/app/(public)/terms/page.tsx` — new
+
+**Next Task:**
+
+- Review remaining app-wide interaction surfaces for any other dead or placeholder routes, then run a broader typecheck if needed
+
+**Notes / Blockers:**
+
+- `apps/web/app/(public)/properties/page.tsx` still has pre-existing inline-style lint noise unrelated to this navigation audit
+
+## Session 8 — 2026-06-16
+
+**Completed:**
+- Fixed the build blockers surfaced by `npm run build`
+- Removed the unused `HwButton` import from the footer
+- Replaced empty `catch {}` blocks in auth, agent listings, and notifications with explicit no-op error handling
+- Removed websocket console noise from the messaging client
+- Converted the agent listings page away from inline styles so it passes the repo’s lint rules
+- Re-ran the full workspace build successfully after the fixes
+
+**Files Modified:**
+- `apps/web/components/landing/footer.tsx` — removed unused import
+- `apps/web/app/(public)/auth/page.tsx` — explicit catch blocks
+- `apps/web/app/(dashboard)/dashboard/agent/listings/page.tsx` — removed inline styles and duplicate attributes, tokenized classes
+- `apps/web/lib/notifications.ts` — explicit catch block in token parsing
+- `apps/web/lib/messaging.ts` — removed console statements
+
+**Next Task:**
+- Optionally clean up the remaining Next SWC lockfile patch warning by reinstalling dependencies in the workspace, if that warning needs to be eliminated
+
+**Notes / Blockers:**
+- `next build` still prints a lockfile patch warning (`ENOWORKSPACES` / SWC dependency patching), but the build completes successfully

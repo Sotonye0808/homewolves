@@ -34,7 +34,9 @@ export default function AuthPage() {
       setStep('otp');
       setOtpTimer(120);
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
-    } catch {}
+    } catch (error) {
+      void error;
+    }
   };
 
   const handleOtpSubmit = async () => {
@@ -44,7 +46,9 @@ export default function AuthPage() {
     try {
       await verifyOtp(email, otp);
       setStep('profile');
-    } catch {}
+    } catch (error) {
+      void error;
+    }
   };
 
   const handleProfileSubmit = async () => {
@@ -52,7 +56,9 @@ export default function AuthPage() {
     try {
       await completeProfile({ email, firstName, lastName, phone, role: selectedRole });
       setStep('agent-id');
-    } catch {}
+    } catch (error) {
+      void error;
+    }
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -91,7 +97,9 @@ export default function AuthPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <a href="#auth-form" className="skip-link">Skip to main content</a>
+      <a href="#auth-form" className="skip-link">
+        Skip to main content
+      </a>
 
       {/* Desktop hero side */}
       <div className="hidden lg:flex flex-[0_0_55%] relative overflow-hidden bg-gradient-to-br from-primary to-secondary items-center justify-center">
@@ -110,7 +118,8 @@ export default function AuthPage() {
             Join Africa&apos;s Real Estate Revolution
           </h1>
           <p className="text-white/80 text-lg leading-relaxed">
-            Connect with verified agents, discover premium properties, and transact with confidence across the continent.
+            Connect with verified agents, discover premium properties, and transact with confidence
+            across the continent.
           </p>
         </div>
       </div>
@@ -152,7 +161,10 @@ export default function AuthPage() {
               </div>
 
               <div className="mb-4">
-                <label htmlFor="auth-email" className="block text-sm font-semibold text-secondary mb-1">
+                <label
+                  htmlFor="auth-email"
+                  className="block text-sm font-semibold text-secondary mb-1"
+                >
                   Email Address
                 </label>
                 <div className="relative">
@@ -187,18 +199,35 @@ export default function AuthPage() {
 
               <button className="btn-outline w-full flex items-center justify-center gap-2">
                 <svg viewBox="0 0 48 48" className="w-5 h-5">
-                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-                  <path fill="#FBBC05" d="M10.54 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 0 0 0 24c0 3.77.87 7.35 2.56 10.56l7.98-5.97z" />
-                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 5.97C6.51 42.62 14.62 48 24 48z" />
+                  <path
+                    fill="#EA4335"
+                    d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M10.54 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 0 0 0 24c0 3.77.87 7.35 2.56 10.56l7.98-5.97z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 5.97C6.51 42.62 14.62 48 24 48z"
+                  />
                 </svg>
                 Sign in with Google
               </button>
 
               <p className="text-center text-sm text-muted-foreground mt-4">
                 By continuing, you agree to our{' '}
-                <a href="#" className="text-secondary hover:underline">Terms</a> and{' '}
-                <a href="#" className="text-secondary hover:underline">Privacy Policy</a>
+                <a href="/terms" className="text-secondary hover:underline">
+                  Terms
+                </a>{' '}
+                and{' '}
+                <a href="/privacy" className="text-secondary hover:underline">
+                  Privacy Policy
+                </a>
               </p>
             </div>
           )}
@@ -217,7 +246,9 @@ export default function AuthPage() {
                 {otpValues.map((val, i) => (
                   <input
                     key={i}
-                    ref={(el) => { otpRefs.current[i] = el; }}
+                    ref={(el) => {
+                      otpRefs.current[i] = el;
+                    }}
                     type="text"
                     maxLength={1}
                     inputMode="numeric"
@@ -240,7 +271,10 @@ export default function AuthPage() {
                   <button
                     disabled={otpTimer > 0}
                     className="text-secondary font-semibold underline underline-offset-2 disabled:opacity-40 disabled:cursor-default"
-                    onClick={() => { setOtpTimer(120); handleEmailSubmit(); }}
+                    onClick={() => {
+                      setOtpTimer(120);
+                      handleEmailSubmit();
+                    }}
                   >
                     Resend code
                   </button>
@@ -257,10 +291,7 @@ export default function AuthPage() {
                 {isLoading ? 'Verifying...' : 'Verify'}
               </button>
 
-              <button
-                onClick={() => setStep('email')}
-                className="btn-secondary w-full mt-3"
-              >
+              <button onClick={() => setStep('email')} className="btn-secondary w-full mt-3">
                 Back to email
               </button>
             </div>
@@ -277,7 +308,10 @@ export default function AuthPage() {
               </p>
 
               <div className="mb-4">
-                <label htmlFor="auth-firstname" className="block text-sm font-semibold text-secondary mb-1">
+                <label
+                  htmlFor="auth-firstname"
+                  className="block text-sm font-semibold text-secondary mb-1"
+                >
                   First Name
                 </label>
                 <input
@@ -292,7 +326,10 @@ export default function AuthPage() {
               </div>
 
               <div className="mb-4">
-                <label htmlFor="auth-lastname" className="block text-sm font-semibold text-secondary mb-1">
+                <label
+                  htmlFor="auth-lastname"
+                  className="block text-sm font-semibold text-secondary mb-1"
+                >
                   Last Name
                 </label>
                 <input
@@ -307,7 +344,10 @@ export default function AuthPage() {
               </div>
 
               <div className="mb-4">
-                <label htmlFor="auth-phone" className="block text-sm font-semibold text-secondary mb-1">
+                <label
+                  htmlFor="auth-phone"
+                  className="block text-sm font-semibold text-secondary mb-1"
+                >
                   Phone Number
                 </label>
                 <input
@@ -325,7 +365,10 @@ export default function AuthPage() {
               </div>
 
               <div className="mb-4">
-                <label htmlFor="auth-role" className="block text-sm font-semibold text-secondary mb-1">
+                <label
+                  htmlFor="auth-role"
+                  className="block text-sm font-semibold text-secondary mb-1"
+                >
                   I am a...
                 </label>
                 <select
@@ -351,10 +394,7 @@ export default function AuthPage() {
                 {isLoading ? 'Saving...' : 'Continue'}
               </button>
 
-              <button
-                onClick={() => setStep('otp')}
-                className="btn-secondary w-full mt-2"
-              >
+              <button onClick={() => setStep('otp')} className="btn-secondary w-full mt-2">
                 Back
               </button>
             </div>
@@ -380,12 +420,19 @@ export default function AuthPage() {
               >
                 <Upload className="w-9 h-9 mx-auto mb-2 opacity-70 text-muted-foreground" />
                 <div className="text-md font-semibold text-foreground">Upload ID Document</div>
-                <div className="text-sm text-muted-foreground mt-1">Drag & drop or click to browse</div>
-                <div className="text-xs text-muted-foreground mt-1">PDF, JPG, or PNG (max 10MB)</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Drag & drop or click to browse
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  PDF, JPG, or PNG (max 10MB)
+                </div>
               </div>
 
               <div className="mb-4">
-                <label htmlFor="id-type" className="block text-sm font-semibold text-secondary mb-1">
+                <label
+                  htmlFor="id-type"
+                  className="block text-sm font-semibold text-secondary mb-1"
+                >
                   ID Type
                 </label>
                 <select
@@ -400,14 +447,9 @@ export default function AuthPage() {
                 </select>
               </div>
 
-              <button className="btn-primary w-full mt-4">
-                Submit for Verification
-              </button>
+              <button className="btn-primary w-full mt-4">Submit for Verification</button>
 
-              <button
-                onClick={() => setStep('profile')}
-                className="btn-secondary w-full mt-2"
-              >
+              <button onClick={() => setStep('profile')} className="btn-secondary w-full mt-2">
                 Back
               </button>
 

@@ -76,15 +76,15 @@ export function connectSocket(userId: string, token: string): Socket {
   });
 
   socketInstance.on('connect', () => {
-    console.log('[WS] Connected');
+    void 0;
   });
 
   socketInstance.on('disconnect', () => {
-    console.log('[WS] Disconnected');
+    void 0;
   });
 
   socketInstance.on('error', (err: any) => {
-    console.error('[WS] Error:', err);
+    void err;
   });
 
   return socketInstance;

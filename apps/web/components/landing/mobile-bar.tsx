@@ -1,17 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Home, Search, MessageCircle, User, Plus } from 'lucide-react';
 
 const tabs = [
-  { label: 'Explore', icon: Home, aria: 'Explore properties' },
-  { label: 'Search', icon: Search, aria: 'Search properties' },
-  { label: 'Chat', icon: MessageCircle, aria: 'Messages' },
-  { label: 'Profile', icon: User, aria: 'Profile' },
+  {
+    label: 'Explore',
+    icon: Home,
+    aria: 'Explore properties',
+    href: '/properties',
+    match: '/properties',
+  },
+  {
+    label: 'Search',
+    icon: Search,
+    aria: 'Search properties',
+    href: '/properties#search',
+    match: '/properties',
+  },
+  { label: 'Chat', icon: MessageCircle, aria: 'Messages', href: '/messages', match: '/messages' },
+  {
+    label: 'Profile',
+    icon: User,
+    aria: 'Client dashboard',
+    href: '/dashboard/client',
+    match: '/dashboard/client',
+  },
 ];
 
 export function MobileBar() {
-  const [active, setActive] = useState(0);
+  const pathname = usePathname();
 
   return (
     <nav
@@ -19,34 +38,32 @@ export function MobileBar() {
       role="navigation"
       aria-label="Bottom navigation"
     >
-      {tabs.map((tab, i) => {
+      {tabs.map((tab) => {
         const Icon = tab.icon;
+        const active = pathname.startsWith(tab.match);
         return (
-          <button
+          <Link
             key={tab.label}
-            type="button"
+            href={tab.href}
             aria-label={tab.aria}
-            data-state={active === i ? 'active' : ''}
+            data-state={active ? 'active' : ''}
             className={`flex flex-col items-center gap-0.5 bg-none border-none px-3 py-1 font-body text-[10px] font-semibold transition-colors duration-fast ${
-              active === i
-                ? 'text-accent'
-                : 'text-muted-foreground'
+              active ? 'text-accent' : 'text-muted-foreground'
             }`}
-            onClick={() => setActive(i)}
           >
             <Icon className="w-[22px] h-[22px]" />
             {tab.label}
-          </button>
+          </Link>
         );
       })}
 
-      <button
-        type="button"
+      <Link
+        href="/dashboard/agent/listings/new"
         aria-label="Post property"
         className="w-14 h-14 border-none rounded-full bg-accent text-accent-foreground grid place-items-center shadow-xl -mt-5 transition-transform duration-normal ease-spring active:scale-95"
       >
         <Plus className="w-7 h-7 stroke-[2.5]" />
-      </button>
+      </Link>
     </nav>
   );
 }

@@ -4,7 +4,11 @@ async function fetchApi(path: string, options?: RequestInit) {
   const stored = typeof window !== 'undefined' ? localStorage.getItem('hw-auth') : null;
   let token = '';
   if (stored) {
-    try { token = JSON.parse(stored).state?.accessToken ?? ''; } catch {}
+    try {
+      token = JSON.parse(stored).state?.accessToken ?? '';
+    } catch (error) {
+      void error;
+    }
   }
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,

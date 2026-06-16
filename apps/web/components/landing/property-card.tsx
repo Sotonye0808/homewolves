@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Bookmark, Share2 } from 'lucide-react';
 import { HwBadge } from '@/components/ui';
 
@@ -60,12 +61,12 @@ export function PropertyCard({
 
       <div className="flex items-center justify-between px-5 py-4">
         <span className="font-body text-sm text-secondary">{agent}</span>
-        <button
-          type="button"
+        <Link
+          href="/messages"
           className="font-body text-sm font-semibold text-secondary bg-none border-none px-3 py-1 rounded-full hover:bg-[var(--color-border-subtle)] transition-colors duration-fast"
         >
           Chat
-        </button>
+        </Link>
       </div>
     </article>
   );
