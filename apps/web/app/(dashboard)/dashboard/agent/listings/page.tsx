@@ -46,9 +46,16 @@ export default function AgentListingsPage() {
       {!isLoading && (!data?.listings || data.listings.length === 0) && (
         <div className="text-center py-16">
           <div className="text-4xl mb-3">🏠</div>
-          <p className="text-base font-medium text-[var(--color-text-secondary)]">No listings yet</p>
-          <p className="text-sm mt-1 text-[var(--color-text-tertiary)]">Create your first listing to get started</p>
-          <Link href="/dashboard/agent/listings/new" className="btn-primary inline-block mt-4 text-sm">
+          <p className="text-base font-medium text-[var(--color-text-secondary)]">
+            No listings yet
+          </p>
+          <p className="text-sm mt-1 text-[var(--color-text-tertiary)]">
+            Create your first listing to get started
+          </p>
+          <Link
+            href="/dashboard/agent/listings/new"
+            className="btn-primary inline-block mt-4 text-sm"
+          >
             Create Listing
           </Link>
         </div>
@@ -62,11 +69,13 @@ export default function AgentListingsPage() {
               className="rounded-xl p-4 md:p-5 transition-all bg-[var(--color-bg-elevated)]"
             >
               <div className="flex items-start gap-4">
-                <div
-                  className="w-20 h-20 rounded-lg shrink-0 flex items-center justify-center text-2xl bg-[var(--color-bg-glass)]"
-                >
+                <div className="w-20 h-20 rounded-lg shrink-0 flex items-center justify-center text-2xl bg-[var(--color-bg-glass)]">
                   {listing.media?.[0]?.url ? (
-                    <img src={listing.media[0].url} alt="" className="w-full h-full object-cover rounded-lg" />
+                    <img
+                      src={listing.media[0].url}
+                      alt=""
+                      className="w-full h-full object-cover rounded-lg"
+                    />
                   ) : (
                     '🏠'
                   )}
@@ -92,7 +101,9 @@ export default function AgentListingsPage() {
                         >
                           {listing.status}
                         </span>
-                        <span className="text-xs text-[var(--color-text-tertiary)]">{listing.category}</span>
+                        <span className="text-xs text-[var(--color-text-tertiary)]">
+                          {listing.category}
+                        </span>
                       </div>
                     </div>
                     <div className="text-right shrink-0">

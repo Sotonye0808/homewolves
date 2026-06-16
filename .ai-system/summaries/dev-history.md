@@ -165,6 +165,7 @@ Continue the audit for any remaining placeholder interactions and then tackle th
 Resolved the lint and formatting issues that were preventing `npm run build` from finishing cleanly in the web app. The build now completes successfully, with only Next’s SWC lockfile patch warning remaining during the dependency check stage.
 
 **Completed:**
+
 - Removed an unused footer import
 - Replaced empty catch blocks with explicit no-op handling
 - Removed console noise from the websocket client
@@ -172,6 +173,7 @@ Resolved the lint and formatting issues that were preventing `npm run build` fro
 - Verified `npm run build` succeeds end-to-end
 
 **Key Changes:**
+
 - Build failures were caused by lint-level issues, not runtime regressions
 - The remaining Next warning is environmental/lockfile-related and does not block the build
 
