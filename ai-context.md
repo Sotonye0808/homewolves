@@ -1,5 +1,11 @@
-# .ai-context.md — Homewolves Project Context
-> AI Instruction: Read this file at the start of every session. It is the entry point to understanding this project. After reading this, read ROADMAP.md and DESIGN.md. Then read the specific .ai-system agent files relevant to your current task.
+# Homewolves Project Context
+
+> **Metadata**
+> - last-updated-by: bootstrap-project
+> - last-verified-against-code: 2026-08-05
+> - staleness-policy: re-verify before trusting if project structure has changed
+
+> **AI Instruction:** Read this file at the start of every session. It is the entry point to understanding this project. Then follow `ai-system/protocols/entry-protocol.md` (the mandatory session-start procedure), which directs which `ai-system` files to read based on your context budget and task.
 
 ---
 
@@ -117,15 +123,16 @@ Full design system in `DESIGN.md`. Key points:
 
 | File | When to Read |
 |---|---|
-| `ROADMAP.md` | Before any architectural, backend, or structural work |
-| `DESIGN.md` | Before any UI, component, or styling work |
-| `.ai-system/designs/README.md` | Before implementing any page — maps HTML files to routes |
-| `.ai-system/designs/*.html` | The pixel-precise reference for the specific page being built |
-| `.ai-system/agents/general-instructions.md` | Every session — coding standards including all 6 patterns |
-| `.ai-system/agents/system-architecture.md` | Before structural changes |
-| `.ai-system/planning/task-queue.md` | At session start — current tasks |
-| `.ai-system/checkpoints/session-log.md` | At session start — what was last done, any design deltas |
-| `.ai-system/agents/repair-system.md` | When encountering errors |
+| `ai-system/docs/ROADMAP.md` | Before any architectural, backend, or structural work |
+| `ai-system/docs/DESIGN.md` | Before any UI, component, or styling work |
+| `ai-system/designs/README.md` | Before implementing any page — maps HTML files to routes |
+| `ai-system/designs/*.html` | The pixel-precise reference for the specific page being built |
+| `ai-system/protocols/entry-protocol.md` | Every session — mandatory session-start procedure |
+| `ai-system/standards/engineering-principles.md` | Every session — coding standards including the 6 non-negotiable patterns |
+| `ai-system/system-architecture.md` | Before structural changes |
+| `ai-system/planning/task-queue.md` | At session start — current tasks |
+| `ai-system/checkpoints/session-log.md` | At session start — what was last done, any design deltas |
+| `ai-system/repair-system.md` | When encountering errors |
 
 ---
 
