@@ -1,8 +1,8 @@
 # Project Plan
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-08-10
 > - staleness-policy: re-verify if project scope or phase changes
 
 > **Overview:** High-level feature checklist organized by development phase, derived from ROADMAP.md (§9). See `planning/task-queue.md` for granular, sprint-level tasks.
@@ -109,6 +109,7 @@
 - [x] Design system defined (DESIGN.md) — tokens, components, page layouts, themes
 - [x] Architecture defined (ROADMAP.md) — stack, domain model, modules, API, RBAC, notifications
 - [x] Design HTML exports — 12 screens in `ai-system/designs/`
+- [x] Prisma client regenerated — all models typed, `(this.prisma as any)` casts removed from services (2026-08-10)
 - [x] Sprite 1 — Core Marketplace MVP (scaffolding, auth, listings, feed, detail, save/recent)
 - [x] Sprint 2 — Agent & Communication (CRM, dashboard, messaging, notifications)
 - [x] Sprint 3 — Transactions & Client Portal (deal stepper, payments, activity points, moderation, blog)

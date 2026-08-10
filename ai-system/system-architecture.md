@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-08-10
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Homewolves is a multi-sided PropTech marketplace + Agent CRM + Transaction Management Platform targeting the Nigerian/African market. It uses a modular monolith architecture (Next.js 14 frontend + NestJS backend + PostgreSQL) designed to decompose into microservices as the platform scales. The system is metadata-driven — all configurable UI elements and business rules are stored in the database via `PlatformConfig`, with hardcoded fallbacks in `packages/config/src/fallbacks.ts`.
@@ -52,7 +52,7 @@
 | `listings` | Property CRUD, search, media upload, featured/verified flags, moderation | listing.service.ts, listing.controller.ts | users, notifications, audit, alerts, Prisma |
 | `recently-viewed` | Session/user-based listing view tracking | recently-viewed.service.ts | listings, Prisma |
 | `saved` | Save-for-later wishlist toggle | saved.service.ts | listings, Prisma |
-| `crm` | Client assignment, notes, ratings, inspection scheduling | crm.service.ts, inspections.service.ts | users, listings, notifications, Prisma |
+| `crm` | Client assignment, notes, ratings, inspection scheduling | crm.service.ts | users, listings, notifications, Prisma |
 | `transactions` | Full deal lifecycle stepper, payment evidence, document vault | transactions.service.ts | listings, users, audit, notifications, Prisma |
 | `documents` | Document vault for transactions | documents.service.ts | Prisma |
 | `signatures` | E-signature workflow | signatures.service.ts | Prisma |
@@ -160,7 +160,7 @@ Component requests config (e.g. filter pills)
 - **Mobile-first** — all layouts must work at 375px before expanding to desktop.
 - **Nigeria-first** — SMS (Termii) and local payment gateways (Paystack) are primary; international is fallback.
 - **No Meilisearch yet** — Phase 1 uses PostgreSQL FTS; migration planned for Phase 5.
-- **Prisma client not regenerated after new models** — new models (Client, Note, Rating, Inspection, ActivityRule, AgentActivity, AgentPoints, BlogPost) accessed via `(this.prisma as any)` pattern; a `prisma generate` is required.
+- **Prisma client regenerated** (2026-08-10) — all models typed; `(this.prisma as any)` casts removed from services. Run `prisma generate` after any schema change (needs placeholder `DATABASE_URL`).
 - **Notifications dispatch synchronously** — BullMQ async queue with retries is planned for production.
 - **Blog content uses `dangerouslySetInnerHTML`** — must be paired with sanitization in production.
 - **Activity points awarded on-demand via API endpoint** — should be wired into service-layer hooks for automatic awarding.

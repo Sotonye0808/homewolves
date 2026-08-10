@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 interface AuditLogInput {
@@ -27,7 +28,7 @@ export class AuditService {
   constructor(private prisma: PrismaService) {}
 
   async log(input: AuditLogInput): Promise<void> {
-    await (this.prisma as any).auditEvent.create({
+    await this.prisma.auditEvent.create({
       data: {
         entityType: input.entityType,
         entityId: input.entityId,
@@ -36,14 +37,14 @@ export class AuditService {
         actorRole: input.actor.role,
         actorName: input.actor.name,
         ipAddress: input.ipAddress,
-        deviceInfo: input.deviceInfo ?? {},
-        metadata: input.metadata ?? {},
+        deviceInfo: (input.deviceInfo ?? {}) as Prisma.InputJsonValue,
+        metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
       },
     });
   }
 
   async findByEntity(entityType: string, entityId: string): Promise<AuditEvent[]> {
-    const events = await (this.prisma as any).auditEvent.findMany({
+    const events = await this.prisma.auditEvent.findMany({
       where: { entityType, entityId },
       orderBy: { timestamp: 'asc' },
     });
@@ -69,13 +70,13 @@ export class AuditService {
     const skip = (page - 1) * limit;
 
     const [events, total] = await Promise.all([
-      (this.prisma as any).auditEvent.findMany({
+      this.prisma.auditEvent.findMany({
         where,
         skip,
         take: limit,
         orderBy: { timestamp: 'desc' },
       }),
-      (this.prisma as any).auditEvent.count({ where }),
+      this.prisma.auditEvent.count({ where }),
     ]);
 
     return { events: events as unknown as AuditEvent[], total, page, limit };
@@ -94,7 +95,7 @@ export class AuditService {
       if (filter.dateTo) where.timestamp.lte = new Date(filter.dateTo + 'T23:59:59.999Z');
     }
 
-    const events = await (this.prisma as any).auditEvent.findMany({
+    const events = await this.prisma.auditEvent.findMany({
       where,
       orderBy: { timestamp: 'desc' },
       take: 10000,

@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { Notification as PrismaNotification } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
-const db = (prisma: PrismaService) => prisma as any;
+const db = (prisma: PrismaService) => prisma;
 
 @Injectable()
 export class NotificationsService {
@@ -17,7 +19,7 @@ export class NotificationsService {
       }),
       db(this.prisma).notification.count({ where: { userId } }),
     ]);
-    return { notifications: notifications as Notification[], total };
+    return { notifications: notifications as PrismaNotification[], total };
   }
 
   async getUnreadCount(userId: string) {
@@ -54,11 +56,11 @@ export class NotificationsService {
         type: data.type,
         title: data.title,
         body: data.body,
-        data: data.data ?? {},
+        data: (data.data ?? {}) as Prisma.InputJsonValue,
         channel: data.channel ?? 'in_app',
       },
     });
-    return notification as Notification;
+    return notification as PrismaNotification;
   }
 
   async createAndDispatch(
@@ -69,7 +71,7 @@ export class NotificationsService {
       body: string;
       data?: Record<string, unknown>;
     },
-    emitSocketEvent?: (userId: string, notification: Notification) => void,
+    emitSocketEvent?: (userId: string, notification: PrismaNotification) => void,
   ) {
     const notification = await this.create({ ...data, channel: 'in_app' });
     if (emitSocketEvent) {

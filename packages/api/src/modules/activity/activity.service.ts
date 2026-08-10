@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 
-const db = (prisma: PrismaService) => prisma as any;
+const db = (prisma: PrismaService) => prisma;
 
 const DEFAULT_RULES = [
   { key: 'listing_created', label: 'Listing Created', points: 10, category: 'listing' },
@@ -35,7 +36,7 @@ export class ActivityService {
     for (const rule of DEFAULT_RULES) {
       const existing = await db(this.prisma).activityRule.findUnique({ where: { key: rule.key } });
       if (!existing) {
-        await db(this.prisma).activityRule.create({ data: rule as any });
+        await db(this.prisma).activityRule.create({ data: rule });
       }
     }
   }
@@ -59,7 +60,7 @@ export class ActivityService {
         agentId,
         ruleId: rule.id,
         points: rule.points,
-        metadata: metadata ?? {},
+        metadata: (metadata ?? {}) as Prisma.InputJsonValue,
       },
     });
 

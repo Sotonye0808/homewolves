@@ -4,6 +4,7 @@ import {
   SubscribeMessage,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { Notification as PrismaNotification } from '@prisma/client';
 
 @WebSocketGateway({
   cors: { origin: process.env.WEB_URL ?? 'http://localhost:3000', credentials: true },
@@ -20,7 +21,7 @@ export class NotificationsGateway {
     }
   }
 
-  sendNotification(userId: string, notification: Notification) {
+  sendNotification(userId: string, notification: PrismaNotification) {
     this.server.to(`user:${userId}`).emit('notification:new', notification);
   }
 }

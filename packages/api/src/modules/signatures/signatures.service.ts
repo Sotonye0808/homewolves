@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 
-const db = (prisma: PrismaService) => prisma as any;
+const db = (prisma: PrismaService) => prisma;
 
 @Injectable()
 export class SignaturesService {

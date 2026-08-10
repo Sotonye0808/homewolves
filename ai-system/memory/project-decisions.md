@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-08-10
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions. Agents consult this before proposing changes to avoid contradicting prior reasoning. Uses supersedes/superseded-by links so contradictory entries are explicitly resolved rather than both appearing equally valid.
@@ -142,6 +142,26 @@ The product requirement for admin-controlled UI without code deploys is non-nego
 - All UI components check `PlatformConfigService.get('key') ?? FALLBACK_KEY`
 - Admin panel includes a Config section for each config domain
 - Config updates are recorded as AuditEvents
+
+---
+
+## Subscription ↔ SubscriptionPlan Prisma Relation (added 2026-08-10)
+
+**Decision:** Add the missing `Subscription.plan` relation (`SubscriptionPlan.subscriptions` back-relation) to `packages/api/prisma/schema.prisma`.
+**Date:** 2026-08-10
+**Made by:** Implementer (dev-cycle, Prisma client regeneration task)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The `Subscription` model had a `planId` column but no relation field. The `SubscriptionsService` already used `include: { plan: true }`, `sub.plan?.features`, and `sub.plan?.slug` — the relation was intended but missing from the schema. It was previously invisible because the stale Prisma client accessed everything through `(this.prisma as any)`. Regenerating the typed client surfaced it as a compile error. The relation was added to match existing code rather than removing the usage.
+
+**Alternatives Considered:**
+- **Remove `include: { plan: true }` usage:** Would have lost plan data the frontend expects; the relation is clearly intended.
+
+**Implications:**
+- Schema now requires `prisma generate` (needs placeholder `DATABASE_URL` in CI).
+- No DB migration exists yet in the repo (`prisma/migrations/` not present) — schema is applied via seed/db push in the current workflow.
 
 ---
 

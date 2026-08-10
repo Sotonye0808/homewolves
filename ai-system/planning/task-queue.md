@@ -1,8 +1,8 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: dev-cycle
+> - last-verified-against-code: 2026-08-10
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session. Sprint 1–3 are complete; the current focus is hardening, Backlog items, and the next scheduled phase.
@@ -30,7 +30,7 @@ Tags help agents self-select whether a task needs the full `execute-feature.md` 
 
 | Size | Task | Status |
 |------|------|--------|
-| [M] | Regenerate Prisma client so new models (Client, Note, Rating, Inspection, ActivityRule, AgentActivity, AgentPoints, BlogPost) are typed instead of `(this.prisma as any)` | [ ] |
+| [M] | Regenerate Prisma client so new models (Client, Note, Rating, Inspection, ActivityRule, AgentActivity, AgentPoints, BlogPost) are typed instead of `(this.prisma as any)` | [x] |
 | [M] | Security pass — audit all REST routes for guards, rate limiting, input validation | [ ] |
 | [L] | Testing setup — unit tests for core services, component tests, E2E Playwright journeys | [ ] |
 | [M] | SEO — `generateMetadata()` on listing pages, sitemap.xml, robots.txt, JSON-LD schema | [ ] |
@@ -76,12 +76,13 @@ Tags help agents self-select whether a task needs the full `execute-feature.md` 
 | Sprint 3 — Transactions & Client Portal (deal stepper, payments, activity points, moderation, blog) | [x] |
 | Navigation audit + route repairs (landing CTAs, mobile bar, legal pages) | [x] |
 | Build repair pass (lint/format fixes, `npm run build` green) | [x] |
+| Regenerate Prisma client — new models typed, `(this.prisma as any)` casts removed | [x] |
 
 ---
 
 ## Notes
 
-- Prisma client is stale relative to `schema.prisma` — regenerate before any backend schema work.
+- Prisma client is regenerated (2026-08-10) and in sync with `schema.prisma`. Run `prisma generate` (requires a placeholder `DATABASE_URL`) after any schema change.
 - Notification dispatch is currently synchronous; BullMQ async queue with retries is planned.
 - Next.js SWC lockfile patch warning is environmental/non-blocking.
 - Design files in `ai-system/designs/` have names that don't all match the README.md index — see `ai-system/designs/README.md` for the canonical list.

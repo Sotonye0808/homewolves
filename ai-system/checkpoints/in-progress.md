@@ -2,8 +2,8 @@
 
 > **Metadata**
 >
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: dev-cycle
+> - last-verified-against-code: 2026-08-10
 > - staleness-policy: this file is overwritten every session — always current
 
 > **Overview:** Tracks work that is currently in progress but not yet complete. Written _before_ starting risky multi-step work, cleared on clean completion. This is the first file `resume-session.md` reads on interruption — it is the single source of truth for "what was half-done."
@@ -15,27 +15,24 @@
 **Status:** Not Started
 
 **Command Being Executed:**
-bootstrap-project.md
+dev-cycle.md
 
 **Directive / Task:**
-Install the v2 ai-system framework and bootstrap it to the current state of the project.
+None — previous task (Prisma client regeneration) completed cleanly.
 
 **Steps Completed:**
 
-- Copied v2 `ai-system/` kit into the repository
-- Migrated all v1 project content into the new structure
-- Moved design/docs assets into `ai-system/designs/` and `ai-system/docs/`
-- Updated root `ai-context.md`
-- Removed outdated `.ai-system/` directory
+- Fixed Prisma schema missing back-relations, regenerated client, removed `as any` casts across services
+- Ran typecheck + full build green; documented in session-log, task-queue, dev-history
 
 **Current Step:**
-None — bootstrap complete.
+None — dev-cycle complete.
 
 **Files Modified So Far:**
 
-- `ai-system/` (new framework + migrated content)
-- `ai-context.md`
-- deleted `.ai-system/`
+- `packages/api/prisma/schema.prisma`
+- `packages/api/src/modules/*/*.service.ts` + notifications gateway
+- `ai-system/planning/task-queue.md`, `ai-system/checkpoints/session-log.md`, `ai-system/summaries/dev-history.md`
 
 **Checkpoint Context:**
 None — no in-progress implementation work.
@@ -47,7 +44,7 @@ None.
 
 ## Drift Check
 
-**Last verified against repo:** 2026-08-05
+**Last verified against repo:** 2026-08-10
 **Any known drift between ai-system docs and actual code:** no
 
 ---

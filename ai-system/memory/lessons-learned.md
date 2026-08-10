@@ -1,8 +1,8 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-08-10
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Homewolves development — things that worked well, things that didn't, and patterns worth repeating. Different from `repair-system.md` (tracks errors); this file tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -105,6 +105,23 @@ Having design HTML files with CSS variables matching the token names exactly, an
 
 **Apply When:**
 Any project with a dedicated design phase. Require designers to export HTML with the structured format defined in DESIGN.md §11.2 before implementation begins.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Regenerate Prisma Client After Every Schema Change
+
+**Context:**
+Post-MVP, Phase 3 added models (Client, Note, Rating, Inspection, ActivityRule, AgentActivity, AgentPoints, BlogPost) but the Prisma client was never regenerated. Services accessed them via `(this.prisma as any)` / `db(prisma as any)` helpers, hiding type safety for a whole sprint.
+
+**What We Learned:**
+A stale Prisma client silently degrades type safety across all services. Regenerating surfaced real issues the `as any` casts had masked — missing opposite-relation fields in the schema (7 of them), a missing `Subscription.plan` relation, and a `Notification` type collision (DOM global vs Prisma model). Removing the casts after regeneration is low-risk when done methodically and verified with `tsc --noEmit`.
+
+**Apply When:**
+- After ANY change to `schema.prisma` — run `prisma generate` (needs a placeholder `DATABASE_URL`).
+- When cleaning up `as any` casts on Prisma access — remove the cast, run typecheck, fix what surfaces. Don't pre-emptively revert casts to hide real schema gaps.
 
 **Supersedes:** None
 **Superseded by:** None

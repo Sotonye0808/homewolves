@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
-const db = (prisma: PrismaService) => prisma as any;
+const db = (prisma: PrismaService) => prisma;
 
 @Injectable()
 export class MessagingService {

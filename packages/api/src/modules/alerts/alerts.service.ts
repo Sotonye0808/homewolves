@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 
-const db = (prisma: PrismaService) => prisma as any;
+const db = (prisma: PrismaService) => prisma;
 
 @Injectable()
 export class AlertsService {
