@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ActivityService } from '../activity/activity.service';
 
 const db = (prisma: PrismaService) => prisma;
 
 @Injectable()
 export class MessagingService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private activityService: ActivityService,
+  ) {}
 
   async getConversations(userId: string) {
     return db(this.prisma).conversation.findMany({
@@ -64,6 +68,18 @@ export class MessagingService {
       where: { id: conversationId },
       data: { lastMessageAt: new Date() },
     });
+
+    this.prisma.user
+      .findUnique({ where: { id: senderId }, select: { role: true } })
+      .then((user) => {
+        const role = user?.role ?? 'GUEST';
+        return this.activityService.awardForUser(senderId, role, 'message_sent', {
+          id: senderId,
+          role,
+          name: senderId,
+        }, { conversationId });
+      })
+      .catch(() => {});
 
     return message;
   }

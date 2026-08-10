@@ -5,6 +5,8 @@ import { AuditService } from '../audit/audit.service';
 
 const db = (prisma: PrismaService) => prisma;
 
+const AGENT_ROLES = ['AGENT', 'DEVELOPER', 'HOMEOWNER'];
+
 const DEFAULT_RULES = [
   { key: 'listing_created', label: 'Listing Created', points: 10, category: 'listing' },
   { key: 'listing_sold', label: 'Listing Sold', points: 100, category: 'deal' },
@@ -39,6 +41,17 @@ export class ActivityService {
         await db(this.prisma).activityRule.create({ data: rule });
       }
     }
+  }
+
+  async awardForUser(
+    userId: string,
+    role: string,
+    ruleKey: string,
+    actor: ActorRef,
+    metadata?: Record<string, unknown>,
+  ) {
+    if (!AGENT_ROLES.includes(role)) return null;
+    return this.award(userId, ruleKey, actor, metadata);
   }
 
   async award(agentId: string, ruleKey: string, actor: ActorRef, metadata?: Record<string, unknown>) {

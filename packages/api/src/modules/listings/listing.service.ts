@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException, Optional, Inject } f
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { AlertsService } from '../alerts/alerts.service';
+import { ActivityService } from '../activity/activity.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto, UpdateListingStatusDto } from './dto/update-listing.dto';
 import type { Prisma } from '@prisma/client';
@@ -11,6 +12,7 @@ export class ListingService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private activityService: ActivityService,
     @Optional() @Inject(AlertsService) private alertsService?: AlertsService,
   ) {}
 
@@ -43,6 +45,10 @@ export class ListingService {
     if (this.alertsService) {
       this.alertsService.checkNewListingMatch(listing.id).catch(() => {});
     }
+
+    this.activityService
+      .awardForUser(ownerId, actor.role, 'listing_created', actor, { listingId: listing.id })
+      .catch(() => {});
 
     return listing;
   }

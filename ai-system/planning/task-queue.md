@@ -32,9 +32,9 @@ Tags help agents self-select whether a task needs the full `execute-feature.md` 
 |------|------|--------|
 | [M] | Regenerate Prisma client so new models (Client, Note, Rating, Inspection, ActivityRule, AgentActivity, AgentPoints, BlogPost) are typed instead of `(this.prisma as any)` | [x] |
 | [M] | Security pass — audit all REST routes for guards, rate limiting, input validation | [x] |
-| [L] | Testing setup — unit tests for core services, component tests, E2E Playwright journeys | [ ] |
+| [L] | Testing setup — unit tests for core services, component tests, E2E Playwright journeys | [x] |
 | [M] | SEO — `generateMetadata()` on listing pages, sitemap.xml, robots.txt, JSON-LD schema | [ ] |
-| [M] | Error handling — verify GlobalExceptionFilter coverage, error boundaries on all pages | [ ] |
+| [M] | Error handling — verify GlobalExceptionFilter coverage, error boundaries on all pages | [x] |
 | [BUG] | Sanitize blog post HTML rendering (`dangerouslySetInnerHTML`) before production | [ ] |
 | [M] | Wire activity points into service-layer hooks for automatic awarding | [ ] |
 

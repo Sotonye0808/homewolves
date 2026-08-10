@@ -9,9 +9,20 @@ import { BlogSection } from '@/components/landing/blog-section';
 import { Footer } from '@/components/landing/footer';
 import { MobileBar } from '@/components/landing/mobile-bar';
 
+const orgJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Homewolves',
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://homewolves.africa',
+  logo: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://homewolves.africa'}/logo.png`,
+  description: 'African real estate operating system — discover, verify, and transact real estate across Africa.',
+  sameAs: [],
+};
+
 export default function HomePage() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
       <a
         href="#main-content"
         className="skip-link"

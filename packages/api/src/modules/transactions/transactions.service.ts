@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { ActivityService } from '../activity/activity.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { AdvanceTransactionDto } from './dto/advance-transaction.dto';
 import { RejectTransactionDto } from './dto/reject-transaction.dto';
@@ -22,6 +23,7 @@ export class TransactionsService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private activityService: ActivityService,
   ) {}
 
   async create(dto: CreateTransactionDto, agentId: string, actor: ActorRef) {
@@ -53,6 +55,10 @@ export class TransactionsService {
       actor,
       metadata: { listingId: dto.listingId, buyerId: dto.buyerId, type: dto.type },
     });
+
+    this.activityService
+      .awardForUser(agentId, actor.role, 'transaction_created', actor, { transactionId: transaction.id, listingId: dto.listingId })
+      .catch(() => {});
 
     return transaction;
   }
@@ -185,6 +191,19 @@ export class TransactionsService {
         where: { id: updated.listingId },
         data: { status: 'SOLD' },
       });
+    }
+
+    this.activityService
+      .awardForUser(transaction.agentId, actor.role, 'transaction_completed', actor, { transactionId: transaction.id })
+      .catch(() => {});
+    if (updated.listing) {
+      const owner = await this.prisma.user.findUnique({
+        where: { id: updated.listing.ownerId },
+        select: { role: true },
+      });
+      this.activityService
+        .awardForUser(updated.listing.ownerId, owner?.role ?? 'BUYER', 'listing_sold', actor, { listingId: updated.listingId })
+        .catch(() => {});
     }
 
     return updated;

@@ -11,6 +11,10 @@ dist/
 turbo/
 *.turbo/
 coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
 
 # Generated build artifacts emitted next to packages/types sources during API builds
 # (tsc emits .js/.d.ts/.map for the global types included via global.d.ts)

@@ -5,90 +5,54 @@
   ▲ Next.js 14.2.35
 
    Creating an optimized production build ...
- ⚠ Found lockfile missing swc dependencies, patching...
-npm error code ENOWORKSPACES
-npm error This command does not support workspaces.
-npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-06-16T11_10_51_330Z-debug-0.log
- ⨯ Failed to patch lockfile, please try uninstalling and reinstalling next in this workspace
-TypeError: Cannot read properties of undefined (reading 'os')
-    at fetchPkgInfo (C:\Users\Harvesters WebDev\Downloads\web-dev\homewolves\node_modules\next\dist\lib\patch-incorrect-lockfile.js:73:25)
-    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async Promise.all (index 7)
-    at async patchIncorrectLockfile (C:\Users\Harvesters WebDev\Downloads\web-dev\homewolves\node_modules\next\dist\lib\patch-incorrect-lockfile.js:162:26)
- ⚠ Found lockfile missing swc dependencies, patching...
-npm error code ENOWORKSPACES
-npm error This command does not support workspaces.
-npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-06-16T11_11_00_364Z-debug-0.log
- ⚠ Found lockfile missing swc dependencies, patching...
-npm error code ENOWORKSPACES
-npm error This command does not support workspaces.
-npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-06-16T11_11_04_023Z-debug-0.log
+ ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch
+ ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch
+ ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch
  ✓ Compiled successfully
    Linting and checking validity of types ...
    Collecting page data ...
- ⚠ Found lockfile missing swc dependencies, patching...
-npm error code ENOWORKSPACES
-npm error This command does not support workspaces.
-npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-06-16T11_11_24_980Z-debug-0.log
-   Generating static pages (0/25) ...
-(node:12192) Warning: `--localstorage-file` was provided without a valid path
-(Use `node --trace-warnings ...` to show where the warning was created)
-(node:7796) Warning: `--localstorage-file` was provided without a valid path
-(Use `node --trace-warnings ...` to show where the warning was created)
-(node:21500) Warning: `--localstorage-file` was provided without a valid path
-(Use `node --trace-warnings ...` to show where the warning was created)
-(node:20316) Warning: `--localstorage-file` was provided without a valid path
-(Use `node --trace-warnings ...` to show where the warning was created)
-(node:12580) Warning: `--localstorage-file` was provided without a valid path
-(Use `node --trace-warnings ...` to show where the warning was created)
-(node:21052) Warning: `--localstorage-file` was provided without a valid path
-(Use `node --trace-warnings ...` to show where the warning was created)
-   Generating static pages (6/25) 
-(node:20136) Warning: `--localstorage-file` was provided without a valid path
-   Generating static pages (12/25) 
-(Use `node --trace-warnings ...` to show where the warning was created)
-   Generating static pages (18/25) 
- ✓ Generating static pages (25/25)
+ ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch
+   Generating static pages (0/27) ...
+   Generating static pages (6/27) 
+   Generating static pages (13/27) 
+   Generating static pages (20/27) 
+ ✓ Generating static pages (27/27)
    Finalizing page optimization ...
    Collecting build traces ...
- ⨯ Failed to patch lockfile, please try uninstalling and reinstalling next in this workspace
-TypeError: Cannot read properties of undefined (reading 'os')
-    at fetchPkgInfo (C:\Users\Harvesters WebDev\Downloads\web-dev\homewolves\node_modules\next\dist\lib\patch-incorrect-lockfile.js:73:25)
-    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async Promise.all (index 7)
-    at async patchIncorrectLockfile (C:\Users\Harvesters WebDev\Downloads\web-dev\homewolves\node_modules\next\dist\lib\patch-incorrect-lockfile.js:162:26)
 
 Route (app)                              Size     First Load JS
-┌ ○ /                                    4.4 kB          108 kB
-├ ○ /_not-found                          873 B          88.2 kB
-├ ○ /about                               158 B          87.5 kB
-├ ○ /auth                                5.99 kB        95.8 kB
-├ ○ /blog                                2.33 kB         108 kB
-├ ƒ /blog/[slug]                         2.73 kB         116 kB
-├ ○ /contact                             158 B          87.5 kB
-├ ○ /dashboard                           5.06 kB         116 kB
-├ ○ /dashboard/admin                     5.25 kB         113 kB
-├ ○ /dashboard/admin/moderation          4.27 kB         117 kB
+┌ ○ /                                    4.42 kB         108 kB
+├ ○ /_not-found                          168 B          87.5 kB
+├ ○ /about                               168 B          87.5 kB
+├ ○ /auth                                6 kB           95.8 kB
+├ ○ /blog                                2.36 kB         108 kB
+├ ƒ /blog/[slug]                         13.6 kB         126 kB
+├ ○ /contact                             168 B          87.5 kB
+├ ○ /dashboard                           5.09 kB         116 kB
+├ ○ /dashboard/admin                     5.28 kB         113 kB
+├ ○ /dashboard/admin/moderation          4.29 kB         117 kB
 ├ ○ /dashboard/admin/payments            4.6 kB          109 kB
 ├ ○ /dashboard/agent/clients             4.91 kB         104 kB
-├ ƒ /dashboard/agent/clients/[id]        4.15 kB         115 kB
-├ ○ /dashboard/agent/listings            1.48 kB         113 kB
+├ ƒ /dashboard/agent/clients/[id]        4.18 kB         115 kB
+├ ○ /dashboard/agent/listings            1.5 kB          113 kB
 ├ ○ /dashboard/agent/listings/new        4.87 kB         107 kB
-├ ○ /dashboard/agent/transactions        3.78 kB         122 kB
+├ ○ /dashboard/agent/transactions        3.81 kB         122 kB
 ├ ƒ /dashboard/agent/transactions/[id]   10.7 kB         115 kB
-├ ○ /dashboard/client                    5.06 kB         129 kB
-├ ○ /dashboard/notifications             1.49 kB         117 kB
-├ ○ /faq                                 158 B          87.5 kB
+├ ○ /dashboard/client                    5.14 kB         129 kB
+├ ○ /dashboard/notifications             1.5 kB          117 kB
+├ ○ /faq                                 168 B          87.5 kB
 ├ ○ /messages                            5.01 kB         117 kB
-├ ○ /pricing                             5.08 kB         105 kB
-├ ○ /privacy                             158 B          87.5 kB
-├ ○ /properties                          6.99 kB         118 kB
-├ ƒ /properties/[id]                     6.72 kB         118 kB
-├ ○ /terms                               158 B          87.5 kB
-└ ○ /transactions                        158 B          87.5 kB
+├ ○ /pricing                             5.09 kB         105 kB
+├ ○ /privacy                             168 B          87.5 kB
+├ ○ /properties                          7.02 kB         118 kB
+├ ƒ /properties/[id]                     6.88 kB         118 kB
+├ ○ /robots.txt                          0 B                0 B
+├ ○ /sitemap.xml                         0 B                0 B
+├ ○ /terms                               168 B          87.5 kB
+└ ○ /transactions                        168 B          87.5 kB
 + First Load JS shared by all            87.3 kB
-  ├ chunks/1dd3208c-5605c2b2cda07292.js  53.6 kB
-  ├ chunks/528-da1f559bfe3a44dc.js       31.7 kB
+  ├ chunks/1528-5dd2fa5fb2c43cf7.js      31.7 kB
+  ├ chunks/1dd3208c-f1467509a5b9ca63.js  53.6 kB
   └ other shared chunks (total)          1.95 kB
 
 
