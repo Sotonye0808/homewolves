@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/co
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { ActivityService } from '../activity/activity.service';
 import { RegisterDto, VerifyOtpDto, LoginDto, CompleteProfileDto } from './dto/register.dto';
 import * as crypto from 'crypto';
 
@@ -14,6 +15,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private audit: AuditService,
+    private activityService: ActivityService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -48,6 +50,10 @@ export class AuthService {
       action: 'OTP_VERIFIED',
       actor: { id: user.id, role: user.role, name: `${user.firstName} ${user.lastName}` },
     });
+
+    this.activityService
+      .awardForUser(user.id, user.role, 'daily_login', { id: user.id, role: user.role, name: `${user.firstName} ${user.lastName}` })
+      .catch(() => {});
 
     return this.generateTokens(user);
   }

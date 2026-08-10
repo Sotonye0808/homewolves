@@ -2,7 +2,7 @@
 
 > **Metadata**
 >
-> - last-updated-by: dev-cycle
+> - last-updated-by: execute-feature
 > - last-verified-against-code: 2026-08-10
 > - staleness-policy: this file is overwritten every session — always current
 
@@ -12,32 +12,37 @@
 
 ## Current State
 
-**Status:** Not Started
+**Status:** In Progress
 
 **Command Being Executed:**
-dev-cycle.md
+execute-feature.md
 
 **Directive / Task:**
-None — previous task (API security pass) completed cleanly.
+Work on all incomplete sprint items in the task queue + compliance run against MVP plan:
+
+1. `[BUG]` Sanitize blog post HTML rendering (`dangerouslySetInnerHTML`) — sanitize on server write + client render
+2. `[M]` Wire activity points into service-layer hooks for automatic awarding (listings, crm, transactions, messaging)
+3. `[M]` SEO — `generateMetadata()` on listing pages, sitemap.xml, robots.txt, JSON-LD schema
+4. `[M]` Error handling — verify GlobalExceptionFilter coverage + add Next.js error boundaries
+5. `[L]` Testing setup — API unit tests (Jest), web component tests (Vitest), E2E (Playwright)
+6. Compliance run vs MVP plan (ROADMAP §9 / project-plan.md), respect project decisions
+7. Verify `.d.ts` build-artifact gitignore concern from prior session (already landed 2026-08-10 — re-verify)
 
 **Steps Completed:**
 
-- Security pass done: JWT identity fix, RolesGuard RBAC, zod validation on all DTOs, global rate limiting, closed unguarded endpoints, recently-viewed/messaging hardening, GlobalExceptionFilter wired, packages/types gitignore cleanup
-- Typecheck + API/web builds green; documented in session-log, task-queue, dev-history, project-decisions, lessons-learned
+- Verified gitignore cleanup already landed: `packages/types/src/**/*.d.ts` ignored, only `global.d.ts` tracked; no `.d.ts`/`.js` artifacts tracked.
+- Baseline: `npm install` done, Prisma client regenerated, `npm run typecheck` green across all 4 packages.
+- Read task-queue, session-log, in-progress, project-plan, project-context, system-architecture, engineering-principles, repair-system, project-decisions, update-ai-system command.
+- Reviewed all service files targeted for activity hooks (listing, crm, transactions, messaging, blog).
 
 **Current Step:**
-None — dev-cycle complete.
+Implementing feature items (blog sanitization → activity hooks → SEO → error boundaries → testing).
 
 **Files Modified So Far:**
-
-- `packages/api/src/common/**` (decorators, guards, pipes, rate-limit)
-- `packages/api/src/modules/*/*.controller.ts` + DTOs
-- `packages/api/src/main.ts`, `app.module.ts`, `jwt.strategy.ts`
-- `apps/web/lib/interactions.ts`, `.gitignore`
-- `ai-system/` docs (task-queue, session-log, dev-history, project-decisions, lessons-learned, repo-map, dependency-graph, system-architecture)
+- (pending)
 
 **Checkpoint Context:**
-None — no in-progress implementation work.
+No blockers. npm install completed; typecheck baseline green.
 
 **Last Tool Output / Error:**
 None.

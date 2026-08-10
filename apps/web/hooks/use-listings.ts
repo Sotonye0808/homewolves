@@ -19,11 +19,12 @@ export function useListings(params?: Record<string, string>) {
   });
 }
 
-export function useListing(id: string) {
+export function useListing(id: string, initialData?: unknown) {
   return useQuery({
     queryKey: ['listing', id],
     queryFn: () => fetchListingById(id),
     enabled: !!id,
+    initialData: initialData as never,
   });
 }
 

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { sanitizeBlogHtml } from '../../common/utils/html-sanitizer';
 
 const db = (prisma: PrismaService) => prisma;
 
@@ -27,7 +28,7 @@ export class BlogService {
         title: dto.title,
         slug: dto.slug,
         excerpt: dto.excerpt,
-        content: dto.content,
+        content: sanitizeBlogHtml(dto.content),
         coverImage: dto.coverImage ?? null,
         authorId: dto.authorId,
         categories: dto.categories ?? [],
@@ -114,6 +115,7 @@ export class BlogService {
     if (!post) throw new NotFoundException('Blog post not found');
 
     const data: any = { ...dto };
+    if (dto.content) data.content = sanitizeBlogHtml(dto.content);
     if (dto.published && !post.publishedAt) {
       data.publishedAt = new Date();
     }

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { ActivityService } from '../activity/activity.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { CreateNoteDto } from './dto/create-note.dto';
@@ -15,6 +16,7 @@ export class CrmService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private activityService: ActivityService,
   ) {}
 
   // ─── CLIENTS ─────────────────────────────────────────────
@@ -44,6 +46,10 @@ export class CrmService {
       actor,
       metadata: { buyerId: dto.buyerId },
     });
+
+    this.activityService
+      .awardForUser(agentId, actor.role, 'client_added', actor, { clientId: client.id, buyerId: dto.buyerId })
+      .catch(() => {});
 
     return client;
   }
@@ -180,6 +186,12 @@ export class CrmService {
       metadata: { clientId, score: dto.score },
     });
 
+    if (dto.score >= 5) {
+      this.activityService
+        .awardForUser(client.agentId, actor.role, 'review_received', actor, { clientId, ratingId: rating.id })
+        .catch(() => {});
+    }
+
     return rating;
   }
 
@@ -226,6 +238,10 @@ export class CrmService {
       actor,
       metadata: { clientId: dto.clientId, listingId: dto.listingId, scheduledAt: dto.scheduledAt },
     });
+
+    this.activityService
+      .awardForUser(authorId, actor.role, 'inspection_scheduled', actor, { inspectionId: inspection.id, clientId: dto.clientId })
+      .catch(() => {});
 
     return inspection;
   }

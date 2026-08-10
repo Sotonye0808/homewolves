@@ -12,6 +12,8 @@
     "build:api": "turbo run build --filter=@hw/api^...",
     "lint":      "turbo run lint --filter=./apps/* --filter=./packages/*",
     "typecheck": "turbo run typecheck --filter=./apps/* --filter=./packages/*",
+    "test":      "turbo run test --filter=@hw/api --filter=@hw/web",
+    "test:e2e":  "turbo run e2e --filter=@hw/web",
     "format":    "prettier --write \"**/*.{ts,tsx,json,css,md}\"",
     "clean":     "turbo run clean --filter=./apps/* --filter=./packages/*"
   },
