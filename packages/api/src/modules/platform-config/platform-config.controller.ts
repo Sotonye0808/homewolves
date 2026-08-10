@@ -1,5 +1,17 @@
-import { Controller, Get, Put, Param, Body } from '@nestjs/common';
+import { Controller, Get, Put, Param, Body, UseGuards } from '@nestjs/common';
 import { PlatformConfigService } from './platform-config.service';
+import { JwtGuard } from '../auth/jwt.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { z } from 'zod';
+
+const updateConfigSchema = z
+  .object({
+    value: z.unknown(),
+    updatedById: z.string().min(1).max(64),
+  })
+  .strict();
 
 @Controller('config')
 export class PlatformConfigController {
@@ -17,9 +29,12 @@ export class PlatformConfigController {
   }
 
   @Put(':key')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN')
   async update(
     @Param('key') key: string,
-    @Body() body: { value: unknown; updatedById: string },
+    @Body(new ZodValidationPipe(updateConfigSchema))
+    body: { value: unknown; updatedById: string },
   ): Promise<void> {
     await this.configService.set(key, body.value, body.updatedById);
   }

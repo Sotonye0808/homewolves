@@ -14,9 +14,16 @@
 > **Section summary:** A text diagram showing dependency direction. Arrows point from consumer → dependency.
 
 ```
+Common security infrastructure (global, not module-scoped):
+  RateLimitModule (APP_GUARD → RateLimitGuard) — global, applies to every route
+  GlobalExceptionFilter — wired globally in main.ts
+  ZodValidationPipe — applied per-route in controllers
+  RolesGuard / OptionalJwtGuard / @Roles — applied per-route/controller
+
 AuthModule
   → PrismaModule (database access)
   → NotificationsModule (OTP dispatch)
+  → JwtModule / PassportModule (tokens, strategies)
 
 ListingsModule
   → PrismaModule

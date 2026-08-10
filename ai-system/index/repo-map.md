@@ -61,7 +61,7 @@ homewolves/
 │   ├── api/                     ← NestJS backend
 │   │   ├── src/
 │   │   │   ├── modules/         ← auth, listings, crm, transactions, messaging, notifications, alerts, activity, blog, platform-config, audit, recently-viewed, saved, documents, signatures, subscriptions
-│   │   │   ├── common/          ← filters, guards, interceptors
+│   │   │   ├── common/          ← filters (GlobalExceptionFilter), guards (JwtGuard via auth, RolesGuard, OptionalJwtGuard), pipes (ZodValidationPipe), decorators (@Roles), rate-limit (RateLimitGuard + @Throttle), interceptors (AuditInterceptor)
 │   │   │   └── prisma/          ← PrismaService (DI wrapper for PrismaClient)
 │   │   └── prisma/
 │   │       └── schema.prisma    ← Full database schema (20+ models)
@@ -95,7 +95,7 @@ homewolves/
 | `apps/web/` | Next.js 14 web application — SSR/SSG, mobile-first responsive | `app/`, `components/ui/`, `lib/` |
 | `apps/mobile/` | React Native (Expo) mobile app — parity with web (placeholder) | `app/`, `components/ui/` |
 | `packages/api/` | NestJS backend — all business logic, Prisma ORM, REST | `src/modules/`, `prisma/schema.prisma` |
-| `packages/types/` | Global TypeScript types — zero-import via triple-slash refs | `src/entities/*.ts`, `src/global.d.ts` |
+| `packages/types/` | Global TypeScript types — zero-import via triple-slash refs. Generated `.js`/`.d.ts`/`.map` build artifacts are gitignored (regenerate on API builds); only `.ts` sources + `global.d.ts` are tracked | `src/entities/*.ts`, `src/global.d.ts` |
 | `packages/config/` | Shared fallback constants for all config domains | `src/fallbacks.ts` |
 
 ---

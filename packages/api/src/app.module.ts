@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { RateLimitModule } from './common/rate-limit/rate-limit.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { PlatformConfigModule } from './modules/platform-config/platform-config.module';
@@ -19,6 +20,7 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
 
 @Module({
   imports: [
+    RateLimitModule,
     PrismaModule,
     AuditModule.forRoot(),
     PlatformConfigModule,

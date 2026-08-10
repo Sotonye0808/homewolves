@@ -164,6 +164,8 @@ Component requests config (e.g. filter pills)
 - **Notifications dispatch synchronously** — BullMQ async queue with retries is planned for production.
 - **Blog content uses `dangerouslySetInnerHTML`** — must be paired with sanitization in production.
 - **Activity points awarded on-demand via API endpoint** — should be wired into service-layer hooks for automatic awarding.
+- **API security hardening landed** (2026-08-10) — global rate limiting (in-memory sliding window, 120 req/min/IP; 10 req/min on auth), zod validation pipes on all DTOs (`.strict()` unknown-key rejection), `@Roles` RBAC on admin/moderation/audit/config routes, `req.user.sub` identity fix, `GlobalExceptionFilter` wired globally.
+- **Residual security work (pre-production):** webhook HMAC verification for Paystack/DocuSeal needs provider signing secrets; `JWT_SECRET` must be set in production (falls back to a dev secret); the in-memory rate-limit store must become Redis-backed for multi-instance deploys.
 
 ---
 

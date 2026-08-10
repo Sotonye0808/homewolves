@@ -18,21 +18,23 @@
 dev-cycle.md
 
 **Directive / Task:**
-None — previous task (Prisma client regeneration) completed cleanly.
+None — previous task (API security pass) completed cleanly.
 
 **Steps Completed:**
 
-- Fixed Prisma schema missing back-relations, regenerated client, removed `as any` casts across services
-- Ran typecheck + full build green; documented in session-log, task-queue, dev-history
+- Security pass done: JWT identity fix, RolesGuard RBAC, zod validation on all DTOs, global rate limiting, closed unguarded endpoints, recently-viewed/messaging hardening, GlobalExceptionFilter wired, packages/types gitignore cleanup
+- Typecheck + API/web builds green; documented in session-log, task-queue, dev-history, project-decisions, lessons-learned
 
 **Current Step:**
 None — dev-cycle complete.
 
 **Files Modified So Far:**
 
-- `packages/api/prisma/schema.prisma`
-- `packages/api/src/modules/*/*.service.ts` + notifications gateway
-- `ai-system/planning/task-queue.md`, `ai-system/checkpoints/session-log.md`, `ai-system/summaries/dev-history.md`
+- `packages/api/src/common/**` (decorators, guards, pipes, rate-limit)
+- `packages/api/src/modules/*/*.controller.ts` + DTOs
+- `packages/api/src/main.ts`, `app.module.ts`, `jwt.strategy.ts`
+- `apps/web/lib/interactions.ts`, `.gitignore`
+- `ai-system/` docs (task-queue, session-log, dev-history, project-decisions, lessons-learned, repo-map, dependency-graph, system-architecture)
 
 **Checkpoint Context:**
 None — no in-progress implementation work.
