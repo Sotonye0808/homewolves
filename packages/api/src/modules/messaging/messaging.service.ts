@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ActivityService } from '../activity/activity.service';
+import { AnalyticsService } from '../analytics/analytics.service';
 
 const db = (prisma: PrismaService) => prisma;
 
@@ -9,6 +10,7 @@ export class MessagingService {
   constructor(
     private prisma: PrismaService,
     private activityService: ActivityService,
+    private analyticsService: AnalyticsService,
   ) {}
 
   async getConversations(userId: string) {
@@ -42,13 +44,25 @@ export class MessagingService {
     return conversation;
   }
 
-  async createConversation(participantIds: string[], propertyId?: string) {
+  async createConversation(participantIds: string[], propertyId?: string, creatorId?: string) {
     const conversation = await db(this.prisma).conversation.create({
       data: {
         participantIds,
         propertyId,
       },
     });
+
+    if (propertyId) {
+      this.analyticsService
+        .track({
+          event: 'listing_enquiry',
+          userId: creatorId,
+          listingId: propertyId,
+          metadata: { conversationId: conversation.id },
+        })
+        .catch(() => {});
+    }
+
     return conversation;
   }
 

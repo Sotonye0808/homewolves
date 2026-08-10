@@ -17,9 +17,9 @@ const createRequestSchema = z
 const webhookSchema = z
   .object({
     external_id: z.string().min(1).max(200),
-    status: z.string().min(1).max(50),
+    status: z.enum(['completed', 'declined']).or(z.string().min(1).max(50)),
   })
-  .strict();
+  .passthrough();
 
 @Controller('signatures')
 export class SignaturesController {
@@ -48,6 +48,11 @@ export class SignaturesController {
     return this.signaturesService.findByTransaction(transactionId);
   }
 
+  @Get('provider-status')
+  getProviderStatus() {
+    return { configured: this.signaturesService.providerConfigured };
+  }
+
   @Get(':id')
   @UseGuards(JwtGuard)
   findOne(@Param('id') id: string) {
@@ -60,11 +65,15 @@ export class SignaturesController {
     return this.signaturesService.getEmbedUrl(id, req.user.sub);
   }
 
+  @Post(':id/cancel')
+  @UseGuards(JwtGuard)
+  cancel(@Param('id') id: string, @Req() req: any) {
+    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
+    return this.signaturesService.cancelRequest(id, actor);
+  }
+
   @Post('webhook')
   async webhook(@Body(new ZodValidationPipe(webhookSchema)) body: { external_id: string; status: string }) {
-    if (body.status === 'completed') {
-      return this.signaturesService.webhookCompleted(body.external_id);
-    }
-    return { received: true };
+    return this.signaturesService.webhookCompleted(body.external_id, body.status);
   }
 }

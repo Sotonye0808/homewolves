@@ -1,8 +1,9 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { ActivityService } from '../activity/activity.service';
+import { ReferralsService } from '../referrals/referrals.service';
 import { RegisterDto, VerifyOtpDto, LoginDto, CompleteProfileDto } from './dto/register.dto';
 import * as crypto from 'crypto';
 
@@ -16,6 +17,7 @@ export class AuthService {
     private jwtService: JwtService,
     private audit: AuditService,
     private activityService: ActivityService,
+    private referralsService: ReferralsService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -84,6 +86,7 @@ export class AuthService {
         },
       });
     } else {
+      const referralCode = await this.referralsService.ensureCodeForNewUser();
       user = await this.prisma.user.create({
         data: {
           email: dto.email,
@@ -91,9 +94,13 @@ export class AuthService {
           lastName: dto.lastName,
           phone: dto.phone,
           role: (dto.role as any) ?? 'BUYER',
-          referralCode: crypto.randomBytes(4).toString('hex').toUpperCase(),
+          referralCode,
         },
       });
+
+      if (dto.referralCode) {
+        await this.applyReferralOnSignup(user, dto.referralCode);
+      }
     }
 
     await this.audit.log({
@@ -104,6 +111,35 @@ export class AuthService {
     });
 
     return this.generateTokens(user);
+  }
+
+  private async applyReferralOnSignup(user: any, code: string) {
+    const referrer = await this.prisma.user.findUnique({ where: { referralCode: code.trim().toUpperCase() } });
+    if (!referrer || referrer.id === user.id) {
+      throw new BadRequestException('Invalid referral code');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { referredById: referrer.id },
+    });
+
+    await this.prisma.referral.create({
+      data: {
+        code: code.trim().toUpperCase(),
+        referrerId: referrer.id,
+        referredId: user.id,
+        status: 'active',
+      },
+    });
+
+    await this.audit.log({
+      entityType: 'Referral',
+      entityId: user.id,
+      action: 'REFERRAL_APPLIED',
+      actor: { id: user.id, role: user.role, name: `${user.firstName} ${user.lastName}` },
+      metadata: { referrerId: referrer.id, code: code.trim().toUpperCase() },
+    });
   }
 
   async refreshToken(refreshToken: string) {

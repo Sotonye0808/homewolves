@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AnalyticsService } from '../analytics/analytics.service';
 
 @Injectable()
 export class SavedService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private analyticsService: AnalyticsService,
+  ) {}
 
   async toggle(userId: string, listingId: string) {
     const existing = await this.prisma.savedCollection.findFirst({
@@ -18,7 +22,7 @@ export class SavedService {
       return { saved: false };
     }
 
-    let collection = await this.prisma.savedCollection.findFirst({
+    const collection = await this.prisma.savedCollection.findFirst({
       where: { userId, name: 'Favorites' },
     });
 
@@ -32,6 +36,10 @@ export class SavedService {
         data: { userId, name: 'Favorites', listingIds: [listingId] },
       });
     }
+
+    this.analyticsService
+      .track({ event: 'listing_saved', userId, listingId, metadata: { saved: true } })
+      .catch(() => {});
 
     return { saved: true };
   }

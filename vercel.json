@@ -1,7 +1,13 @@
 {
+  "$schema": "https://json.schemastore.org/vercel.json",
   "framework": "nextjs",
   "buildCommand": "npx turbo run build --filter=@hw/web...",
   "outputDirectory": ".next",
   "installCommand": "npm install",
-  "devCommand": "next dev"
+  "devCommand": "next dev",
+  "functions": {
+    "**/*.{ts,tsx,js}": {
+      "regions": ["iad1", "fra1"]
+    }
+  }
 }

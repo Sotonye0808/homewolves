@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -28,11 +28,19 @@ const TIER_THRESHOLDS = [
 ];
 
 @Injectable()
-export class ActivityService {
+export class ActivityService implements OnModuleInit {
+  private readonly logger = new Logger(ActivityService.name);
+
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
   ) {}
+
+  async onModuleInit() {
+    this.ensureRules()
+      .then(() => this.logger.log('Activity rules ensured'))
+      .catch((err) => this.logger.warn(`Could not seed activity rules: ${err.message}`));
+  }
 
   async ensureRules() {
     for (const rule of DEFAULT_RULES) {

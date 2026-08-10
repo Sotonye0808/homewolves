@@ -74,6 +74,8 @@ async function seedConfig() {
       { value: '1,500+', label: 'Agents' },
       { value: '₦85B+', label: 'Deals Closed' },
     ]},
+    { key: 'referral_commission_rate', value: 0.05 },
+    { key: 'featured_listing_price_daily', value: 5000 },
   ];
 
   for (const seed of seeds) {
@@ -87,8 +89,63 @@ async function seedConfig() {
   console.log('PlatformConfig seeded successfully.');
 }
 
+const FALLBACK_SUBSCRIPTION_PLANS = [
+  {
+    name: 'Free',
+    slug: 'free',
+    description: 'For homeowners exploring the market',
+    price: 0,
+    currency: 'NGN',
+    interval: 'monthly',
+    features: ['basic_listing', 'messaging'],
+    limits: { listings: 1 },
+  },
+  {
+    name: 'Starter',
+    slug: 'starter',
+    description: 'For new agents listing up to 10 properties',
+    price: 10000,
+    currency: 'NGN',
+    interval: 'monthly',
+    features: ['basic_listing', 'messaging', 'crm', 'analytics_basic'],
+    limits: { listings: 10 },
+  },
+  {
+    name: 'Professional',
+    slug: 'professional',
+    description: 'For growing agencies with full CRM and analytics',
+    price: 30000,
+    currency: 'NGN',
+    interval: 'monthly',
+    features: ['basic_listing', 'featured_listing', 'messaging', 'crm', 'analytics', 'e_signature'],
+    limits: { listings: 50 },
+  },
+  {
+    name: 'Enterprise',
+    slug: 'enterprise',
+    description: 'For large portfolios with priority support',
+    price: 100000,
+    currency: 'NGN',
+    interval: 'monthly',
+    features: ['*'],
+    limits: { listings: -1 },
+  },
+];
+
+async function seedSubscriptionPlans() {
+  for (const plan of FALLBACK_SUBSCRIPTION_PLANS) {
+    await prisma.subscriptionPlan.upsert({
+      where: { slug: plan.slug },
+      update: plan,
+      create: plan,
+    });
+  }
+  console.log('SubscriptionPlans seeded successfully.');
+}
+
 async function main() {
   await seedConfig();
+  await seedSubscriptionPlans();
 }
 
 main()
