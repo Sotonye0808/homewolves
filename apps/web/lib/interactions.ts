@@ -10,24 +10,40 @@ function getSessionId(): string {
   return id;
 }
 
-export async function recordView(listingId: string, userId?: string) {
+function authToken(): string {
+  if (typeof window === 'undefined') return '';
+  const raw = localStorage.getItem('hw-auth');
+  if (!raw) return '';
+  try {
+    return JSON.parse(raw).state?.accessToken ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function authHeaders(): Record<string, string> {
+  const token = authToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export async function recordView(listingId: string, _userId?: string) {
   await fetch(`${API_BASE}/recently-viewed`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({
       listingId,
-      userId,
-      sessionId: userId ? undefined : getSessionId(),
+      sessionId: authToken() ? undefined : getSessionId(),
     }),
   });
 }
 
-export async function getRecentViews(userId?: string) {
+export async function getRecentViews(_userId?: string) {
   const params = new URLSearchParams();
-  if (userId) params.set('userId', userId);
+  const token = authToken();
+  if (token) params.set('userId', 'me');
   else params.set('sessionId', getSessionId());
 
-  const res = await fetch(`${API_BASE}/recently-viewed?${params}`);
+  const res = await fetch(`${API_BASE}/recently-viewed?${params}`, { headers: authHeaders() });
   if (!res.ok) return [];
   return res.json();
 }

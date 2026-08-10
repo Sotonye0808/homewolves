@@ -1,6 +1,15 @@
 import { Controller, Get, Post, Param, Body, UseGuards, Req } from '@nestjs/common';
 import { MessagingService } from './messaging.service';
 import { JwtGuard } from '../auth/jwt.guard';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { z } from 'zod';
+
+const createConversationSchema = z
+  .object({
+    participantIds: z.array(z.string().min(1).max(64)).min(1).max(50),
+    propertyId: z.string().min(1).max(64).optional(),
+  })
+  .strict();
 
 @Controller('messaging')
 @UseGuards(JwtGuard)
@@ -18,8 +27,12 @@ export class MessagingController {
   }
 
   @Post('conversations')
-  createConversation(@Body() body: { participantIds: string[]; propertyId?: string }) {
-    return this.messagingService.createConversation(body.participantIds, body.propertyId);
+  createConversation(
+    @Body(new ZodValidationPipe(createConversationSchema)) body: { participantIds: string[]; propertyId?: string },
+    @Req() req: any,
+  ) {
+    const participantIds = Array.from(new Set([...body.participantIds, req.user.sub]));
+    return this.messagingService.createConversation(participantIds, body.propertyId);
   }
 
   @Get('conversations/:id/messages')

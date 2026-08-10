@@ -1,14 +1,24 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards, Req } from '@nestjs/common';
 import { BlogService } from './blog.service';
 import { JwtGuard } from '../auth/jwt.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import {
+  CreateBlogPostDto,
+  UpdateBlogPostDto,
+  createBlogPostSchema,
+  updateBlogPostSchema,
+} from './dto/blog-post.dto';
 
 @Controller('blog')
 export class BlogController {
   constructor(private blogService: BlogService) {}
 
   @Post()
-  @UseGuards(JwtGuard)
-  create(@Body() dto: any, @Req() req: any) {
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  create(@Body(new ZodValidationPipe(createBlogPostSchema)) dto: CreateBlogPostDto, @Req() req: any) {
     const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
     return this.blogService.create({ ...dto, authorId: req.user.sub }, actor);
   }
@@ -27,8 +37,8 @@ export class BlogController {
       category,
       tag,
       featured: featured != null ? featured === 'true' : undefined,
-      page: page ? parseInt(page) : undefined,
-      limit: limit ? parseInt(limit) : undefined,
+      page: page ? Math.max(parseInt(page) || 1, 1) : undefined,
+      limit: limit ? Math.min(parseInt(limit) || 12, 50) : undefined,
     });
   }
 
@@ -43,14 +53,16 @@ export class BlogController {
   }
 
   @Put(':id')
-  @UseGuards(JwtGuard)
-  update(@Param('id') id: string, @Body() dto: any, @Req() req: any) {
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  update(@Param('id') id: string, @Body(new ZodValidationPipe(updateBlogPostSchema)) dto: UpdateBlogPostDto, @Req() req: any) {
     const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
     return this.blogService.update(id, dto, actor);
   }
 
   @Delete(':id')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN')
   remove(@Param('id') id: string, @Req() req: any) {
     const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
     return this.blogService.delete(id, actor);

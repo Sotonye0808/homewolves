@@ -1,8 +1,29 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards, Req } from '@nestjs/common';
 import { ListingService } from './listing.service';
 import { JwtGuard } from '../auth/jwt.guard';
-import { CreateListingDto } from './dto/create-listing.dto';
-import { UpdateListingDto, UpdateListingStatusDto } from './dto/update-listing.dto';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { z } from 'zod';
+import {
+  CreateListingDto,
+  createListingSchema,
+} from './dto/create-listing.dto';
+import {
+  UpdateListingDto,
+  UpdateListingStatusDto,
+  updateListingSchema,
+  updateListingStatusSchema,
+  moderateListingSchema,
+  attachMediaSchema,
+} from './dto/update-listing.dto';
+
+const uploadUrlSchema = z
+  .object({
+    filename: z.string().trim().min(1).max(255),
+    contentType: z.string().trim().min(1).max(100),
+  })
+  .strict();
 
 @Controller('listings')
 export class ListingController {
@@ -10,7 +31,7 @@ export class ListingController {
 
   @Post()
   @UseGuards(JwtGuard)
-  create(@Body() dto: CreateListingDto, @Req() req: any) {
+  create(@Body(new ZodValidationPipe(createListingSchema)) dto: CreateListingDto, @Req() req: any) {
     const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
     return this.listingService.create(dto, req.user.sub, actor);
   }
@@ -28,14 +49,16 @@ export class ListingController {
     @Query('ownerId') ownerId?: string,
     @Query('featured') featured?: string,
   ) {
+    const parsedTake = take ? Math.min(parseInt(take) || 12, 50) : undefined;
+    const parsedSkip = skip ? Math.max(parseInt(skip) || 0, 0) : undefined;
     return this.listingService.findAll({
-      skip: skip ? parseInt(skip) : undefined,
-      take: take ? parseInt(take) : undefined,
+      skip: parsedSkip,
+      take: parsedTake,
       category,
       propertyType,
       status,
-      minPrice: minPrice ? parseFloat(minPrice) : undefined,
-      maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+      minPrice: minPrice != null ? parseFloat(minPrice) : undefined,
+      maxPrice: maxPrice != null ? parseFloat(maxPrice) : undefined,
       search,
       ownerId,
       featured: featured != null ? featured === 'true' : undefined,
@@ -48,7 +71,8 @@ export class ListingController {
   }
 
   @Get('admin/pending')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN')
   getPendingModeration() {
     return this.listingService.getPendingModeration();
   }
@@ -60,14 +84,14 @@ export class ListingController {
 
   @Put(':id')
   @UseGuards(JwtGuard)
-  update(@Param('id') id: string, @Body() dto: UpdateListingDto, @Req() req: any) {
+  update(@Param('id') id: string, @Body(new ZodValidationPipe(updateListingSchema)) dto: UpdateListingDto, @Req() req: any) {
     const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
     return this.listingService.update(id, dto, req.user.sub, actor);
   }
 
   @Put(':id/status')
   @UseGuards(JwtGuard)
-  updateStatus(@Param('id') id: string, @Body() dto: UpdateListingStatusDto, @Req() req: any) {
+  updateStatus(@Param('id') id: string, @Body(new ZodValidationPipe(updateListingStatusSchema)) dto: UpdateListingStatusDto, @Req() req: any) {
     const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
     return this.listingService.updateStatus(id, dto, req.user.sub, actor);
   }
@@ -81,7 +105,7 @@ export class ListingController {
 
   @Post('media/upload-url')
   @UseGuards(JwtGuard)
-  getUploadUrl(@Body() body: { filename: string; contentType: string }) {
+  getUploadUrl(@Body(new ZodValidationPipe(uploadUrlSchema)) body: { filename: string; contentType: string }) {
     return this.listingService.uploadMediaUrl(body.filename, body.contentType);
   }
 
@@ -89,7 +113,7 @@ export class ListingController {
   @UseGuards(JwtGuard)
   attachMedia(
     @Param('id') id: string,
-    @Body() body: { media: { url: string; type: string; isPrimary?: boolean; altText?: string }[] },
+    @Body(new ZodValidationPipe(attachMediaSchema)) body: { media: { url: string; type: string; isPrimary?: boolean; altText?: string }[] },
     @Req() req: any,
   ) {
     return this.listingService.attachMedia(id, body.media, req.user.sub);
@@ -101,8 +125,9 @@ export class ListingController {
   }
 
   @Put(':id/moderate')
-  @UseGuards(JwtGuard)
-  moderate(@Param('id') id: string, @Body() body: { action: 'approve' | 'reject' }, @Req() req: any) {
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  moderate(@Param('id') id: string, @Body(new ZodValidationPipe(moderateListingSchema)) body: { action: 'approve' | 'reject' }, @Req() req: any) {
     const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
     return this.listingService.moderateListing(id, body.action, actor);
   }

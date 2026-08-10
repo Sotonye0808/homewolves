@@ -11,3 +11,11 @@ dist/
 turbo/
 *.turbo/
 coverage/
+
+# Generated build artifacts emitted next to packages/types sources during API builds
+# (tsc emits .js/.d.ts/.map for the global types included via global.d.ts)
+packages/types/src/**/*.js
+packages/types/src/**/*.js.map
+packages/types/src/**/*.d.ts.map
+packages/types/src/**/*.d.ts
+!packages/types/src/global.d.ts

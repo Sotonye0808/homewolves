@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { ActivityService } from './activity.service';
 import { JwtGuard } from '../auth/jwt.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @Controller('activity')
 export class ActivityController {
@@ -8,7 +10,8 @@ export class ActivityController {
 
   @Get('leaderboard')
   getLeaderboard(@Query('limit') limit?: string) {
-    return this.activityService.getLeaderboard(limit ? parseInt(limit) : 20);
+    const parsed = limit ? Math.min(parseInt(limit) || 20, 100) : 20;
+    return this.activityService.getLeaderboard(parsed);
   }
 
   @Get('stats')
@@ -28,6 +31,8 @@ export class ActivityController {
   }
 
   @Post('seed')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN')
   async seed() {
     await this.activityService.ensureRules();
     return { message: 'Activity rules seeded' };

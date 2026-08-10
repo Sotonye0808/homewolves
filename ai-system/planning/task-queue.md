@@ -31,7 +31,7 @@ Tags help agents self-select whether a task needs the full `execute-feature.md` 
 | Size | Task | Status |
 |------|------|--------|
 | [M] | Regenerate Prisma client so new models (Client, Note, Rating, Inspection, ActivityRule, AgentActivity, AgentPoints, BlogPost) are typed instead of `(this.prisma as any)` | [x] |
-| [M] | Security pass — audit all REST routes for guards, rate limiting, input validation | [ ] |
+| [M] | Security pass — audit all REST routes for guards, rate limiting, input validation | [x] |
 | [L] | Testing setup — unit tests for core services, component tests, E2E Playwright journeys | [ ] |
 | [M] | SEO — `generateMetadata()` on listing pages, sitemap.xml, robots.txt, JSON-LD schema | [ ] |
 | [M] | Error handling — verify GlobalExceptionFilter coverage, error boundaries on all pages | [ ] |
@@ -77,12 +77,16 @@ Tags help agents self-select whether a task needs the full `execute-feature.md` 
 | Navigation audit + route repairs (landing CTAs, mobile bar, legal pages) | [x] |
 | Build repair pass (lint/format fixes, `npm run build` green) | [x] |
 | Regenerate Prisma client — new models typed, `(this.prisma as any)` casts removed | [x] |
+| Security pass — REST route guards, rate limiting, zod input validation | [x] |
 
 ---
 
 ## Notes
 
 - Prisma client is regenerated (2026-08-10) and in sync with `schema.prisma`. Run `prisma generate` (requires a placeholder `DATABASE_URL`) after any schema change.
+- API security hardening landed 2026-08-10: global rate limiting (in-memory sliding window, 120 req/min/IP default, 10 req/min on auth), zod-based validation pipes on all REST DTOs, role-based guards (`@Roles`) on admin/moderation/audit/config routes, JWT identity fix (`req.user.sub` now populated), and `GlobalExceptionFilter` wired globally.
+- `packages/types/src` generated build artifacts (`.js`/`.d.ts`/`.map`) are now gitignored — they regenerate during API builds and reference `@prisma/client`. `global.d.ts` is intentionally kept tracked.
 - Notification dispatch is currently synchronous; BullMQ async queue with retries is planned.
 - Next.js SWC lockfile patch warning is environmental/non-blocking.
 - Design files in `ai-system/designs/` have names that don't all match the README.md index — see `ai-system/designs/README.md` for the canonical list.
+- **Residual security risks (pre-production):** webhook endpoints (`subscriptions`, `signatures`) have no HMAC/signature verification yet — needs provider signing secrets; JWT secret falls back to `homewolves-dev-secret` when `JWT_SECRET` is unset — must be set in production; rate limiter is in-memory (per-instance) — swap for a Redis-backed store for multi-instance deploys.

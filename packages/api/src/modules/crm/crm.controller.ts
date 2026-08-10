@@ -1,12 +1,13 @@
 import { Controller, Get, Post, Put, Param, Body, Query, UseGuards, Req } from '@nestjs/common';
 import { CrmService } from './crm.service';
 import { JwtGuard } from '../auth/jwt.guard';
-import { CreateClientDto } from './dto/create-client.dto';
-import { UpdateClientDto } from './dto/update-client.dto';
-import { CreateNoteDto } from './dto/create-note.dto';
-import { CreateRatingDto } from './dto/create-rating.dto';
-import { CreateInspectionDto } from './dto/create-inspection.dto';
-import { UpdateInspectionDto } from './dto/update-inspection.dto';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { CreateClientDto, createClientSchema } from './dto/create-client.dto';
+import { UpdateClientDto, updateClientSchema } from './dto/update-client.dto';
+import { CreateNoteDto, createNoteSchema } from './dto/create-note.dto';
+import { CreateRatingDto, createRatingSchema } from './dto/create-rating.dto';
+import { CreateInspectionDto, createInspectionSchema } from './dto/create-inspection.dto';
+import { UpdateInspectionDto, updateInspectionSchema } from './dto/update-inspection.dto';
 
 @Controller('crm')
 @UseGuards(JwtGuard)
@@ -16,7 +17,7 @@ export class CrmController {
   // ─── CLIENTS ─────────────────────────────────────────────
 
   @Post('clients')
-  createClient(@Body() dto: CreateClientDto, @Req() req: any) {
+  createClient(@Body(new ZodValidationPipe(createClientSchema)) dto: CreateClientDto, @Req() req: any) {
     const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
     return this.crmService.createClient(dto, req.user.sub, actor);
   }
@@ -36,7 +37,7 @@ export class CrmController {
   }
 
   @Put('clients/:id')
-  updateClient(@Param('id') id: string, @Body() dto: UpdateClientDto, @Req() req: any) {
+  updateClient(@Param('id') id: string, @Body(new ZodValidationPipe(updateClientSchema)) dto: UpdateClientDto, @Req() req: any) {
     const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
     return this.crmService.updateClient(id, dto, req.user.sub, actor);
   }
@@ -44,7 +45,7 @@ export class CrmController {
   // ─── NOTES ───────────────────────────────────────────────
 
   @Post('clients/:clientId/notes')
-  addNote(@Param('clientId') clientId: string, @Body() dto: CreateNoteDto, @Req() req: any) {
+  addNote(@Param('clientId') clientId: string, @Body(new ZodValidationPipe(createNoteSchema)) dto: CreateNoteDto, @Req() req: any) {
     const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
     return this.crmService.addNote(clientId, dto, req.user.sub, actor);
   }
@@ -57,7 +58,7 @@ export class CrmController {
   // ─── RATINGS ─────────────────────────────────────────────
 
   @Post('clients/:clientId/ratings')
-  addRating(@Param('clientId') clientId: string, @Body() dto: CreateRatingDto, @Req() req: any) {
+  addRating(@Param('clientId') clientId: string, @Body(new ZodValidationPipe(createRatingSchema)) dto: CreateRatingDto, @Req() req: any) {
     const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
     return this.crmService.addRating(clientId, dto, req.user.sub, actor);
   }
@@ -70,7 +71,7 @@ export class CrmController {
   // ─── INSPECTIONS ─────────────────────────────────────────
 
   @Post('inspections')
-  createInspection(@Body() dto: CreateInspectionDto, @Req() req: any) {
+  createInspection(@Body(new ZodValidationPipe(createInspectionSchema)) dto: CreateInspectionDto, @Req() req: any) {
     const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
     return this.crmService.createInspection(dto, req.user.sub, actor);
   }
@@ -81,7 +82,7 @@ export class CrmController {
   }
 
   @Put('inspections/:id')
-  updateInspection(@Param('id') id: string, @Body() dto: UpdateInspectionDto, @Req() req: any) {
+  updateInspection(@Param('id') id: string, @Body(new ZodValidationPipe(updateInspectionSchema)) dto: UpdateInspectionDto, @Req() req: any) {
     const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
     return this.crmService.updateInspection(id, dto, req.user.sub, actor);
   }

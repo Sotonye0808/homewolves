@@ -141,3 +141,55 @@ Any frontend work — use `var(--color-*)` tokens exclusively. Run `grep` for ra
 
 **Supersedes:** None
 **Superseded by:** None
+
+---
+
+## Keep JWT Strategy Payload Shape in Sync With Controllers
+
+**Context:**
+Security pass (2026-08-10). `JwtStrategy.validate()` returned `{ id, email, role }` while every controller read `req.user.sub`. Because TS controllers typed `req` as `any`, the mismatch compiled cleanly but `req.user.sub` was `undefined` at runtime — meaning mutations like `listingService.create(dto, undefined, actor)` wrote no owner. The notifications controller happened to use `req.user.id` and worked, which masked the bug.
+
+**What We Learned:**
+When a Passport strategy customizes the `validate()` return, its field names are the contract. `req.user.sub` is the JWT convention (payload `sub` claim); if `validate()` returns a different shape, all consumers break silently because `req: any`. Fix: return `{ sub, id, email, role }` so both conventions work.
+
+**Apply When:**
+- Changing `JwtStrategy.validate()` — update the returned object to include `sub`.
+- Grep for `req.user.` across controllers when auth behavior seems broken but TS is green.
+- Avoid `@Req() req: any` in new controllers; define a typed request user interface.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Validate Inputs at the Boundary and Reject Unknown Keys
+
+**Context:**
+Security pass (2026-08-10). The API had zero input validation: DTO classes had no decorators, several controllers accepted `@Body() dto: any`, and mutation paths spread the raw body into Prisma `data`. A client could mass-assign fields (e.g. `ownerId`, `featured`) or blow up services with malformed types.
+
+**What We Learned:**
+Zod schemas + a shared `ZodValidationPipe` using `.strict()` (reject unknown keys) gives boundary validation, mass-assignment protection, and typed `z.infer` DTOs — using the already-present `zod` dependency, so no new packages. Global validation pipes are harder to retrofit when DTOs aren't decorated; per-route pipes on the existing DTO classes were the low-churn path.
+
+**Apply When:**
+- Adding any new endpoint/DTO — write a zod schema and apply `@Body(new ZodValidationPipe(schema))`.
+- Use `.strict()` on all mutation schemas to block unknown-key injection.
+- Keep `.coerce.number()` for numeric fields the frontend may send as strings (price, amount).
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Rate Limiting Should Be Redis-Backed for Multi-Instance Deploys
+
+**Context:**
+Security pass (2026-08-10). Added a global `RateLimitGuard` using an in-memory sliding-window store, registered via `APP_GUARD`, with a tighter limit on auth endpoints. This protects a single instance but each replica counts separately.
+
+**What We Learned:**
+In-memory rate limiting is fine for a single instance/dev but gives no protection when the API runs behind multiple replicas (each instance has its own window). The store is isolated in `RateLimitGuard` so a Redis-backed store (ioredis is already a dependency) can swap in without touching route decorators.
+
+**Apply When:**
+- Deploying the API with >1 instance — replace the in-memory store with Redis `INCR`+`EXPIRE` before relying on the limiter in production.
+
+**Supersedes:** None
+**Superseded by:** None

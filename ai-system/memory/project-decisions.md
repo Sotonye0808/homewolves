@@ -72,8 +72,67 @@ The implemented codebase uses NestJS REST controllers exclusively (no tRPC route
 - **GraphQL:** Adds complexity without sufficient benefit for a mostly-CRUD application.
 
 **Implications:**
-- All API contracts are REST controllers with DTOs validated via class-validator
-- Clients use typed API client helpers in `apps/web/lib/`
+- All API contracts are REST controllers with DTOs validated via zod schemas + `ZodValidationPipe` (as of 2026-08-10 security pass; previously there was no runtime validation).
+
+---
+
+## Zod Schemas + ZodValidationPipe for Input Validation
+
+**Decision:** Validate all REST request bodies with zod schemas through a shared `ZodValidationPipe`, using `.strict()` to reject unknown keys.
+**Date:** 2026-08-10
+**Made by:** Implementer (dev-cycle, security pass)
+**Supersedes:** The (previously aspirational) "DTOs validated via class-validator" note in the REST-as-primary decision — class-validator was never installed; validation is implemented with zod.
+**Superseded by:** None
+
+**Reason:**
+The API had no runtime input validation; DTO classes were unvalidated and several controllers accepted `@Body() dto: any`. `zod` was already a dependency, avoiding new packages. `.strict()` blocks mass-assignment (unknown keys never reach Prisma `data`). The pipe is applied per-route so existing non-decorated DTO classes needed no structural change.
+
+**Alternatives Considered:**
+- **class-validator + global ValidationPipe:** NestJS-idiomatic but requires adding dependencies and decorating every DTO class.
+- **Manual guards/checks in each controller:** Duplicated, easy to skip.
+
+**Implications:**
+- New DTOs must export a zod schema (`*.schema`) + `z.infer` type, applied via `@Body(new ZodValidationPipe(schema))`.
+- Mutation schemas use `.strict()`; numeric fields use `z.coerce.number()` to tolerate numeric-string input.
+- Validation failures return `400` with `code: VALIDATION_ERROR` (handled by the now-global `GlobalExceptionFilter`).
+
+---
+
+## Role-Based Guards for Admin/Moderation Routes
+
+**Decision:** Protect privileged routes with a `@Roles(...)` decorator + `RolesGuard` (checks `user.role` against allowed roles), composed as `@UseGuards(JwtGuard, RolesGuard)`.
+**Date:** 2026-08-10
+**Made by:** Implementer (dev-cycle, security pass)
+**Supersedes:** The original `RbacGuard` design which called `user.hasPermission()` — the JWT strategy returns a plain `{ sub, id, email, role }` object, not a `BaseUser` instance, so permission-method checks were unimplementable without building a full role→permission matrix service.
+**Superseded by:** None (may be layered onto a PlatformConfig permission matrix later)
+
+**Reason:**
+`req.user` is a plain object; role-string comparison is simple, correct for the current hierarchy, and the same check the services already perform (`role === 'ADMIN'`). Guard order in the array ensures JWT runs first and populates `req.user` before roles are checked.
+
+**Implications:**
+- Privileged routes: listings `admin/pending` + `moderate`, audit (all), config `PUT`, blog mutations, activity `seed`, transactions `payments/pending` → `@Roles('ADMIN', 'SUPER_ADMIN')`.
+- Roles are compared as strings (role is a plain string from the DB via the strategy).
+
+---
+
+## Global In-Memory Rate Limiting
+
+**Decision:** Register a `RateLimitGuard` as a global `APP_GUARD` (120 req/min/IP default; auth endpoints 10 req/min via `@Throttle`), using an in-memory sliding-window store.
+**Date:** 2026-08-10
+**Made by:** Implementer (dev-cycle, security pass)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The API had no rate limiting. No throttler dependency existed; a self-contained guard avoided adding `@nestjs/throttler`. The store is isolated behind the guard interface so a Redis-backed store (ioredis is already a dependency) can replace it for multi-instance production.
+
+**Alternatives Considered:**
+- **`@nestjs/throttler`:** Standard, but a new dependency; in-memory store only anyway.
+- **Redis-backed from the start:** Better for multi-instance but adds operational coupling before the API is deployed at scale.
+
+**Implications:**
+- 429 responses return `{ code: 'RATE_LIMITED', message: ... }`.
+- For multi-instance deployments, replace the in-memory store with Redis before relying on the limit in production.
 
 ---
 

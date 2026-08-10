@@ -206,3 +206,30 @@ Regenerated the Prisma Client so the Phase 3 models (Client, Note, Rating, Inspe
 
 **Next Sprint Focus:**
 Security pass (REST route guards, rate limiting, input validation), then testing setup.
+
+---
+
+## 2026-08-10 — API Security Pass
+
+**Summary:**
+Completed the security pass across all 15 REST controllers: fixed an authentication identity bug, added role-based access control to privileged routes, introduced zod input validation on every DTO, added global rate limiting, and closed unguarded-endpoint gaps.
+
+**Completed:**
+
+- **Identity bug fixed:** `JwtStrategy` returned `{ id, email, role }` but controllers read `req.user.sub` → `sub` was `undefined` on every authenticated request. Strategy now returns `sub` (plus `id` for the notifications controller).
+- **RBAC:** New `@Roles(...)` decorator + `RolesGuard` enforced on `listings/admin/pending`, `listings/:id/moderate`, audit (all), config `PUT`, blog mutations, activity `seed`, and transactions `payments/pending`. `platform-config PUT` was previously completely unguarded.
+- **Input validation:** New `ZodValidationPipe` + zod schemas for every DTO (auth, listings, transactions, crm, notifications, blog, documents, signatures, subscriptions, messaging, config, recently-viewed) plus inline bodies. Rejects unknown keys (`.strict()`) to prevent mass-assignment. Used the existing `zod` dependency — no new packages.
+- **Rate limiting:** Global `RateLimitGuard` (in-memory sliding window, 120 req/min/IP default) registered as `APP_GUARD`; auth endpoints tightened to 10 req/min.
+- **Guards added where missing:** `notifications` (was unauthenticated), `platform-config PUT`, `activity seed`, audit role restriction.
+- **recently-viewed:** Server now derives `userId` from the JWT (`OptionalJwtGuard`) instead of trusting client-supplied `userId` (was spoofable). Web client updated to send the token.
+- **messaging:** `createConversation` now always adds the caller as a participant.
+- **GlobalExceptionFilter** wired globally in `main.ts`.
+- **Webhook bodies** (subscriptions, signatures) now shape-validated via zod.
+
+**Key Changes:**
+
+- `packages/types/src` generated build artifacts (`.js`/`.d.ts`/`.map`) gitignored + untracked — they regenerate on API builds and reference `@prisma/client`; `global.d.ts` stays tracked.
+- `req.user.sub` is now the canonical authenticated-user id across the API.
+
+**Next Sprint Focus:**
+Testing setup ([L] task), then SEO, error handling, blog HTML sanitization.

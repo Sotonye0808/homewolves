@@ -1,14 +1,18 @@
 import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
 import { AuditService } from './audit.service';
 import { JwtGuard } from '../auth/jwt.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { Response } from 'express';
 
 @Controller('audit')
+@UseGuards(JwtGuard, RolesGuard)
+@Roles('ADMIN', 'SUPER_ADMIN')
 export class AuditController {
   constructor(private auditService: AuditService) {}
 
   @Get()
-  @UseGuards(JwtGuard)
+
   findAll(
     @Query('entityType') entityType?: string,
     @Query('entityId') entityId?: string,
@@ -32,7 +36,7 @@ export class AuditController {
   }
 
   @Get('export/csv')
-  @UseGuards(JwtGuard)
+
   async exportCsv(
     @Query('entityType') entityType?: string,
     @Query('entityId') entityId?: string,
@@ -52,7 +56,7 @@ export class AuditController {
   }
 
   @Get('export/pdf')
-  @UseGuards(JwtGuard)
+
   async exportPdf(
     @Query('entityType') entityType?: string,
     @Query('entityId') entityId?: string,
@@ -65,7 +69,7 @@ export class AuditController {
   }
 
   @Get('entity')
-  @UseGuards(JwtGuard)
+
   findByEntity(
     @Query('entityType') entityType?: string,
     @Query('entityId') entityId?: string,
