@@ -18,7 +18,7 @@ const staticRoutes: MetadataRoute.Sitemap = [
 async function fetchDynamic() {
   try {
     const [listingsRes, postsRes] = await Promise.all([
-      fetch(`${API_BASE}/listings?take=500`),
+      fetch(`${API_BASE}/listings?take=500&status=ACTIVE`),
       fetch(`${API_BASE}/blog?published=true&limit=500`),
     ]);
     const [listings, posts] = await Promise.all([listingsRes.json(), postsRes.json()]);

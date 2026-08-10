@@ -24,7 +24,7 @@ Route (app)                              Size     First Load JS
 ┌ ○ /                                    4.42 kB         108 kB
 ├ ○ /_not-found                          168 B          87.5 kB
 ├ ○ /about                               168 B          87.5 kB
-├ ○ /auth                                6 kB           95.8 kB
+├ ○ /auth                                6.08 kB        95.9 kB
 ├ ○ /blog                                2.36 kB         108 kB
 ├ ƒ /blog/[slug]                         13.6 kB         126 kB
 ├ ○ /contact                             168 B          87.5 kB

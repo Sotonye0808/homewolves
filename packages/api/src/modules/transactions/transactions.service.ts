@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { ActivityService } from '../activity/activity.service';
+import { ReferralsService } from '../referrals/referrals.service';
+import { AnalyticsService } from '../analytics/analytics.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { AdvanceTransactionDto } from './dto/advance-transaction.dto';
 import { RejectTransactionDto } from './dto/reject-transaction.dto';
@@ -24,6 +26,8 @@ export class TransactionsService {
     private prisma: PrismaService,
     private audit: AuditService,
     private activityService: ActivityService,
+    private referralsService: ReferralsService,
+    private analyticsService: AnalyticsService,
   ) {}
 
   async create(dto: CreateTransactionDto, agentId: string, actor: ActorRef) {
@@ -58,6 +62,16 @@ export class TransactionsService {
 
     this.activityService
       .awardForUser(agentId, actor.role, 'transaction_created', actor, { transactionId: transaction.id, listingId: dto.listingId })
+      .catch(() => {});
+
+    this.analyticsService
+      .track({
+        event: 'transaction_started',
+        userId: dto.buyerId,
+        agentId,
+        listingId: dto.listingId,
+        metadata: { transactionId: transaction.id, type: dto.type },
+      })
       .catch(() => {});
 
     return transaction;
@@ -205,6 +219,26 @@ export class TransactionsService {
         .awardForUser(updated.listing.ownerId, owner?.role ?? 'BUYER', 'listing_sold', actor, { listingId: updated.listingId })
         .catch(() => {});
     }
+
+    this.referralsService
+      .attributeOnDealCompleted({
+        referredUserId: transaction.agentId,
+        transactionId: transaction.id,
+        dealAmount: Number(updated.listing?.price ?? 0),
+        currency: updated.listing?.currency ?? 'NGN',
+        actor,
+      })
+      .catch(() => {});
+
+    this.analyticsService
+      .track({
+        event: 'transaction_completed',
+        userId: updated.buyerId,
+        agentId: updated.agentId,
+        listingId: updated.listingId,
+        metadata: { transactionId: updated.id },
+      })
+      .catch(() => {});
 
     return updated;
   }

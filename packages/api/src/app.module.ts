@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { RateLimitModule } from './common/rate-limit/rate-limit.module';
+import { IntegrationsModule } from './common/integrations/integrations.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { PlatformConfigModule } from './modules/platform-config/platform-config.module';
@@ -17,10 +18,14 @@ import { BlogModule } from './modules/blog/blog.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { SignaturesModule } from './modules/signatures/signatures.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
+import { ReferralsModule } from './modules/referrals/referrals.module';
+import { FeaturedListingsModule } from './modules/featured-listings/featured-listings.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
     RateLimitModule,
+    IntegrationsModule,
     PrismaModule,
     AuditModule.forRoot(),
     PlatformConfigModule,
@@ -38,6 +43,9 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
     DocumentsModule,
     SignaturesModule,
     SubscriptionsModule,
+    ReferralsModule,
+    FeaturedListingsModule,
+    AnalyticsModule,
   ],
 })
 export class AppModule {}

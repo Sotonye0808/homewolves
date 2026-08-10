@@ -6,6 +6,12 @@ import { Upload } from 'lucide-react';
 
 type AuthStep = 'email' | 'otp' | 'profile' | 'agent-id';
 
+function readReferralCode(): string {
+  if (typeof window === 'undefined') return '';
+  const params = new URLSearchParams(window.location.search);
+  return (params.get('ref') ?? '').trim().toUpperCase().slice(0, 20);
+}
+
 export default function AuthPage() {
   const [step, setStep] = useState<AuthStep>('email');
   const [email, setEmail] = useState('');
@@ -15,7 +21,7 @@ export default function AuthPage() {
   const [phone, setPhone] = useState('');
   const [selectedRole, setSelectedRole] = useState('BUYER');
   const [otpTimer, setOtpTimer] = useState(120);
-  const [referralCode] = useState('HOMEWOLVES2026');
+  const [referralCode] = useState(readReferralCode);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const { register, verifyOtp, completeProfile, isLoading, error, clearError } = useAuth();
@@ -54,7 +60,14 @@ export default function AuthPage() {
   const handleProfileSubmit = async () => {
     clearError();
     try {
-      await completeProfile({ email, firstName, lastName, phone, role: selectedRole });
+      await completeProfile({
+        email,
+        firstName,
+        lastName,
+        phone,
+        role: selectedRole,
+        ...(referralCode ? { referralCode } : {}),
+      });
       setStep('agent-id');
     } catch (error) {
       void error;
@@ -148,17 +161,19 @@ export default function AuthPage() {
                 Enter your email to get started
               </p>
 
-              <div className="rounded-md p-3 border border-accent bg-warning-bg mb-4">
-                <div className="text-xs font-semibold text-warning tracking-wider uppercase">
-                  Referral Applied
+              {referralCode && (
+                <div className="rounded-md p-3 border border-accent bg-warning-bg mb-4">
+                  <div className="text-xs font-semibold text-warning tracking-wider uppercase">
+                    Referral Applied
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="font-mono text-md font-bold text-primary">{referralCode}</span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent text-inverse">
+                      Applied
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="font-mono text-md font-bold text-primary">{referralCode}</span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent text-inverse">
-                    Applied
-                  </span>
-                </div>
-              </div>
+              )}
 
               <div className="mb-4">
                 <label

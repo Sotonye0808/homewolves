@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { AlertsService } from '../alerts/alerts.service';
 import { ActivityService } from '../activity/activity.service';
+import { AnalyticsService } from '../analytics/analytics.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto, UpdateListingStatusDto } from './dto/update-listing.dto';
 import type { Prisma } from '@prisma/client';
@@ -13,6 +14,7 @@ export class ListingService {
     private prisma: PrismaService,
     private audit: AuditService,
     private activityService: ActivityService,
+    private analyticsService: AnalyticsService,
     @Optional() @Inject(AlertsService) private alertsService?: AlertsService,
   ) {}
 
@@ -206,12 +208,14 @@ export class ListingService {
   }
 
   async getFeatured() {
-    return this.prisma.listing.findMany({
-      where: { featured: true, status: 'ACTIVE' },
+    const now = new Date();
+    const placements = await this.prisma.featuredPlacement.findMany({
+      where: { status: 'active', endDate: { gt: now } },
+      orderBy: { startDate: 'desc' },
       take: 6,
-      orderBy: { createdAt: 'desc' },
-      include: { owner: true, media: true },
+      include: { listing: { include: { owner: true, media: true } } },
     });
+    return placements.map((p) => p.listing);
   }
 
   async uploadMediaUrl(filename: string, _contentType: string) {
@@ -246,9 +250,17 @@ export class ListingService {
   }
 
   async incrementView(id: string) {
-    await this.prisma.listing.update({
+    const updated = await this.prisma.listing.update({
       where: { id },
       data: { viewCount: { increment: 1 } },
     });
+    this.analyticsService
+      .track({
+        event: 'listing_view',
+        listingId: id,
+        agentId: updated.agentId ?? undefined,
+        metadata: { category: updated.category, propertyType: updated.propertyType },
+      })
+      .catch(() => {});
   }
 }

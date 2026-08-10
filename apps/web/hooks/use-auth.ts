@@ -29,6 +29,7 @@ interface AuthState {
     lastName: string;
     phone: string;
     role?: string;
+    referralCode?: string;
   }) => Promise<void>;
   login: (email: string) => Promise<{ otp: string }>;
   logout: () => Promise<void>;

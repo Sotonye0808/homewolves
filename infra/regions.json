@@ -1,0 +1,52 @@
+{
+  "$comment": "Multi-region expansion configuration (Phase 5 — Ghana, Kenya). The MVP deploys to Vercel (primary region iad1, edge region fra1). Each regional expansion adds a Vercel project environment + regional database read replica + region-aware env overrides. Do NOT commit real secrets here.",
+  "default": {
+    "provider": "vercel",
+    "functions": ["iad1", "fra1"],
+    "primaryRegion": "iad1",
+    "edgeRegions": ["fra1"],
+    "database": {
+      "provider": "neon",
+      "primary": "us-east-1",
+      "readReplicas": ["eu-central-1"]
+    }
+  },
+  "regions": [
+    {
+      "code": "NG",
+      "country": "Nigeria",
+      "enabled": true,
+      "stage": "production",
+      "vercel": { "projectSuffix": "homewolves", "functions": ["fra1", "iad1"] },
+      "env": {
+        "NEXT_PUBLIC_SITE_URL": "https://homewolves.africa",
+        "NEXT_PUBLIC_API_URL": "https://api.homewolves.africa/api/v1",
+        "CURRENCY": "NGN"
+      }
+    },
+    {
+      "code": "GH",
+      "country": "Ghana",
+      "enabled": false,
+      "stage": "planned",
+      "vercel": { "projectSuffix": "homewolves-gh", "functions": ["fra1"] },
+      "env": {
+        "NEXT_PUBLIC_SITE_URL": "https://gh.homewolves.africa",
+        "NEXT_PUBLIC_API_URL": "https://api-gh.homewolves.africa/api/v1",
+        "CURRENCY": "GHS"
+      }
+    },
+    {
+      "code": "KE",
+      "country": "Kenya",
+      "enabled": false,
+      "stage": "planned",
+      "vercel": { "projectSuffix": "homewolves-ke", "functions": ["fra1"] },
+      "env": {
+        "NEXT_PUBLIC_SITE_URL": "https://ke.homewolves.africa",
+        "NEXT_PUBLIC_API_URL": "https://api-ke.homewolves.africa/api/v1",
+        "CURRENCY": "KES"
+      }
+    }
+  ]
+}

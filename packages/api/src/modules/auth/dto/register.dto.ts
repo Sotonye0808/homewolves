@@ -34,6 +34,7 @@ export const completeProfileSchema = z
     lastName: z.string().trim().min(1).max(100),
     phone: z.string().trim().min(7).max(20),
     role: z.enum(['BUYER', 'AGENT', 'DEVELOPER', 'HOMEOWNER']).optional(),
+    referralCode: z.string().trim().max(20).optional(),
   })
   .strict();
 export type CompleteProfileDto = z.infer<typeof completeProfileSchema>;

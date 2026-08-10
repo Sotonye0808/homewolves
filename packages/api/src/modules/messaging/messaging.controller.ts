@@ -32,7 +32,7 @@ export class MessagingController {
     @Req() req: any,
   ) {
     const participantIds = Array.from(new Set([...body.participantIds, req.user.sub]));
-    return this.messagingService.createConversation(participantIds, body.propertyId);
+    return this.messagingService.createConversation(participantIds, body.propertyId, req.user.sub);
   }
 
   @Get('conversations/:id/messages')
