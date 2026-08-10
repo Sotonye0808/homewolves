@@ -8,7 +8,7 @@ import { CreateRatingDto } from './dto/create-rating.dto';
 import { CreateInspectionDto } from './dto/create-inspection.dto';
 import { UpdateInspectionDto } from './dto/update-inspection.dto';
 
-const db = (prisma: PrismaService) => prisma as any;
+const db = (prisma: PrismaService) => prisma;
 
 @Injectable()
 export class CrmService {

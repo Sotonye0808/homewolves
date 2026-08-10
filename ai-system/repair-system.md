@@ -1,8 +1,8 @@
 # Repair System — Error Knowledge Base
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-08-10
 > - staleness-policy: individual entries may be stale if the code has changed around them — verify fix still applies before reusing
 
 > **Overview:** Living knowledge base of errors encountered during development, their root causes, and how they were fixed. Agents must search this before diagnosing new errors and log every fixed bug to prevent recurrence.
@@ -112,8 +112,8 @@
 **Prisma Client Stale for New Models**
 - Symptom: TypeScript errors or missing models on new Prisma schema models
 - Cause: New models added to `schema.prisma` without regenerating the Prisma client
-- Fix: Run `npx prisma generate`; until then, access via `(this.prisma as any)` pattern
-- Prevention: Regenerate the client after every schema change; track in task queue
+- Fix: Run `npx prisma generate` (requires a placeholder `DATABASE_URL` — no live DB needed). The client is regenerated as of 2026-08-10; `(this.prisma as any)` casts have been removed from services.
+- Prevention: Regenerate the client after every schema change; track in task queue. Do not reintroduce `as any` casts on Prisma access.
 
 **Unhandled Promise Rejection**
 - Symptom: Server crashes silently or logs `UnhandledPromiseRejectionWarning`

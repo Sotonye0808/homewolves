@@ -2,8 +2,8 @@
 
 > **Metadata**
 >
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: dev-cycle
+> - last-verified-against-code: 2026-08-10
 > - staleness-policy: historical entries do not go stale
 
 > **Overview:** Chronological log of completed development work. Each sprint ends with a summary entry. Agents add entries after completing tasks. Useful for understanding what has been built, when decisions were made, and what patterns have emerged.
@@ -184,3 +184,25 @@ Upgraded the development system from v1 `.ai-system/` to the v2 `ai-system/` fra
 
 **Next Sprint Focus:**
 Prisma regeneration, security/testing/SEO hardening, and Backlog items (WhatsApp, analytics, Expo parity).
+
+---
+
+## 2026-08-10 — Prisma Client Regeneration
+
+**Summary:**
+Regenerated the Prisma Client so the Phase 3 models (Client, Note, Rating, Inspection, ActivityRule, AgentActivity, AgentPoints, BlogPost) are fully typed instead of being accessed through `(this.prisma as any)` casts.
+
+**Completed:**
+
+- Fixed schema: added 7 missing opposite-relation fields (User→agentActivities/agentPoints/blogPosts, Listing→inspections, Transaction→signatureRequests, TransactionDocument→signatureRequests, Subscription↔SubscriptionPlan) that were blocking `prisma validate`
+- Regenerated Prisma Client (v5.22.0); new models now typed
+- Removed all `(this.prisma as any)` and `db(prisma as any)` casts across 11 services; `db()` helper now returns the typed client
+- Fixed type errors surfaced by the typed client (JSON metadata casts, `Notification` type collision in notifications service/gateway, `plan.features` JSON cast)
+
+**Key Changes:**
+
+- `Subscription.plan` relation added to schema — the service already used `include: { plan: true }`, so the relation was intended but missing
+- Remaining `as any` casts in services are limited to Prisma `Json` field access (locationJson, preferences, stepsJson) — legitimate JSON payload typing, not stale-client workarounds
+
+**Next Sprint Focus:**
+Security pass (REST route guards, rate limiting, input validation), then testing setup.

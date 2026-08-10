@@ -2,8 +2,8 @@
 
 > **Metadata**
 >
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-08-10
 > - staleness-policy: auto-regenerable — can be derived from `Get-ChildItem -Recurse` or `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Homewolves monorepo folder structure with purpose descriptions. Updated when the folder structure changes. This file is **auto-regenerable** — use tool-based discovery (filesystem MCP, git ls-tree) for ground truth, and treat manual entries here as supplementary context, not primary navigation.
@@ -51,7 +51,7 @@ homewolves/
 │   │   ├── config/              ← fallbacks.ts (web re-export)
 │   │   └── public/              ← Static assets
 │   │
-│   └── mobile/                  ← React Native (Expo SDK 51+) mobile app
+│   └── mobile/                  ← React Native (Expo SDK 51+) mobile app — NOT YET CREATED (planned, Backlog)
 │       ├── app/                 ← Expo Router file-based routes (placeholder structure)
 │       ├── components/ui/       ← Same Hw* wrapper pattern for React Native
 │       ├── hooks/               ← Shared hooks with web parity
@@ -61,8 +61,7 @@ homewolves/
 │   ├── api/                     ← NestJS backend
 │   │   ├── src/
 │   │   │   ├── modules/         ← auth, listings, crm, transactions, messaging, notifications, alerts, activity, blog, platform-config, audit, recently-viewed, saved, documents, signatures, subscriptions
-│   │   │   ├── common/          ← decorators, guards, interceptors, filters, pipes
-│   │   │   ├── jobs/            ← BullMQ job processors
+│   │   │   ├── common/          ← filters, guards, interceptors
 │   │   │   └── prisma/          ← PrismaService (DI wrapper for PrismaClient)
 │   │   └── prisma/
 │   │       └── schema.prisma    ← Full database schema (20+ models)

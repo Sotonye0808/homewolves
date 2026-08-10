@@ -7,7 +7,7 @@ import { RejectTransactionDto } from './dto/reject-transaction.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { ConfirmPaymentDto } from './dto/confirm-payment.dto';
 
-const db = (prisma: PrismaService) => prisma as any;
+const db = (prisma: PrismaService) => prisma;
 
 const DEFAULT_STEPS = [
   { id: 'offer', label: 'Offer Accepted', order: 0, status: 'pending' },

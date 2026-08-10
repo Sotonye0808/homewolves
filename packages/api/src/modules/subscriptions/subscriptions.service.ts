@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 
-const db = (prisma: PrismaService) => prisma as any;
+const db = (prisma: PrismaService) => prisma;
 
 @Injectable()
 export class SubscriptionsService {
@@ -117,7 +117,7 @@ export class SubscriptionsService {
       include: { plan: true },
     });
     if (!sub) return { allowed: false };
-    const features: string[] = sub.plan?.features ?? [];
+    const features = (sub.plan?.features as string[] | undefined) ?? [];
     return { allowed: features.includes(feature) || features.includes('*'), plan: sub.plan?.slug };
   }
 }
