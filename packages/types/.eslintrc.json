@@ -1,0 +1,15 @@
+{
+  "extends": "../../.eslintrc.json",
+  "rules": {
+    "@typescript-eslint/triple-slash-reference": "off",
+    "@typescript-eslint/no-unused-vars": "off"
+  },
+  "overrides": [
+    {
+      "files": ["src/global.d.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ]
+}

@@ -8,6 +8,8 @@ import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto, UpdateListingStatusDto } from './dto/update-listing.dto';
 import type { Prisma } from '@prisma/client';
 
+const db = (prisma: PrismaService) => prisma;
+
 @Injectable()
 export class ListingService {
   constructor(
@@ -76,7 +78,7 @@ export class ListingService {
     ownerId?: string;
     featured?: boolean;
   }) {
-    const where: any = {};
+    const where: Prisma.ListingWhereInput = {};
     if (params.category) where.category = params.category;
     if (params.propertyType) where.propertyType = params.propertyType;
     if (params.status) where.status = params.status;
@@ -114,7 +116,7 @@ export class ListingService {
     if (listing.ownerId !== userId) throw new ForbiddenException('Not your listing');
 
     const oldPrice = Number(listing.price);
-    const data: any = { ...dto };
+    const data: Prisma.ListingUpdateInput = { ...dto };
     if (dto.locationJson) data.locationJson = dto.locationJson as Prisma.InputJsonValue;
     if (dto.metadata) data.metadata = dto.metadata as Prisma.InputJsonValue;
 

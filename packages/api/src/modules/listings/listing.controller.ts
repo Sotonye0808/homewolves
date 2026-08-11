@@ -3,6 +3,7 @@ import { ListingService } from './listing.service';
 import { JwtGuard } from '../auth/jwt.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AuthenticatedRequest, toActor } from '../../common/types/request.types';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { z } from 'zod';
 import {
@@ -31,9 +32,8 @@ export class ListingController {
 
   @Post()
   @UseGuards(JwtGuard)
-  create(@Body(new ZodValidationPipe(createListingSchema)) dto: CreateListingDto, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.listingService.create(dto, req.user.sub, actor);
+  create(@Body(new ZodValidationPipe(createListingSchema)) dto: CreateListingDto, @Req() req: AuthenticatedRequest) {
+    return this.listingService.create(dto, req.user.sub, toActor(req));
   }
 
   @Get()
@@ -84,23 +84,20 @@ export class ListingController {
 
   @Put(':id')
   @UseGuards(JwtGuard)
-  update(@Param('id') id: string, @Body(new ZodValidationPipe(updateListingSchema)) dto: UpdateListingDto, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.listingService.update(id, dto, req.user.sub, actor);
+  update(@Param('id') id: string, @Body(new ZodValidationPipe(updateListingSchema)) dto: UpdateListingDto, @Req() req: AuthenticatedRequest) {
+    return this.listingService.update(id, dto, req.user.sub, toActor(req));
   }
 
   @Put(':id/status')
   @UseGuards(JwtGuard)
-  updateStatus(@Param('id') id: string, @Body(new ZodValidationPipe(updateListingStatusSchema)) dto: UpdateListingStatusDto, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.listingService.updateStatus(id, dto, req.user.sub, actor);
+  updateStatus(@Param('id') id: string, @Body(new ZodValidationPipe(updateListingStatusSchema)) dto: UpdateListingStatusDto, @Req() req: AuthenticatedRequest) {
+    return this.listingService.updateStatus(id, dto, req.user.sub, toActor(req));
   }
 
   @Delete(':id')
   @UseGuards(JwtGuard)
-  remove(@Param('id') id: string, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.listingService.delete(id, req.user.sub, actor);
+  remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.listingService.delete(id, req.user.sub, toActor(req));
   }
 
   @Post('media/upload-url')
@@ -114,7 +111,7 @@ export class ListingController {
   attachMedia(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(attachMediaSchema)) body: { media: { url: string; type: string; isPrimary?: boolean; altText?: string }[] },
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.listingService.attachMedia(id, body.media, req.user.sub);
   }
@@ -127,8 +124,7 @@ export class ListingController {
   @Put(':id/moderate')
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN')
-  moderate(@Param('id') id: string, @Body(new ZodValidationPipe(moderateListingSchema)) body: { action: 'approve' | 'reject' }, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.listingService.moderateListing(id, body.action, actor);
+  moderate(@Param('id') id: string, @Body(new ZodValidationPipe(moderateListingSchema)) body: { action: 'approve' | 'reject' }, @Req() req: AuthenticatedRequest) {
+    return this.listingService.moderateListing(id, body.action, toActor(req));
   }
 }
