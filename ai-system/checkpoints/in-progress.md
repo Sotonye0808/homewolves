@@ -3,7 +3,7 @@
 > **Metadata**
 >
 > - last-updated-by: execute-feature
-> - last-verified-against-code: 2026-08-10
+> - last-verified-against-code: 2026-08-11
 > - staleness-policy: this file is overwritten every session — always current
 
 > **Overview:** Tracks work that is currently in progress but not yet complete. Written _before_ starting risky multi-step work, cleared on clean completion. This is the first file `resume-session.md` reads on interruption — it is the single source of truth for "what was half-done."
@@ -15,34 +15,38 @@
 **Status:** In Progress
 
 **Command Being Executed:**
-execute-feature.md
+execute-feature.md (then update-ai-system.md)
 
 **Directive / Task:**
-Work on all incomplete sprint items in the task queue + compliance run against MVP plan:
+Next task (logged in the queue): testing setup — unit tests for core services, component tests, E2E Playwright journeys.
 
-1. `[BUG]` Sanitize blog post HTML rendering (`dangerouslySetInnerHTML`) — sanitize on server write + client render
-2. `[M]` Wire activity points into service-layer hooks for automatic awarding (listings, crm, transactions, messaging)
-3. `[M]` SEO — `generateMetadata()` on listing pages, sitemap.xml, robots.txt, JSON-LD schema
-4. `[M]` Error handling — verify GlobalExceptionFilter coverage + add Next.js error boundaries
-5. `[L]` Testing setup — API unit tests (Jest), web component tests (Vitest), E2E (Playwright)
-6. Compliance run vs MVP plan (ROADMAP §9 / project-plan.md), respect project decisions
-7. Verify `.d.ts` build-artifact gitignore concern from prior session (already landed 2026-08-10 — re-verify)
+Known blockers to see through from the last session's PR comment:
+- 94 pre-existing `no-explicit-any` lint errors in `@hw/api` (currently 111)
+- 74 pre-existing lint errors in `@hw/types` (currently 61: triple-slash-reference in `global.d.ts` + no-unused-vars on ambient global types)
+
+Plan:
+1. Fix `@hw/types` lint blockers — package-level `.eslintrc` reflecting the intentional global-types pattern (triple-slash refs, ambient interfaces)
+2. Fix `@hw/api` lint blockers — typed `AuthenticatedRequest` replacing `req: any`, typed `where` clauses, typed JSON casts
+3. Unit tests for core services: auth, listings, transactions, crm, notifications, platform-config, blog, audit (activity + referrals already exist)
+4. Web component tests: hw-card, hw-input, landing/shared components
+5. Web lib tests: listings, crm, notifications, auth, blog, subscriptions, referrals, activity
+6. E2E Playwright journeys: guest, auth, agent dashboard, transaction stepper
+7. QA gate: `npm run test`, `npm run typecheck`, `npm run build`, `npm run lint`
+8. Execute `update-ai-system.md` — update stale docs (test-plan, test-results, task-queue, repo-map, dependency-graph, dev-history, session-log, lessons-learned)
 
 **Steps Completed:**
-
-- Verified gitignore cleanup already landed: `packages/types/src/**/*.d.ts` ignored, only `global.d.ts` tracked; no `.d.ts`/`.js` artifacts tracked.
-- Baseline: `npm install` done, Prisma client regenerated, `npm run typecheck` green across all 4 packages.
-- Read task-queue, session-log, in-progress, project-plan, project-context, system-architecture, engineering-principles, repair-system, project-decisions, update-ai-system command.
-- Reviewed all service files targeted for activity hooks (listing, crm, transactions, messaging, blog).
+- Surveyed repo state: test scaffolding exists (vitest+playwright configs, 2 API specs, 2 web lib/component tests, 1 e2e smoke spec) from PR #7, but coverage is thin
+- Baseline: `npm install` done; existing tests pass (16 API + 19 web); lint blockers confirmed: 111 in @hw/api, 61 in @hw/types
+- Read task-queue, session-log, dev-history, test-plan, quality-gate, execute-feature, update-ai-system
 
 **Current Step:**
-Implementing feature items (blog sanitization → activity hooks → SEO → error boundaries → testing).
+Fixing lint blockers (@hw/types first, then @hw/api).
 
 **Files Modified So Far:**
 - (pending)
 
 **Checkpoint Context:**
-No blockers. npm install completed; typecheck baseline green.
+No blockers beyond the known lint counts. typecheck baseline green.
 
 **Last Tool Output / Error:**
 None.
@@ -51,8 +55,8 @@ None.
 
 ## Drift Check
 
-**Last verified against repo:** 2026-08-10
-**Any known drift between ai-system docs and actual code:** no
+**Last verified against repo:** 2026-08-11
+**Any known drift between ai-system docs and actual code:** yes — test-plan.md/test-results.md are stale (say no test suite exists); task-queue testing item marked done but docs never updated.
 
 ---
 
