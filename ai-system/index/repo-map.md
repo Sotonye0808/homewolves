@@ -3,7 +3,7 @@
 > **Metadata**
 >
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-10
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: auto-regenerable — can be derived from `Get-ChildItem -Recurse` or `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Homewolves monorepo folder structure with purpose descriptions. Updated when the folder structure changes. This file is **auto-regenerable** — use tool-based discovery (filesystem MCP, git ls-tree) for ground truth, and treat manual entries here as supplementary context, not primary navigation.
@@ -47,7 +47,8 @@ homewolves/
 │   │   │   ├── transactions/    ← Stepper, document upload, audit trail
 │   │   │   └── shared/          ← Layouts, ThemeProvider, loaders
 │   │   ├── hooks/               ← Custom React hooks (use-crm, use-messaging, use-notifications, etc.)
-│   │   ├── lib/                 ← API clients (crm, messaging, notifications, transactions, blog)
+│   │   ├── lib/                 ← API clients (crm, messaging, notifications, transactions, blog) + colocated `*.test.ts`
+│   │   ├── e2e/                 ← Playwright E2E journeys (smoke, guest, auth, agent-dashboard, transaction-stepper)
 │   │   ├── config/              ← fallbacks.ts (web re-export)
 │   │   └── public/              ← Static assets
 │   │
@@ -60,8 +61,8 @@ homewolves/
 ├── packages/
 │   ├── api/                     ← NestJS backend
 │   │   ├── src/
-│   │   │   ├── modules/         ← auth, listings, crm, transactions, messaging, notifications, alerts, activity, blog, platform-config, audit, recently-viewed, saved, documents, signatures, subscriptions
-│   │   │   ├── common/          ← filters (GlobalExceptionFilter), guards (JwtGuard via auth, RolesGuard, OptionalJwtGuard), pipes (ZodValidationPipe), decorators (@Roles), rate-limit (RateLimitGuard + @Throttle), interceptors (AuditInterceptor)
+│   │   │   ├── modules/         ← auth, listings, crm, transactions, messaging, notifications, alerts, activity, blog, platform-config, audit, recently-viewed, saved, documents, signatures, subscriptions (+ colocated `*.service.spec.ts`)
+│   │   │   ├── common/          ← filters (GlobalExceptionFilter), guards (JwtGuard via auth, RolesGuard, OptionalJwtGuard), pipes (ZodValidationPipe), decorators (@Roles), rate-limit (RateLimitGuard + @Throttle), interceptors (AuditInterceptor), types (request.types.ts — AuthenticatedRequest/MaybeAuthenticatedRequest/toActor)
 │   │   │   └── prisma/          ← PrismaService (DI wrapper for PrismaClient)
 │   │   └── prisma/
 │   │       └── schema.prisma    ← Full database schema (20+ models)
@@ -92,10 +93,10 @@ homewolves/
 | Directory | Purpose | Key Files |
 |-----------|---------|-----------|
 | `ai-system/` | AI development system — protocols, planning, memory, checkpoints | `protocols/`, `planning/task-queue.md` |
-| `apps/web/` | Next.js 14 web application — SSR/SSG, mobile-first responsive | `app/`, `components/ui/`, `lib/` |
+| `apps/web/` | Next.js 14 web application — SSR/SSG, mobile-first responsive | `app/`, `components/ui/`, `lib/`, `e2e/` |
 | `apps/mobile/` | React Native (Expo) mobile app — parity with web (placeholder) | `app/`, `components/ui/` |
-| `packages/api/` | NestJS backend — all business logic, Prisma ORM, REST | `src/modules/`, `prisma/schema.prisma` |
-| `packages/types/` | Global TypeScript types — zero-import via triple-slash refs. Generated `.js`/`.d.ts`/`.map` build artifacts are gitignored (regenerate on API builds); only `.ts` sources + `global.d.ts` are tracked | `src/entities/*.ts`, `src/global.d.ts` |
+| `packages/api/` | NestJS backend — all business logic, Prisma ORM, REST. Unit specs colocated as `*.service.spec.ts` (vitest) | `src/modules/`, `prisma/schema.prisma` |
+| `packages/types/` | Global TypeScript types — zero-import via triple-slash refs. Generated `.js`/`.d.ts`/`.map` build artifacts are gitignored + lint-ignored (regenerate on API builds); only `.ts` sources + `global.d.ts` are tracked | `src/entities/*.ts`, `src/global.d.ts`, `.eslintignore` |
 | `packages/config/` | Shared fallback constants for all config domains | `src/fallbacks.ts` |
 
 ---
@@ -105,7 +106,10 @@ homewolves/
 | Purpose | File |
 |---------|------|
 | Web dev server | `apps/web/package.json` — `next dev` |
+| Web unit/component tests | `apps/web/package.json` — `vitest run` |
+| Web E2E journeys | `apps/web/package.json` — `e2e` (Playwright) |
 | API server | `packages/api/src/main.ts` — NestJS bootstrap |
+| API unit tests | `packages/api/package.json` — `vitest run` |
 | Database schema | `packages/api/prisma/schema.prisma` |
 | Config fallbacks | `packages/config/src/fallbacks.ts` |
 | Global types injection | `packages/types/src/global.d.ts` |

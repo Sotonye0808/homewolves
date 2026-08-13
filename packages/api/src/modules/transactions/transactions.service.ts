@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { ActivityService } from '../activity/activity.service';
@@ -78,13 +79,13 @@ export class TransactionsService {
   }
 
   async findAll(agentId: string, role: string, params: { status?: string; page?: number; limit?: number }) {
-    const where: any = {};
+    const where: Prisma.TransactionWhereInput = {};
     if (role === 'AGENT' || role === 'DEVELOPER' || role === 'HOMEOWNER') {
       where.agentId = agentId;
     } else if (role === 'BUYER') {
       where.buyerId = agentId;
     }
-    if (params.status) where.status = params.status;
+    if (params.status) where.status = params.status as TransactionStatus;
 
     const page = params.page ?? 1;
     const limit = params.limit ?? 10;
@@ -138,19 +139,22 @@ export class TransactionsService {
       throw new BadRequestException('Transaction is not active');
     }
 
-    const steps = transaction.stepsJson as any[];
+    const steps = transaction.stepsJson as unknown as TransactionStep[];
     const stepIndex = transaction.currentStep;
 
     if (stepIndex >= steps.length) {
       return this.complete(transaction, actor);
     }
 
+    const current = steps[stepIndex] ?? { id: '', label: '', order: stepIndex };
     steps[stepIndex] = {
-      ...steps[stepIndex],
+      id: current.id,
+      label: current.label,
+      order: current.order,
       status: 'completed',
-      completedAt: new Date().toISOString(),
+      completedAt: new Date(),
       completedBy: { id: actor.id, role: actor.role, name: actor.name },
-      notes: dto.notes ?? null,
+      notes: dto.notes,
     };
 
     const nextStep = stepIndex + 1;
@@ -159,7 +163,7 @@ export class TransactionsService {
       where: { id },
       data: {
         currentStep: nextStep,
-        stepsJson: steps,
+        stepsJson: steps as unknown as Prisma.InputJsonValue,
         status: nextStep >= steps.length ? 'COMPLETED' : 'IN_PROGRESS',
       },
       include: {
@@ -181,7 +185,7 @@ export class TransactionsService {
     return updated;
   }
 
-  private async complete(transaction: any, actor: ActorRef) {
+  private async complete(transaction: { id: string; agentId: string }, actor: ActorRef) {
     const updated = await db(this.prisma).transaction.update({
       where: { id: transaction.id },
       data: { status: 'COMPLETED' },
@@ -253,11 +257,14 @@ export class TransactionsService {
       throw new BadRequestException('Transaction already finalised');
     }
 
-    const steps = transaction.stepsJson as any[];
+    const steps = transaction.stepsJson as unknown as TransactionStep[];
     const currentIdx = Math.min(transaction.currentStep, steps.length - 1);
     if (steps[currentIdx]) {
+      const current = steps[currentIdx] ?? { id: '', label: '', order: currentIdx };
       steps[currentIdx] = {
-        ...steps[currentIdx],
+        id: current.id,
+        label: current.label,
+        order: current.order,
         status: 'rejected',
         notes: dto.reason,
         completedBy: { id: actor.id, role: actor.role, name: actor.name },
@@ -266,7 +273,7 @@ export class TransactionsService {
 
     const updated = await db(this.prisma).transaction.update({
       where: { id },
-      data: { status: 'REJECTED', stepsJson: steps },
+      data: { status: 'REJECTED', stepsJson: steps as unknown as Prisma.InputJsonValue },
       include: {
         listing: { include: { media: true } },
         buyer: true,

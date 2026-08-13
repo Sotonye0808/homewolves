@@ -2,6 +2,7 @@ import { Controller, Post, Get, Body, Query, UseGuards, Req } from '@nestjs/comm
 import { RecentlyViewedService } from './recently-viewed.service';
 import { OptionalJwtGuard } from '../../common/guards/optional-jwt.guard';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { MaybeAuthenticatedRequest } from '../../common/types/request.types';
 import { z } from 'zod';
 
 const recordSchema = z
@@ -19,7 +20,7 @@ export class RecentlyViewedController {
   @UseGuards(OptionalJwtGuard)
   record(
     @Body(new ZodValidationPipe(recordSchema)) body: { listingId: string; sessionId?: string },
-    @Req() req: any,
+    @Req() req: MaybeAuthenticatedRequest,
   ) {
     const userId = req.user?.sub ?? null;
     return this.service.record(userId, body.sessionId ?? null, body.listingId);
@@ -28,7 +29,7 @@ export class RecentlyViewedController {
   @Get()
   @UseGuards(OptionalJwtGuard)
   getRecent(
-    @Req() req: any,
+    @Req() req: MaybeAuthenticatedRequest,
     @Query('sessionId') sessionId?: string,
   ) {
     const userId = req.user?.sub ?? null;

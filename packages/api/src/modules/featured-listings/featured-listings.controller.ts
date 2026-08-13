@@ -5,6 +5,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { PaystackClient } from '../../common/integrations/paystack.client';
+import { AuthenticatedRequest, toActor } from '../../common/types/request.types';
 import { z } from 'zod';
 
 const purchaseSchema = z
@@ -37,14 +38,14 @@ export class FeaturedListingsController {
 
   @Get('my')
   @UseGuards(JwtGuard)
-  getMy(@Req() req: any) {
+  getMy(@Req() req: AuthenticatedRequest) {
     return this.featuredListingsService.getMyPlacements(req.user.sub);
   }
 
   @Get('all')
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN')
-  listAll(@Query() query: any) {
+  listAll(@Query() query: { status?: string; page?: string; limit?: string }) {
     return this.featuredListingsService.listAll({
       status: query.status,
       page: query.page ? Math.max(parseInt(query.page) || 1, 1) : undefined,
@@ -59,13 +60,12 @@ export class FeaturedListingsController {
 
   @Post('purchase')
   @UseGuards(JwtGuard)
-  purchase(@Body(new ZodValidationPipe(purchaseSchema)) body: { listingId: string; days: number }, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.featuredListingsService.purchase(body.listingId, req.user.sub, body.days, actor);
+  purchase(@Body(new ZodValidationPipe(purchaseSchema)) body: { listingId: string; days: number }, @Req() req: AuthenticatedRequest) {
+    return this.featuredListingsService.purchase(body.listingId, req.user.sub, body.days, toActor(req));
   }
 
   @Post('webhook')
-  async webhook(@Body(new ZodValidationPipe(webhookSchema)) body: { event: string; data: { reference: string } }, @Req() req: any) {
+  async webhook(@Body(new ZodValidationPipe(webhookSchema)) body: { event: string; data: { reference: string } }, @Req() req: AuthenticatedRequest) {
     const rawBody = req.rawBody?.toString() ?? JSON.stringify(body);
     const signature = req.headers?.['x-paystack-signature'];
 
@@ -83,9 +83,8 @@ export class FeaturedListingsController {
   @Post(':id/cancel')
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN')
-  cancel(@Param('id') id: string, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.featuredListingsService.cancel(id, actor);
+  cancel(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.featuredListingsService.cancel(id, toActor(req));
   }
 
   @Post('admin/expire')

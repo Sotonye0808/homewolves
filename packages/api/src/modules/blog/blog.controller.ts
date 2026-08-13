@@ -4,6 +4,7 @@ import { JwtGuard } from '../auth/jwt.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { AuthenticatedRequest, toActor } from '../../common/types/request.types';
 import {
   CreateBlogPostDto,
   UpdateBlogPostDto,
@@ -18,9 +19,8 @@ export class BlogController {
   @Post()
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN')
-  create(@Body(new ZodValidationPipe(createBlogPostSchema)) dto: CreateBlogPostDto, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.blogService.create({ ...dto, authorId: req.user.sub }, actor);
+  create(@Body(new ZodValidationPipe(createBlogPostSchema)) dto: CreateBlogPostDto, @Req() req: AuthenticatedRequest) {
+    return this.blogService.create({ ...dto, authorId: req.user.sub }, toActor(req));
   }
 
   @Get()
@@ -55,16 +55,14 @@ export class BlogController {
   @Put(':id')
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN')
-  update(@Param('id') id: string, @Body(new ZodValidationPipe(updateBlogPostSchema)) dto: UpdateBlogPostDto, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.blogService.update(id, dto, actor);
+  update(@Param('id') id: string, @Body(new ZodValidationPipe(updateBlogPostSchema)) dto: UpdateBlogPostDto, @Req() req: AuthenticatedRequest) {
+    return this.blogService.update(id, dto, toActor(req));
   }
 
   @Delete(':id')
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN')
-  remove(@Param('id') id: string, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.blogService.delete(id, actor);
+  remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.blogService.delete(id, toActor(req));
   }
 }

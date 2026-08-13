@@ -2,6 +2,7 @@ import { Controller, Get, Post, Param, Body, UseGuards, Req } from '@nestjs/comm
 import { SignaturesService } from './signatures.service';
 import { JwtGuard } from '../auth/jwt.guard';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { AuthenticatedRequest, toActor } from '../../common/types/request.types';
 import { z } from 'zod';
 
 const createRequestSchema = z
@@ -36,10 +37,9 @@ export class SignaturesController {
       signerEmail: string;
       signerName: string;
     },
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.signaturesService.createRequest(body, actor);
+    return this.signaturesService.createRequest(body, toActor(req));
   }
 
   @Get('transaction/:transactionId')
@@ -61,15 +61,14 @@ export class SignaturesController {
 
   @Get(':id/embed')
   @UseGuards(JwtGuard)
-  getEmbedUrl(@Param('id') id: string, @Req() req: any) {
+  getEmbedUrl(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.signaturesService.getEmbedUrl(id, req.user.sub);
   }
 
   @Post(':id/cancel')
   @UseGuards(JwtGuard)
-  cancel(@Param('id') id: string, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.signaturesService.cancelRequest(id, actor);
+  cancel(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.signaturesService.cancelRequest(id, toActor(req));
   }
 
   @Post('webhook')

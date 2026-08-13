@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { sanitizeBlogHtml } from '../../common/utils/html-sanitizer';
@@ -58,7 +59,7 @@ export class BlogService {
     page?: number;
     limit?: number;
   }) {
-    const where: any = {};
+    const where: Prisma.BlogPostWhereInput = {};
     if (params.published != null) where.published = params.published;
     if (params.category) where.categories = { has: params.category };
     if (params.tag) where.tags = { has: params.tag };
@@ -114,7 +115,7 @@ export class BlogService {
     const post = await db(this.prisma).blogPost.findUnique({ where: { id } });
     if (!post) throw new NotFoundException('Blog post not found');
 
-    const data: any = { ...dto };
+    const data: Prisma.BlogPostUpdateInput = { ...dto };
     if (dto.content) data.content = sanitizeBlogHtml(dto.content);
     if (dto.published && !post.publishedAt) {
       data.publishedAt = new Date();
@@ -158,7 +159,7 @@ export class BlogService {
       select: { categories: true },
     });
     const categorySet = new Set<string>();
-    posts.forEach((p: any) => p.categories?.forEach((c: string) => categorySet.add(c)));
+    posts.forEach((p) => p.categories?.forEach((c: string) => categorySet.add(c)));
     return Array.from(categorySet).sort();
   }
 }

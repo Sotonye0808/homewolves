@@ -141,3 +141,43 @@ Testing setup — unit tests for core services, component tests, E2E Playwright 
 **Notes / Blockers:**
 - Residual security risks (logged in task-queue + system-architecture): webhook HMAC verification needs provider secrets; `JWT_SECRET` must be set in production; rate-limit store is in-memory (per-instance) — swap for Redis-backed store for multi-instance.
 - `npm run lint` still fails on pre-existing errors: 94 `no-explicit-any` in `@hw/api` + 74 unused-var/type errors in `@hw/types` (`src/ui/*.ts` global type files). None introduced by this session (verified by scanning changed files).
+
+---
+
+## Session 4 — 2026-08-13
+
+**Completed:**
+Executed `resume-session.md` → `execute-feature.md` → `update-ai-system.md`. Completed the [L] "Testing setup" task: eliminated all lint blockers, added API unit tests, web component + lib tests, and Playwright E2E journeys. QA gate fully green.
+
+- **`@hw/api` lint blockers eliminated (104 → 0 errors)** — replaced every `req: any` with typed `AuthenticatedRequest` / `MaybeAuthenticatedRequest` from new `packages/api/src/common/types/request.types.ts` (`JwtUser`, `toActor()` helper, `rawBody?: Buffer`). Typed Prisma `where`/`data` clauses and replaced `(x as any[])` JSON casts with `TransactionStep[]` / `Prisma.InputJsonValue`. Controllers now derive actors via `toActor(req)`.
+- **`@hw/types` lint blocker fixed** — package `.eslintrc` already allowed the intentional global-types pattern; added `packages/types/.eslintignore` so ESLint skips the generated `.js`/`.d.ts`/`.map` build artifacts that `tsc`/API builds re-emit into `src/`.
+- **Prisma client regenerated** (stale client was surfacing false type errors: missing `ListingCategory`, `InputJsonValue`).
+- **API unit tests (8 new files, 93 tests total across 10 specs)** — audit, platform-config, notifications, listing, transactions, crm, blog, auth service specs following the existing `MockFn = ReturnType<typeof vi.fn>` + `prisma as unknown as PrismaService` pattern. Fixed two real service behaviors found while writing tests: `updatePreferences` replaces (not merges) the notifications sub-object; `complete()` requires `currentStep >= steps.length`.
+- **Web component tests (6 files)** — hw-card, hw-input (new), hw-badge/hw-button (pre-existing), hero-section + stats-strip (landing). Hero-section mocks `next/navigation` `useRouter`.
+- **Web lib tests (7 new files, 94 total across 13 specs)** — listings, crm, blog, subscriptions, referrals, activity, notifications API clients. listings/crm read the token from the zustand `useAuth` store (`useAuth.setState`), others from localStorage `hw-auth`.
+- **E2E Playwright journeys (4 new specs, 16 tests)** — `guest` (landing/blog/properties search + public pages), `auth` (email→OTP→profile→agent-ID with stubbed auth API), `agent-dashboard` (seeded session, dashboard, transactions list, modal, auth redirect), `transaction-stepper` (deal overview + advance PUT). API stubbed via `page.route` — the Playwright webServer only boots the web app.
+- **QA gate green** — `npm test` 187 passing; `npm run typecheck`, `npm run build`, `npm run lint` all pass across every package. Lint has only the 3 pre-existing `no-console` warnings in `@hw/api`.
+
+**Files Modified:**
+- `packages/api/src/common/types/request.types.ts` — new `AuthenticatedRequest`/`MaybeAuthenticatedRequest`/`JwtUser`/`toActor()`
+- All controllers in `packages/api/src/modules/*/` — `req: any` → typed request types, `toActor(req)`
+- `packages/api/src/modules/{listing,activity,alerts,audit,auth,blog,crm,featured-listings,messaging,documents,signatures,transactions}/*.service.ts` — typed `where`/`data` clauses, JSON casts
+- `packages/api/src/modules/{audit,platform-config,notifications,listings,transactions,crm,blog,auth}/*.service.spec.ts` — 8 new test files
+- `apps/web/components/ui/hw-card.test.tsx`, `apps/web/components/ui/hw-input.test.tsx` — new
+- `apps/web/components/landing/hero-section.test.tsx` — new (mocks next/navigation)
+- `apps/web/lib/{listings,crm,blog,subscriptions,referrals,activity,notifications}.test.ts` — 7 new test files
+- `apps/web/e2e/{guest,auth,agent-dashboard,transaction-stepper}.spec.ts` — 4 new journey specs
+- `packages/types/.eslintignore` — new (skip generated build artifacts)
+- `ai-system/` docs (test-plan, test-results, task-queue, session-log, dev-history, lessons-learned, repo-map, dependency-graph, project-plan, in-progress)
+
+**Next Task:**
+Either the [M] SEO task (listing `generateMetadata`, sitemap, robots, JSON-LD), the [BUG] blog HTML sanitization, the [M] activity-points service wiring, or the newly added [M] API integration tests / [M] E2E admin journey. Any incomplete [ ] item at the top of `planning/task-queue.md`.
+
+**Assumptions Made:**
+- The 3 remaining `no-console` warnings in `@hw/api` are intentional dev/stub OTP logging — left as warnings, not errors.
+- E2E journeys stub the API because CI has no Postgres/API process; the Playwright webServer only starts the Next.js dev server. Real-db journeys would need the API + DB booted in the webServer command.
+- `packages/types` generated artifacts are safe to ignore for lint; they regenerate identically on every build.
+
+**Notes / Blockers:**
+- One E2E test (`transaction detail renders the stepper`) is intermittently flaky under parallel dev-server load: the dashboard layout redirects to `/auth` before zustand rehydrates the seeded session. Self-heals on retry (`retries: 2` in CI); passed 10/10 in isolation. If it becomes frequent, seed the store synchronously or bump the test timeout.
+- `npm run typecheck` at the turbo root can cache-hit `@hw/api` — run `packages/api && npm run typecheck` directly to see fresh spec-file errors (the api build compiles specs, so `nest build` is the stricter gate).

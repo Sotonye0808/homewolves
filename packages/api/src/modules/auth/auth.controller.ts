@@ -2,6 +2,7 @@ import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtGuard } from './jwt.guard';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { AuthenticatedRequest } from '../../common/types/request.types';
 import { Throttle, AUTH_THROTTLE } from '../../common/rate-limit/throttle.decorator';
 import {
   RegisterDto,
@@ -52,7 +53,7 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtGuard)
-  logout(@Req() req: any) {
-    return this.authService.logout(req.user?.sub);
+  logout(@Req() req: AuthenticatedRequest) {
+    return this.authService.logout(req.user.sub);
   }
 }

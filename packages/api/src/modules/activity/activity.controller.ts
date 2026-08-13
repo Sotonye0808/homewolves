@@ -3,6 +3,7 @@ import { ActivityService } from './activity.service';
 import { JwtGuard } from '../auth/jwt.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AuthenticatedRequest, toActor } from '../../common/types/request.types';
 
 @Controller('activity')
 export class ActivityController {
@@ -16,7 +17,7 @@ export class ActivityController {
 
   @Get('stats')
   @UseGuards(JwtGuard)
-  getMyStats(@Req() req: any) {
+  getMyStats(@Req() req: AuthenticatedRequest) {
     return this.activityService.getAgentStats(req.user.sub);
   }
 
@@ -40,8 +41,7 @@ export class ActivityController {
 
   @Post('award/:ruleKey')
   @UseGuards(JwtGuard)
-  award(@Param('ruleKey') ruleKey: string, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.activityService.award(req.user.sub, ruleKey, actor);
+  award(@Param('ruleKey') ruleKey: string, @Req() req: AuthenticatedRequest) {
+    return this.activityService.award(req.user.sub, ruleKey, toActor(req));
   }
 }

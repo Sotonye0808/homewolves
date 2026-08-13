@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { DocuSealClient } from '../../common/integrations/docuseal.client';
@@ -104,20 +105,23 @@ export class SignaturesService {
 
       const transaction = await db(this.prisma).transaction.findUnique({ where: { id: request.transactionId } });
       if (transaction) {
-        const steps = transaction.stepsJson as any[];
+        const steps = transaction.stepsJson as unknown as TransactionStep[];
         const stepIdx = transaction.currentStep;
         if (stepIdx < steps.length) {
+          const current = steps[stepIdx] ?? { id: '', label: '', order: stepIdx };
           steps[stepIdx] = {
-            ...steps[stepIdx],
+            id: current.id,
+            label: current.label,
+            order: current.order,
             status: 'completed',
-            completedAt: new Date().toISOString(),
+            completedAt: new Date(),
             completedBy: { id: 'system', role: 'SYSTEM', name: 'DocuSeal' },
             notes: 'Document signed via e-signature',
           };
           await db(this.prisma).transaction.update({
             where: { id: transaction.id },
             data: {
-              stepsJson: steps,
+              stepsJson: steps as unknown as Prisma.InputJsonValue,
               currentStep: stepIdx + 1,
               status: stepIdx + 1 >= steps.length ? 'COMPLETED' : 'IN_PROGRESS',
             },

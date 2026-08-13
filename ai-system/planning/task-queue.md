@@ -1,8 +1,8 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: dev-cycle
-> - last-verified-against-code: 2026-08-10
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session. Sprint 1–3 are complete; the current focus is hardening, Backlog items, and the next scheduled phase.
@@ -37,6 +37,8 @@ Tags help agents self-select whether a task needs the full `execute-feature.md` 
 | [M] | Error handling — verify GlobalExceptionFilter coverage, error boundaries on all pages | [x] |
 | [BUG] | Sanitize blog post HTML rendering (`dangerouslySetInnerHTML`) before production | [ ] |
 | [M] | Wire activity points into service-layer hooks for automatic awarding | [ ] |
+| [M] | API integration tests — supertest route-level tests (validation, auth guards, 404s) | [ ] |
+| [M] | E2E admin journey — approve/reject a listing, review payment evidence | [ ] |
 
 ---
 
@@ -78,6 +80,7 @@ Tags help agents self-select whether a task needs the full `execute-feature.md` 
 | Build repair pass (lint/format fixes, `npm run build` green) | [x] |
 | Regenerate Prisma client — new models typed, `(this.prisma as any)` casts removed | [x] |
 | Security pass — REST route guards, rate limiting, zod input validation | [x] |
+| Testing setup — 187 unit tests (93 API + 94 web), 16 E2E journeys, lint/typecheck/build green | [x] |
 
 ---
 
@@ -90,3 +93,5 @@ Tags help agents self-select whether a task needs the full `execute-feature.md` 
 - Next.js SWC lockfile patch warning is environmental/non-blocking.
 - Design files in `ai-system/designs/` have names that don't all match the README.md index — see `ai-system/designs/README.md` for the canonical list.
 - **Residual security risks (pre-production):** webhook endpoints (`subscriptions`, `signatures`) have no HMAC/signature verification yet — needs provider signing secrets; JWT secret falls back to `homewolves-dev-secret` when `JWT_SECRET` is unset — must be set in production; rate limiter is in-memory (per-instance) — swap for a Redis-backed store for multi-instance deploys.
+- **Testing setup (2026-08-13):** API lint clean (0 errors, 3 `no-console` warnings — intentional dev/stub logging); `@hw/api` and `@hw/web` both pass `tsc --noEmit` and `npm run build`. New specs live next to sources (`*.service.spec.ts`, `*.test.ts(x)`). E2E journeys stub the API via `page.route` because the Playwright webServer only boots the web app (no Postgres/API in CI).
+- `packages/types/.eslintignore` ignores the generated `.js`/`.d.ts`/`.map` build artifacts that `tsc`/API builds re-emit into `src/` (they reference `@prisma/client`).
