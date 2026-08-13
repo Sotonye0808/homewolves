@@ -243,3 +243,23 @@ Avoiding external search infrastructure during MVP accelerates initial delivery.
 **Implications:**
 - Search uses PostgreSQL FTS for Phase 1
 - Meilisearch migration planned for Phase 5
+
+---
+
+## update-ai-system.md triggers: conditional, not unconditional
+
+**Decision:** `update-ai-system.md` fires only on the conditional triggers defined in each command's `Chains to` row (architecture-affecting work in `execute-feature.md`, an emptied sprint table in `dev-cycle.md`, always in `refactor-codebase.md`, major drift in `resume-session.md`, and always in `cloud-session.md`) — not after every task unconditionally.
+**Date:** 2026-08-13
+**Made by:** v3 upgrade (opencode session)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The v3 spec (§10.3) explicitly flagged this as a judgment call. `update-ai-system.md` is the *heavier* sibling of `sync-context.md` by v2's own design; running the full deep sync after every trivial `[XS]`/`[S]` task would burn tokens on work that only `sync-context.md`'s lightweight check needs. The conditional set is the point where skipping the deep sync is actually risky.
+
+**Alternatives Considered:**
+- Unconditional invocation on the four named commands — rejected: predicts many trivial-task deep syncs per day, violating the token/context-economy goal (§12). It remains a one-line override per command if the operator prefers it.
+
+**Implications:**
+- Five commands now carry mandatory `Chains to` triggers that invoke `update-ai-system.md` automatically under their conditions — its own `Does NOT` contract is worded accordingly (invoked explicitly or via a command's mandated chain trigger, never on a schedule).
+- `verification-rules.md` and `audit-drift.md` check chain order mechanically from `session-log.md`, so a skipped trigger is caught, not trusted.

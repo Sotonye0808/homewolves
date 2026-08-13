@@ -5,7 +5,7 @@
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: re-verify if new features are added
 
-> **Overview:** Defines what needs to be tested and at what level. Referenced by `verify-work.md` during the quality gate. Updated as new features are added. A vitest unit/component suite and a Playwright E2E suite now exist — see `testing/test-results.md` for the latest run.
+> **Overview:** Defines what needs to be tested and at what level. Referenced by `verify-work.md` during the quality gate. Updated as new features are added. A vitest unit/component suite and a Playwright E2E suite now exist — see `testing/test-results.md` for the latest run. Per engineering principles §19, coverage is expected across **all three tiers proportionally** — many unit tests, fewer integration tests, fewest e2e — not e2e-only or untested-only; this file shows that coverage (unit ✓, integration planned, e2e ✓ for core journeys).
 
 ---
 

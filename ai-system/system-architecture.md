@@ -127,6 +127,23 @@ Component requests config (e.g. filter pills)
 | `JWT_SECRET` | Token signing secret | .env | — |
 | `TERMII_API_KEY` | SMS provider key | .env | — |
 | `RESEND_API_KEY` | Email provider key | .env | — |
+| `ENABLE_DESIGN_VIEWER` | Mounts the dev-only design-asset viewer at `/__design/*`; must be false in production builds | .env | false |
+
+---
+
+## Verification CLI (agent-verifiable behavior)
+
+The project exposes no standalone verification CLI today — verification is script-driven (`npm test`, `npm run typecheck`, `npm run build`, `npm run lint` at the turbo root, `prisma validate`/`generate` in `packages/api`). If a dedicated verification CLI is added later (engineering principle §24), list its commands here.
+
+---
+
+## Rollback & Undo (deployment level)
+
+This is the "undo" instinct applied one layer up from data (§22 covers user-facing undo; this covers deployments). Homewolves' documented rollback posture is thin today — worth tightening before production:
+
+- **Previous-build promotion** — deploys are build-artifact based (Vercel web / Railway API); rollback = redeploy the previous build from the provider's release history. No separate release pipeline exists.
+- **DB migration reversibility** — no `prisma/migrations/` folder is committed; schema is applied via seed/db push, so **migrations are not down-migratable today**. This is a known constraint.
+- **Feature-flag kill switch** — yes: the `feature_flags` PlatformConfig table + `FeatureFlagGuard` / `useFeatureFlag()` can disable a bad feature without a deploy (this is the primary rollback lever).
 
 ---
 

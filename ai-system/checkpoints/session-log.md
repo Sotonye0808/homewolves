@@ -208,3 +208,41 @@ Human reviews `ai-system-template-v3-update-proposal.md`. On approval: back up `
 
 **Notes / Blockers:**
 - Blocking on human decision — command contract explicitly never auto-applies.
+
+---
+
+## Session 6 — 2026-08-13 (v2→v3 migration applied)
+
+**Completed:**
+Human approved `ai-system-template-v3-update-proposal.md` (Session 5). Executed the migration from template v3.0.0 (upstream HEAD `1966ff7`, one commit past the proposal's diff baseline `e19a4b3` — only refines the `update-ai-system.md` contract wording + adds a decision entry; picked up as part of the migration).
+
+- **Backed up** pre-migration `ai-system/` + `ai-context.md` to `/tmp/opencode/v2-backup/`; git history (pre-migration commit) also preserves v2.
+- **Added new files** verbatim from the template: `ai-system/skills/` (9 skills), `ai-system/tools/` (registry.md + 12 integrations), `ai-system/design-references/`, `ai-system/commands/{audit-sources,visual-review,generate-design-md,pull-template-update}.md`, root `VERSION` (3.0.0) + `CHANGELOG.md`.
+- **Applied v3 to 18 merge-clean files** (agents/tester-qa, 13 commands, 4 protocols, engineering-principles) — local was byte-identical to v2 template except metadata dates, so v3 template content applies cleanly; verified post-copy: framework dirs match template v3 except the deliberately-unchanged `agents/{architect,historian,implementer,planner,reviewer}.md` and `protocols/escalation-rules.md` (date-only diffs, preserved as-is).
+- **Targeted edits to divergent files** (project content preserved):
+  - `ai-context.md` — metadata `installed-ai-system-version: 3.0.0` + skill/tool pointer rows
+  - `planning/task-queue.md` — `last-synced` marker (2026-08-13, Session 5)
+  - `design-system.md` — Reference Library + Design Asset Viewer sections
+  - `system-architecture.md` — Verification CLI, Rollback & Undo, `ENABLE_DESIGN_VIEWER` config row
+  - `memory/project-decisions.md` — appended the v3 `update-ai-system.md triggers: conditional` decision (PDF-extraction decision skipped — viewer not built)
+  - `testing/test-plan.md` — §19 proportionality note in Overview
+- **Freshness metadata** stamped `last-verified-against-code: 2026-08-13` on all changed/new files (only `commands/bootstrap-project.md` retains its intentional `(set on completion)` placeholder).
+- **Verification (audit-drift):** all 16 commands declare `Chains to` rows; chain-order/coupling checks pass for this session (in-progress write + this log entry cover the `task-queue.md` `last-synced` mutation); framework files confirm date-only diffs vs template v3.
+
+**Files Modified:**
+- New: `ai-system/skills/**`, `ai-system/tools/**`, `ai-system/design-references/**`, `ai-system/commands/{audit-sources,visual-review,generate-design-md,pull-template-update}.md`, `VERSION`, `CHANGELOG.md`
+- Merge-clean (18): `agents/tester-qa.md`, `commands/{audit-drift,bootstrap-project,cloud-session,dev-cycle,execute-feature,fix-build,plan-feature,refactor-codebase,resume-session,sync-context,update-ai-system,verify-work}.md`, `protocols/{context-tiering,entry-protocol,quality-gate,verification-rules}.md`, `standards/engineering-principles.md`
+- Targeted: `ai-context.md`, `ai-system/planning/task-queue.md`, `ai-system/design-system.md`, `ai-system/system-architecture.md`, `ai-system/memory/project-decisions.md`, `ai-system/testing/test-plan.md`
+- `ai-system/checkpoints/session-log.md` — this entry
+
+**Next Task:**
+Run the actual QA gate is unaffected (docs-only change). Next dev task: top incomplete item in `planning/task-queue.md` ([M] SEO, [BUG] blog sanitization, [M] activity-points wiring, [M] API integration tests, or [M] E2E admin journey). Optionally run `audit-sources.md` against Homewolves' real stack to re-evaluate the template's generic `tools/registry.md` seed rows.
+
+**Assumptions Made:**
+- Migrated from upstream HEAD (`1966ff7`) rather than the proposal's baseline (`e19a4b3`) — both are v3.0.0; HEAD adds only the `update-ai-system.md` trigger clarification + a project-decisions entry, both incorporated.
+- `tools/registry.md` seed rows remain the template's generic evaluations — re-audit before trusting `adopt` verdicts (honest note from the proposal, carried forward).
+- `ai-system/designs/` (project page exports) and new `ai-system/design-references/` (external design languages) are distinct; both kept per the proposal.
+
+**Notes / Blockers:**
+- No code changed — docs-only migration; `npm test`/typecheck/build/lint unaffected.
+- The proposal file `ai-system-template-v3-update-proposal.md` is now superseded (applied); kept at repo root as the decision record.
