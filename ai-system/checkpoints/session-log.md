@@ -181,3 +181,30 @@ Either the [M] SEO task (listing `generateMetadata`, sitemap, robots, JSON-LD), 
 **Notes / Blockers:**
 - One E2E test (`transaction detail renders the stepper`) is intermittently flaky under parallel dev-server load: the dashboard layout redirects to `/auth` before zustand rehydrates the seeded session. Self-heals on retry (`retries: 2` in CI); passed 10/10 in isolation. If it becomes frequent, seed the store synchronously or bump the test timeout.
 - `npm run typecheck` at the turbo root can cache-hit `@hw/api` — run `packages/api && npm run typecheck` directly to see fresh spec-file errors (the api build compiles specs, so `nest build` is the stricter gate).
+
+---
+
+## Session 5 — 2026-08-13 (template update comparison)
+
+**Completed:**
+Ran `pull-template-update.md` (from template v3). Compared the installed `ai-system` against upstream `Sotonye0808/ai-system-template` v3.0.0.
+
+- **Baseline:** `ai-context.md` has no `installed-ai-system-version:` metadata — local file set matches the v2 kit (12 commands, no `skills/` / `tools/` / `design-references/`). Treated as v2.
+- **Upstream:** `VERSION` = `3.0.0`; diff v2 (`44643dc`) → v3 (`e19a4b3`): 71 files, +1620 / -29.
+- **Classification:** 24 framework files are clean v3 merge candidates (byte-identical to v2 template except `last-verified-against-code` dates); 9 new files/folders to add (`skills/`, `tools/`, `design-references/`, `audit-sources.md`, `visual-review.md`, `generate-design-md.md`, `pull-template-update.md`, `VERSION`, `CHANGELOG.md`); 6 divergent files need human-approved targeted edits (`ai-context.md`, `task-queue.md`, `design-system.md`, `system-architecture.md`, `project-decisions.md`, `test-plan.md`).
+- **Proposal:** written to `ai-system-template-v3-update-proposal.md` at repo root. **No local files were modified** (only this session-log append + the new proposal file).
+
+**Files Modified:**
+- `ai-system-template-v3-update-proposal.md` — new; the diff-based upgrade proposal (proposal only, not applied)
+- `ai-system/checkpoints/session-log.md` — this comparison entry
+
+**Next Task:**
+Human reviews `ai-system-template-v3-update-proposal.md`. On approval: back up `ai-system/`, add the new files, apply the 24 clean v3 diffs, make the 6 targeted divergent edits, set `installed-ai-system-version: 3.0.0`, then run `sync-context.md` + `audit-drift.md`.
+
+**Assumptions Made:**
+- Local `ai-system` was bootstrapped from template v2 (Session 1 of this log says so); no version was recorded at the time, so the baseline is inferred from the file set.
+- `tools/registry.md` seed rows are the template's generic evaluations — re-audit against this project's stack before trusting `adopt` verdicts.
+- The project's `ai-system/designs/` (page exports) and the new `design-references/` (external design languages) are separate; both kept.
+
+**Notes / Blockers:**
+- Blocking on human decision — command contract explicitly never auto-applies.
