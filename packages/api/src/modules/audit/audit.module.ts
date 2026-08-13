@@ -1,7 +1,6 @@
 import { Global, Module, DynamicModule } from '@nestjs/common';
 import { AuditService } from './audit.service';
 import { AuditController } from './audit.controller';
-import { PrismaModule } from '../../prisma/prisma.module';
 
 @Global()
 @Module({})
@@ -10,7 +9,7 @@ export class AuditModule {
     return {
       global: true,
       module: AuditModule,
-      imports: [PrismaModule],
+      imports: [],
       controllers: [AuditController],
       providers: [AuditService],
       exports: [AuditService],

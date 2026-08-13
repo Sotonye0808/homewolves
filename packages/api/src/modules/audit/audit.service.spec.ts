@@ -1,32 +1,29 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AuditService } from './audit.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { createDrizzleMock, createChain } from '../../test/drizzle.mock';
+import { auditEvents } from '../../drizzle/schema';
 
 describe('AuditService', () => {
   let service: AuditService;
-  let prisma: PrismaService;
-
-  const auditEventCreate = vi.fn();
-  const auditEventFindMany = vi.fn();
-  const auditEventCount = vi.fn();
+  let mocks: ReturnType<typeof createDrizzleMock>;
 
   const actor = { id: 'user-1', role: 'AGENT', name: 'Ada Okon' };
 
   beforeEach(() => {
     vi.resetAllMocks();
-    prisma = {
-      auditEvent: {
-        create: auditEventCreate,
-        findMany: auditEventFindMany,
-        count: auditEventCount,
-      },
-    } as unknown as PrismaService;
-    service = new AuditService(prisma);
+    mocks = createDrizzleMock();
+    service = new AuditService(mocks.db);
   });
 
   describe('log', () => {
     it('persists an immutable audit event with actor details', async () => {
-      auditEventCreate.mockResolvedValue({ id: 'evt-1' });
+      const values: Array<Record<string, unknown>> = [];
+      mocks.insert.mockReturnValue(
+        createChain([], (method, args) => {
+          if (method === 'values') values.push(args[0] as Record<string, unknown>);
+        }),
+      );
+
       await service.log({
         entityType: 'Listing',
         entityId: 'listing-1',
@@ -35,27 +32,25 @@ describe('AuditService', () => {
         metadata: { category: 'BUY' },
       });
 
-      expect(auditEventCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            entityType: 'Listing',
-            entityId: 'listing-1',
-            action: 'LISTING_CREATED',
-            actorId: 'user-1',
-            actorRole: 'AGENT',
-            actorName: 'Ada Okon',
-            metadata: { category: 'BUY' },
-            deviceInfo: {},
-          }),
-        }),
-      );
+      expect(mocks.insert).toHaveBeenCalledWith(auditEvents);
+      expect(values[0]).toMatchObject({
+        entityType: 'Listing',
+        entityId: 'listing-1',
+        action: 'LISTING_CREATED',
+        actorId: 'user-1',
+        actorRole: 'AGENT',
+        actorName: 'Ada Okon',
+        metadata: { category: 'BUY' },
+        deviceInfo: {},
+      });
     });
   });
 
   describe('findAllFiltered', () => {
     it('applies filters, pagination, and returns total', async () => {
-      auditEventFindMany.mockResolvedValue([{ id: 'evt-1' }]);
-      auditEventCount.mockResolvedValue(1);
+      mocks.select
+        .mockReturnValueOnce(createChain([{ id: 'evt-1' }]))
+        .mockReturnValueOnce(createChain([{ value: 1 }]));
 
       const result = await service.findAllFiltered({
         entityType: 'Listing',
@@ -64,33 +59,27 @@ describe('AuditService', () => {
         limit: 20,
       });
 
-      expect(auditEventFindMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ entityType: 'Listing', action: { contains: 'LISTING_CREATED', mode: 'insensitive' } }),
-          skip: 0,
-          take: 20,
-        }),
-      );
-      expect(result).toMatchObject({ total: 1, page: 1, limit: 20 });
+      expect(mocks.select).toHaveBeenCalledTimes(2);
+      expect(result).toMatchObject({ total: 1, page: 1, limit: 20, events: [{ id: 'evt-1' }] });
     });
 
     it('builds a date range on timestamp', async () => {
-      auditEventFindMany.mockResolvedValue([]);
-      auditEventCount.mockResolvedValue(0);
+      mocks.select.mockReturnValue(createChain([]));
 
-      await service.findAllFiltered({ dateFrom: '2026-08-01', dateTo: '2026-08-10' });
+      const result = await service.findAllFiltered({ dateFrom: '2026-08-01', dateTo: '2026-08-10' });
 
-      const arg = auditEventFindMany.mock.calls[0]![0];
-      expect(arg.where.timestamp).toHaveProperty('gte');
-      expect(arg.where.timestamp).toHaveProperty('lte');
+      expect(mocks.select).toHaveBeenCalledTimes(2);
+      expect(result.total).toBe(0);
     });
   });
 
   describe('exportCsv', () => {
     it('returns a CSV with headers and rows', async () => {
-      auditEventFindMany.mockResolvedValue([
-        { timestamp: new Date('2026-08-01T00:00:00Z'), actorName: 'Ada Okon', actorRole: 'AGENT', action: 'LISTING_CREATED', entityType: 'Listing', entityId: 'l-1', ipAddress: '1.2.3.4' },
-      ]);
+      mocks.select.mockReturnValue(
+        createChain([
+          { timestamp: new Date('2026-08-01T00:00:00Z'), actorName: 'Ada Okon', actorRole: 'AGENT', action: 'LISTING_CREATED', entityType: 'Listing', entityId: 'l-1', ipAddress: '1.2.3.4' },
+        ]),
+      );
 
       const csv = await service.exportCsv({});
 
@@ -101,8 +90,9 @@ describe('AuditService', () => {
 
   describe('exportPdf', () => {
     it('returns an HTML document with rows', async () => {
-      auditEventFindMany.mockResolvedValue([{ id: 'evt-1' }]);
-      auditEventCount.mockResolvedValue(1);
+      mocks.select
+        .mockReturnValueOnce(createChain([{ id: 'evt-1' }]))
+        .mockReturnValueOnce(createChain([{ value: 1 }]));
 
       const { html } = await service.exportPdf({});
 

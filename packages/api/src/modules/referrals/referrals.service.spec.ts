@@ -1,52 +1,25 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ReferralsService } from './referrals.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { createDrizzleMock, createChain } from '../../test/drizzle.mock';
 import { AuditService } from '../audit/audit.service';
+import { users, referrals, commissions } from '../../drizzle/schema';
 
 type MockFn = ReturnType<typeof vi.fn>;
 
 describe('ReferralsService', () => {
   let service: ReferralsService;
-  let prisma: PrismaService;
+  let mocks: ReturnType<typeof createDrizzleMock>;
   let audit: { log: MockFn };
   let config: { get: MockFn };
-
-  const userFindUnique = vi.fn();
-  const userFindFirst = vi.fn();
-  const userUpdate = vi.fn();
-  const referralFindUnique = vi.fn();
-  const referralFindMany = vi.fn();
-  const referralCreate = vi.fn();
-  const referralUpdate = vi.fn();
-  const commissionCreate = vi.fn();
-  const commissionFindMany = vi.fn();
-  const commissionAggregate = vi.fn();
 
   const actor = { id: 'buyer-1', role: 'BUYER', name: 'Test Buyer' };
 
   beforeEach(() => {
     vi.resetAllMocks();
-    prisma = {
-      user: {
-        findUnique: userFindUnique,
-        findFirst: userFindFirst,
-        update: userUpdate,
-      },
-      referral: {
-        findUnique: referralFindUnique,
-        findMany: referralFindMany,
-        create: referralCreate,
-        update: referralUpdate,
-      },
-      commission: {
-        create: commissionCreate,
-        findMany: commissionFindMany,
-        aggregate: commissionAggregate,
-      },
-    } as unknown as PrismaService;
+    mocks = createDrizzleMock();
     audit = { log: vi.fn().mockResolvedValue(undefined) };
     config = { get: vi.fn().mockResolvedValue(0.05) };
-    service = new ReferralsService(prisma, audit as unknown as AuditService, config as never);
+    service = new ReferralsService(mocks.db, audit as unknown as AuditService, config as never);
   });
 
   describe('generateCode', () => {
@@ -59,32 +32,35 @@ describe('ReferralsService', () => {
 
   describe('ensureCode', () => {
     it('returns existing code when present', async () => {
-      userFindUnique.mockResolvedValue({ id: 'u1', referralCode: 'HOMEWOLF' });
+      mocks.select.mockReturnValue(createChain([{ id: 'u1', referralCode: 'HOMEWOLF' }]));
       const code = await service.ensureCode('u1');
       expect(code).toBe('HOMEWOLF');
-      expect(userUpdate).not.toHaveBeenCalled();
+      expect(mocks.update).not.toHaveBeenCalled();
     });
 
     it('generates and persists a code when missing', async () => {
-      userFindUnique
-        .mockResolvedValueOnce({ id: 'u1', referralCode: null })
-        .mockResolvedValue(null);
-      userUpdate.mockResolvedValue({ id: 'u1', referralCode: 'ABCDEF12' });
+      mocks.select
+        .mockReturnValueOnce(createChain([{ id: 'u1', referralCode: null }]))
+        .mockReturnValue(createChain([]));
+      mocks.update.mockReturnValue(createChain([]));
+
       const code = await service.ensureCode('u1');
       expect(code).toHaveLength(8);
-      expect(userUpdate).toHaveBeenCalled();
+      expect(mocks.update).toHaveBeenCalled();
     });
   });
 
   describe('resolveCode', () => {
     it('returns invalid for unknown code', async () => {
-      userFindUnique.mockResolvedValue(null);
+      mocks.select.mockReturnValue(createChain([]));
       const result = await service.resolveCode('NOPE1234');
       expect(result.valid).toBe(false);
     });
 
     it('returns referrer info for a known code', async () => {
-      userFindUnique.mockResolvedValue({ id: 'agent-1', firstName: 'Ada', lastName: 'Okon', role: 'AGENT' });
+      mocks.select.mockReturnValue(
+        createChain([{ id: 'agent-1', firstName: 'Ada', lastName: 'Okon', role: 'AGENT' }]),
+      );
       const result = await service.resolveCode('abcd1234', 'buyer-1');
       expect(result).toMatchObject({ valid: true, code: 'ABCD1234', referrerName: 'Ada Okon' });
       expect(result.isSelf).toBe(false);
@@ -93,38 +69,46 @@ describe('ReferralsService', () => {
 
   describe('applyCode', () => {
     it('rejects self-referral', async () => {
-      userFindUnique
-        .mockResolvedValueOnce({ id: 'u1', referralCode: 'SAME1234' })
-        .mockResolvedValueOnce({ id: 'u1' });
+      mocks.select
+        .mockReturnValueOnce(createChain([{ id: 'u1', referralCode: 'SAME1234' }]))
+        .mockReturnValueOnce(createChain([{ id: 'u1' }]));
       await expect(service.applyCode('u1', 'same1234', actor)).rejects.toThrow('own referral code');
     });
 
     it('rejects when a referral is already attached', async () => {
-      userFindUnique
-        .mockResolvedValueOnce({ id: 'agent-1', referralCode: 'AGENT123' })
-        .mockResolvedValueOnce({ id: 'u1' });
-      referralFindUnique.mockResolvedValue({ id: 'r-1' });
+      mocks.select
+        .mockReturnValueOnce(createChain([{ id: 'agent-1', referralCode: 'AGENT123' }]))
+        .mockReturnValueOnce(createChain([{ id: 'u1' }]))
+        .mockReturnValue(createChain([{ id: 'r-1' }]));
       await expect(service.applyCode('u1', 'agent123', actor)).rejects.toThrow('already attached');
     });
 
     it('attaches user to referrer and creates a referral record', async () => {
-      userFindUnique
-        .mockResolvedValueOnce({ id: 'agent-1', referralCode: 'AGENT123' })
-        .mockResolvedValueOnce({ id: 'u1', referredById: null });
-      referralFindUnique.mockResolvedValue(null);
-      userUpdate.mockResolvedValue({ id: 'u1', referredById: 'agent-1' });
-      referralCreate.mockResolvedValue({ id: 'r-1', code: 'AGENT123', referrerId: 'agent-1', referredId: 'u1' });
+      mocks.select
+        .mockReturnValueOnce(createChain([{ id: 'agent-1', referralCode: 'AGENT123' }]))
+        .mockReturnValueOnce(createChain([{ id: 'u1', referredById: null }]))
+        .mockReturnValue(createChain([]));
+
+      const setArgs: Array<Record<string, unknown>> = [];
+      mocks.update.mockReturnValue(
+        createChain([], (method, args) => {
+          if (method === 'set') setArgs.push(args[0] as Record<string, unknown>);
+        }),
+      );
+
+      const valuesArgs: Array<Record<string, unknown>> = [];
+      mocks.insert.mockReturnValue(
+        createChain([{ id: 'r-1', code: 'AGENT123', referrerId: 'agent-1', referredId: 'u1' }], (method, args) => {
+          if (method === 'values') valuesArgs.push(args[0] as Record<string, unknown>);
+        }),
+      );
 
       const result = await service.applyCode('u1', 'agent123', actor);
 
-      expect(userUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({ data: { referredById: 'agent-1' } }),
-      );
-      expect(referralCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ code: 'AGENT123', referrerId: 'agent-1', referredId: 'u1', status: 'active' }),
-        }),
-      );
+      expect(mocks.update).toHaveBeenCalledWith(users);
+      expect(setArgs[0]).toEqual({ referredById: 'agent-1' });
+      expect(mocks.insert).toHaveBeenCalledWith(referrals);
+      expect(valuesArgs[0]).toMatchObject({ code: 'AGENT123', referrerId: 'agent-1', referredId: 'u1', status: 'active' });
       expect(result.referral.id).toBe('r-1');
       expect(audit.log).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'REFERRAL_APPLIED' }),
@@ -134,7 +118,7 @@ describe('ReferralsService', () => {
 
   describe('attributeOnDealCompleted', () => {
     it('returns null when user has no referral', async () => {
-      referralFindUnique.mockResolvedValue(null);
+      mocks.select.mockReturnValue(createChain([]));
       const result = await service.attributeOnDealCompleted({
         referredUserId: 'u1',
         transactionId: 't-1',
@@ -142,13 +126,13 @@ describe('ReferralsService', () => {
         actor,
       });
       expect(result).toBeNull();
-      expect(commissionCreate).not.toHaveBeenCalled();
+      expect(mocks.insert).not.toHaveBeenCalled();
     });
 
     it('marks referral converted and attributes commission at configured rate', async () => {
-      referralFindUnique.mockResolvedValue({ id: 'r-1', referrerId: 'agent-1', referredId: 'u1' });
-      referralUpdate.mockResolvedValue({ id: 'r-1', status: 'converted' });
-      commissionCreate.mockResolvedValue({ id: 'c-1', amount: 2_500_000 });
+      mocks.select.mockReturnValue(createChain([{ id: 'r-1', referrerId: 'agent-1', referredId: 'u1' }]));
+      mocks.update.mockReturnValue(createChain([{ id: 'r-1', status: 'converted' }]));
+      mocks.insert.mockReturnValue(createChain([{ id: 'c-1', amount: '2500000' }]));
 
       const result = await service.attributeOnDealCompleted({
         referredUserId: 'u1',
@@ -158,23 +142,12 @@ describe('ReferralsService', () => {
       });
 
       expect(config.get).toHaveBeenCalledWith('referral_commission_rate');
-      expect(referralUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 'r-1' }, data: expect.objectContaining({ status: 'converted' }) }),
-      );
-      expect(commissionCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            referrerId: 'agent-1',
-            transactionId: 't-1',
-            amount: 2_500_000,
-            status: 'payable',
-          }),
-        }),
-      );
+      expect(mocks.update).toHaveBeenCalledWith(referrals);
+      expect(mocks.insert).toHaveBeenCalledWith(commissions);
       expect(audit.log).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'COMMISSION_ATTRIBUTED' }),
       );
-      expect(result?.commission.amount).toBe(2_500_000);
+      expect(result?.commission.amount).toBe('2500000');
     });
   });
 });

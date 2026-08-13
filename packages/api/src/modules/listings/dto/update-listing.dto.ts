@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ListingStatus } from '@prisma/client';
+import { ListingStatus } from '../../../drizzle/schema';
 
 export const updateListingSchema = z
   .object({

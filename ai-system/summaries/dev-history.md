@@ -257,3 +257,24 @@ Completed the [L] testing task: eliminated all `@hw/api` lint blockers, stood up
 
 **Next Sprint Focus:**
 SEO, blog HTML sanitization, activity-points service wiring, API integration tests, E2E admin journey — see the open `[ ]` items at the top of `planning/task-queue.md`.
+
+## 2026-08-13 — Prisma→Drizzle Migration + Web Audit Rectification
+
+**Summary:**
+Migrated `packages/api` from Prisma to Drizzle ORM end-to-end, then ran the `verify-work.md` web audit on `apps/web` and fixed its findings. Both packages green (typecheck/lint/tests/build).
+
+**Completed:**
+
+- **Drizzle schema** — `src/drizzle/schema.ts` (28 tables, 5 enums, relations, `ListingCategory` re-exported); `drizzle.config.ts` + `drizzle/seed.ts`; `DrizzleModule`/`DrizzleService` (`@Global`) with getter-based query chains; all services/DTOs/gateway ported. `@prisma/client` removed; `packages/api/prisma/` + `src/prisma/` deleted.
+- **Migration** — `0000_faithful_moira_mactaggert.sql` generated offline via `npm run db:generate` (unapplied; no live DB in CI).
+- **Specs** — 10 files / 93 tests rewritten against a shared Drizzle mock (`src/test/drizzle.mock.ts` with `createChain` thenable proxy + `createDrizzleMock`).
+- **Web audit fixes** — CategoryBento dead cards → `next/link`s; properties page reads `search`+`category` URL params (fixed `for_sale`→`sale` categoryMap bug that silently broke "For Sale"); footer nav → `next/link`; dashboard notification dropdown rows clickable (mark one read + navigate); `useNotificationBell` exposes `markRead`; `loading.tsx` for `(public)`+`(dashboard)`; hero + landing cards use `next/image` (`images.unsplash.com` added to `remotePatterns`).
+
+**Key Changes:**
+
+- `packages/api/src/test/drizzle.mock.ts` is now the shared pattern for all service specs.
+- Drizzle enum consts + query chains are the canonical DB access pattern (no generated client, no stale-client class of bugs).
+- Web: navigation/linkability/dead-zone defects from the audit closed.
+
+**Next Sprint Focus:**
+Apply `0000` migration + seed on a live Supabase DB; then open `[ ]` items at the top of `planning/task-queue.md` ([M] SEO, [BUG] blog sanitization, [M] activity-points wiring, [M] API integration tests, [M] E2E admin journey). Follow-up `next/image` pass for dashboard/blog/auth dynamic media `<img>` tags.

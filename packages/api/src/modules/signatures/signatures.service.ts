@@ -1,15 +1,24 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { desc, eq } from 'drizzle-orm';
+import { DrizzleService } from '../../drizzle/drizzle.service';
 import { AuditService } from '../audit/audit.service';
 import { DocuSealClient } from '../../common/integrations/docuseal.client';
+import { transactions, signatureRequests } from '../../drizzle/schema';
 
-const db = (prisma: PrismaService) => prisma;
+interface TransactionStep {
+  id: string;
+  label: string;
+  order: number;
+  status: string;
+  completedAt?: Date;
+  completedBy?: { id: string; role: string; name: string };
+  notes?: string;
+}
 
 @Injectable()
 export class SignaturesService {
   constructor(
-    private prisma: PrismaService,
+    private db: DrizzleService,
     private audit: AuditService,
     private docuseal: DocuSealClient,
   ) {}
@@ -25,7 +34,7 @@ export class SignaturesService {
     signerEmail: string;
     signerName: string;
   }, actor: ActorRef) {
-    const transaction = await db(this.prisma).transaction.findUnique({ where: { id: dto.transactionId } });
+    const [transaction] = await this.db.select().from(transactions).where(eq(transactions.id, dto.transactionId));
     if (!transaction) throw new NotFoundException('Transaction not found');
 
     const externalId = `hw_${dto.transactionId}_${Date.now()}`;
@@ -49,8 +58,9 @@ export class SignaturesService {
       }
     }
 
-    const request = await db(this.prisma).signatureRequest.create({
-      data: {
+    const [request] = await this.db
+      .insert(signatureRequests)
+      .values({
         transactionId: dto.transactionId,
         documentId: dto.documentId ?? null,
         signerId: dto.signerId,
@@ -58,8 +68,9 @@ export class SignaturesService {
         signerName: dto.signerName,
         externalId,
         embedUrl: embedUrl ?? `${process.env.WEB_URL ?? 'https://homewolves.africa'}/messages`,
-      },
-    });
+      })
+      .returning();
+    if (!request) throw new Error('Failed to create signature request');
 
     await this.audit.log({
       entityType: 'SignatureRequest',
@@ -73,27 +84,28 @@ export class SignaturesService {
   }
 
   async findByTransaction(transactionId: string) {
-    return db(this.prisma).signatureRequest.findMany({
-      where: { transactionId },
-      orderBy: { createdAt: 'desc' },
+    return this.db.query.signatureRequests.findMany({
+      where: eq(signatureRequests.transactionId, transactionId),
+      orderBy: desc(signatureRequests.createdAt),
     });
   }
 
   async findById(id: string) {
-    const request = await db(this.prisma).signatureRequest.findUnique({ where: { id } });
+    const [request] = await this.db.select().from(signatureRequests).where(eq(signatureRequests.id, id));
     if (!request) throw new NotFoundException('Signature request not found');
     return request;
   }
 
   async webhookCompleted(externalId: string, status = 'completed') {
-    const request = await db(this.prisma).signatureRequest.findFirst({ where: { externalId } });
+    const [request] = await this.db.select().from(signatureRequests).where(eq(signatureRequests.externalId, externalId));
     if (!request) throw new NotFoundException('Signature request not found');
 
     if (status === 'completed') {
-      const updated = await db(this.prisma).signatureRequest.update({
-        where: { id: request.id },
-        data: { status: 'completed', completedAt: new Date() },
-      });
+      const [updated] = await this.db
+        .update(signatureRequests)
+        .set({ status: 'completed', completedAt: new Date() })
+        .where(eq(signatureRequests.id, request.id))
+        .returning();
 
       await this.audit.log({
         entityType: 'SignatureRequest',
@@ -103,7 +115,7 @@ export class SignaturesService {
         metadata: { transactionId: request.transactionId, externalId },
       });
 
-      const transaction = await db(this.prisma).transaction.findUnique({ where: { id: request.transactionId } });
+      const [transaction] = await this.db.select().from(transactions).where(eq(transactions.id, request.transactionId));
       if (transaction) {
         const steps = transaction.stepsJson as unknown as TransactionStep[];
         const stepIdx = transaction.currentStep;
@@ -118,14 +130,14 @@ export class SignaturesService {
             completedBy: { id: 'system', role: 'SYSTEM', name: 'DocuSeal' },
             notes: 'Document signed via e-signature',
           };
-          await db(this.prisma).transaction.update({
-            where: { id: transaction.id },
-            data: {
-              stepsJson: steps as unknown as Prisma.InputJsonValue,
+          await this.db
+            .update(transactions)
+            .set({
+              stepsJson: steps,
               currentStep: stepIdx + 1,
               status: stepIdx + 1 >= steps.length ? 'COMPLETED' : 'IN_PROGRESS',
-            },
-          });
+            })
+            .where(eq(transactions.id, transaction.id));
         }
       }
 
@@ -133,10 +145,7 @@ export class SignaturesService {
     }
 
     if (status === 'declined') {
-      await db(this.prisma).signatureRequest.update({
-        where: { id: request.id },
-        data: { status: 'declined' },
-      });
+      await this.db.update(signatureRequests).set({ status: 'declined' }).where(eq(signatureRequests.id, request.id));
       return { received: true, status };
     }
 
@@ -144,21 +153,22 @@ export class SignaturesService {
   }
 
   async getEmbedUrl(id: string, userId: string) {
-    const request = await db(this.prisma).signatureRequest.findUnique({ where: { id } });
+    const [request] = await this.db.select().from(signatureRequests).where(eq(signatureRequests.id, id));
     if (!request) throw new NotFoundException('Signature request not found');
     if (request.signerId !== userId) throw new ForbiddenException('Not your signature request');
     return { embedUrl: request.embedUrl };
   }
 
   async cancelRequest(id: string, actor: ActorRef) {
-    const request = await db(this.prisma).signatureRequest.findUnique({ where: { id } });
+    const [request] = await this.db.select().from(signatureRequests).where(eq(signatureRequests.id, id));
     if (!request) throw new NotFoundException('Signature request not found');
     if (request.status === 'completed') throw new BadRequestException('Signature already completed');
 
-    const updated = await db(this.prisma).signatureRequest.update({
-      where: { id },
-      data: { status: 'cancelled' },
-    });
+    const [updated] = await this.db
+      .update(signatureRequests)
+      .set({ status: 'cancelled' })
+      .where(eq(signatureRequests.id, id))
+      .returning();
 
     await this.audit.log({
       entityType: 'SignatureRequest',

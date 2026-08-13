@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ListingCategory } from '@prisma/client';
+import { ListingCategory } from '../../../drizzle/schema';
 
 export const createListingSchema = z
   .object({

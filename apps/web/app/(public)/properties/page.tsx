@@ -18,14 +18,24 @@ const sortOptions: { value: SortOption; label: string }[] = [
   { value: 'most_viewed', label: 'Most Viewed' },
 ];
 
+const VALID_PILLS = ['sale', 'rent', 'shortlet', 'land', 'new_dev'];
+
+function readSearchParam(name: string): string {
+  if (typeof window === 'undefined') return '';
+  return new URLSearchParams(window.location.search).get(name) ?? '';
+}
+
 export default function PropertiesPage() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [sort, setSort] = useState<SortOption>('newest');
   const [sortOpen, setSortOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [activePill, setActivePill] = useState('all');
+  const [search, setSearch] = useState<string>(() => readSearchParam('search'));
+  const [debouncedSearch, setDebouncedSearch] = useState<string>(() => readSearchParam('search'));
+  const [activePill, setActivePill] = useState<string>(() => {
+    const cat = readSearchParam('category');
+    return cat && VALID_PILLS.includes(cat) ? cat : 'all';
+  });
   const [page, setPage] = useState(0);
   const [listings, setListings] = useState<any[]>([]);
   const [hasMore, setHasMore] = useState(true);
@@ -37,10 +47,11 @@ export default function PropertiesPage() {
 
   const categoryMap: Record<string, string | undefined> = {
     all: undefined,
-    for_sale: 'SALE',
+    sale: 'SALE',
     rent: 'RENT',
     shortlet: 'SHORTLET',
     land: 'LAND',
+    new_dev: undefined,
   };
 
   const params: Record<string, string> = {};

@@ -1,40 +1,46 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { and, desc, eq } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
+import { DrizzleService } from '../../drizzle/drizzle.service';
 import { AnalyticsService } from '../analytics/analytics.service';
+import { savedCollections } from '../../drizzle/schema';
 
 @Injectable()
 export class SavedService {
   constructor(
-    private prisma: PrismaService,
+    private db: DrizzleService,
     private analyticsService: AnalyticsService,
   ) {}
 
   async toggle(userId: string, listingId: string) {
-    const existing = await this.prisma.savedCollection.findFirst({
-      where: { userId, listingIds: { has: listingId } },
-    });
+    const [existing] = await this.db
+      .select()
+      .from(savedCollections)
+      .where(and(eq(savedCollections.userId, userId), sql`${savedCollections.listingIds} @> ARRAY[${listingId}]`))
+      .limit(1);
 
     if (existing) {
-      await this.prisma.savedCollection.update({
-        where: { id: existing.id },
-        data: { listingIds: existing.listingIds.filter((id) => id !== listingId) },
-      });
+      const listingIds = existing.listingIds.filter((id) => id !== listingId);
+      await this.db
+        .update(savedCollections)
+        .set({ listingIds })
+        .where(eq(savedCollections.id, existing.id));
       return { saved: false };
     }
 
-    const collection = await this.prisma.savedCollection.findFirst({
-      where: { userId, name: 'Favorites' },
-    });
+    const [collection] = await this.db
+      .select()
+      .from(savedCollections)
+      .where(and(eq(savedCollections.userId, userId), eq(savedCollections.name, 'Favorites')))
+      .limit(1);
 
     if (collection) {
-      await this.prisma.savedCollection.update({
-        where: { id: collection.id },
-        data: { listingIds: [...collection.listingIds, listingId] },
-      });
+      await this.db
+        .update(savedCollections)
+        .set({ listingIds: [...collection.listingIds, listingId] })
+        .where(eq(savedCollections.id, collection.id));
     } else {
-      await this.prisma.savedCollection.create({
-        data: { userId, name: 'Favorites', listingIds: [listingId] },
-      });
+      await this.db.insert(savedCollections).values({ userId, name: 'Favorites', listingIds: [listingId] });
     }
 
     this.analyticsService
@@ -45,17 +51,18 @@ export class SavedService {
   }
 
   async getSaved(userId: string) {
-    const collections = await this.prisma.savedCollection.findMany({
-      where: { userId },
-      orderBy: { updatedAt: 'desc' },
+    return this.db.query.savedCollections.findMany({
+      where: eq(savedCollections.userId, userId),
+      orderBy: desc(savedCollections.updatedAt),
     });
-    return collections;
   }
 
   async isSaved(userId: string, listingId: string) {
-    const collection = await this.prisma.savedCollection.findFirst({
-      where: { userId, listingIds: { has: listingId } },
-    });
+    const [collection] = await this.db
+      .select()
+      .from(savedCollections)
+      .where(and(eq(savedCollections.userId, userId), sql`${savedCollections.listingIds} @> ARRAY[${listingId}]`))
+      .limit(1);
     return { saved: !!collection };
   }
 }

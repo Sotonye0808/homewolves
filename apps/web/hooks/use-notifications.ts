@@ -117,7 +117,7 @@ export function useNotificationPreferences(userId?: string) {
 }
 
 export function useNotificationBell(userId?: string, token?: string) {
-  const { unreadCount, notifications, markAllRead } = useNotifications(userId, token);
+  const { unreadCount, notifications, markRead, markAllRead } = useNotifications(userId, token);
   const [isOpen, setIsOpen] = useState(false);
 
   return {
@@ -125,6 +125,7 @@ export function useNotificationBell(userId?: string, token?: string) {
     notifications,
     isOpen,
     setIsOpen,
+    markRead,
     markAllRead,
   };
 }

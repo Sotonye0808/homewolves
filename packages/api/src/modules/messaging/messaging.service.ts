@@ -1,39 +1,39 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { and, asc, desc, eq, inArray, ne, sql, isNull, count } from 'drizzle-orm';
+import { DrizzleService } from '../../drizzle/drizzle.service';
 import { ActivityService } from '../activity/activity.service';
 import { AnalyticsService } from '../analytics/analytics.service';
-
-const db = (prisma: PrismaService) => prisma;
+import { conversations, messages, users } from '../../drizzle/schema';
 
 @Injectable()
 export class MessagingService {
   constructor(
-    private prisma: PrismaService,
+    private db: DrizzleService,
     private activityService: ActivityService,
     private analyticsService: AnalyticsService,
   ) {}
 
   async getConversations(userId: string) {
-    return db(this.prisma).conversation.findMany({
-      where: { participantIds: { has: userId } },
-      include: {
+    return this.db.query.conversations.findMany({
+      where: sql`${conversations.participantIds} @> ARRAY[${userId}]`,
+      orderBy: desc(conversations.lastMessageAt),
+      with: {
         messages: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-          include: { sender: true },
+          orderBy: desc(messages.createdAt),
+          limit: 1,
+          with: { sender: true },
         },
       },
-      orderBy: { lastMessageAt: 'desc' },
     });
   }
 
   async getConversationById(id: string, userId: string) {
-    const conversation = await db(this.prisma).conversation.findUnique({
-      where: { id },
-      include: {
+    const conversation = await this.db.query.conversations.findFirst({
+      where: eq(conversations.id, id),
+      with: {
         messages: {
-          orderBy: { createdAt: 'asc' },
-          include: { sender: true },
+          orderBy: asc(messages.createdAt),
+          with: { sender: true },
         },
       },
     });
@@ -45,12 +45,11 @@ export class MessagingService {
   }
 
   async createConversation(participantIds: string[], propertyId?: string, creatorId?: string) {
-    const conversation = await db(this.prisma).conversation.create({
-      data: {
-        participantIds,
-        propertyId,
-      },
-    });
+    const [conversation] = await this.db
+      .insert(conversations)
+      .values({ participantIds, propertyId })
+      .returning();
+    if (!conversation) throw new Error('Failed to create conversation');
 
     if (propertyId) {
       this.analyticsService
@@ -67,75 +66,75 @@ export class MessagingService {
   }
 
   async sendMessage(conversationId: string, senderId: string, content: string, type = 'text', mediaUrl?: string) {
-    const conversation = await db(this.prisma).conversation.findUnique({ where: { id: conversationId } });
+    const [conversation] = await this.db.select().from(conversations).where(eq(conversations.id, conversationId));
     if (!conversation) throw new NotFoundException('Conversation not found');
     if (!conversation.participantIds.includes(senderId)) {
       throw new ForbiddenException('Not a participant');
     }
 
-    const message = await db(this.prisma).message.create({
-      data: { conversationId, senderId, content, type, mediaUrl },
-      include: { sender: true },
-    });
+    const [message] = await this.db
+      .insert(messages)
+      .values({ conversationId, senderId, content, type, mediaUrl })
+      .returning();
+    if (!message) throw new Error('Failed to send message');
 
-    await db(this.prisma).conversation.update({
-      where: { id: conversationId },
-      data: { lastMessageAt: new Date() },
-    });
+    const [sender] = await this.db.select().from(users).where(eq(users.id, senderId));
+    const messageWithSender = { ...message, sender: sender ?? null };
 
-    this.prisma.user
-      .findUnique({ where: { id: senderId }, select: { role: true } })
-      .then((user) => {
-        const role = user?.role ?? 'GUEST';
-        return this.activityService.awardForUser(senderId, role, 'message_sent', {
-          id: senderId,
-          role,
-          name: senderId,
-        }, { conversationId });
-      })
+    await this.db
+      .update(conversations)
+      .set({ lastMessageAt: new Date() })
+      .where(eq(conversations.id, conversationId));
+
+    const role = sender?.role ?? 'GUEST';
+    this.activityService
+      .awardForUser(senderId, role, 'message_sent', { id: senderId, role, name: senderId }, { conversationId })
       .catch(() => {});
 
-    return message;
+    return messageWithSender;
   }
 
   async getMessages(conversationId: string, userId: string) {
-    const conversation = await db(this.prisma).conversation.findUnique({ where: { id: conversationId } });
+    const [conversation] = await this.db.select().from(conversations).where(eq(conversations.id, conversationId));
     if (!conversation) throw new NotFoundException('Conversation not found');
     if (!conversation.participantIds.includes(userId)) {
       throw new ForbiddenException('Not a participant');
     }
 
-    return db(this.prisma).message.findMany({
-      where: { conversationId },
-      include: { sender: true },
-      orderBy: { createdAt: 'asc' },
+    return this.db.query.messages.findMany({
+      where: eq(messages.conversationId, conversationId),
+      orderBy: asc(messages.createdAt),
+      with: { sender: true },
     });
   }
 
   async markAsRead(conversationId: string, userId: string) {
-    const conversation = await db(this.prisma).conversation.findUnique({ where: { id: conversationId } });
+    const [conversation] = await this.db.select().from(conversations).where(eq(conversations.id, conversationId));
     if (!conversation) throw new NotFoundException('Conversation not found');
     if (!conversation.participantIds.includes(userId)) {
       throw new ForbiddenException('Not a participant');
     }
 
-    await db(this.prisma).message.updateMany({
-      where: { conversationId, senderId: { not: userId }, readAt: null },
-      data: { readAt: new Date() },
-    });
+    await this.db
+      .update(messages)
+      .set({ readAt: new Date() })
+      .where(and(eq(messages.conversationId, conversationId), ne(messages.senderId, userId), isNull(messages.readAt)));
   }
 
   async getUnreadCount(userId: string) {
-    const conversations = await db(this.prisma).conversation.findMany({
-      where: { participantIds: { has: userId } },
-      select: { id: true },
+    const rows = await this.db.query.conversations.findMany({
+      where: sql`${conversations.participantIds} @> ARRAY[${userId}]`,
+      columns: { id: true },
     });
 
-    const ids = conversations.map((c) => c.id);
+    const ids = rows.map((c) => c.id);
     if (ids.length === 0) return 0;
 
-    return db(this.prisma).message.count({
-      where: { conversationId: { in: ids }, senderId: { not: userId }, readAt: null },
-    });
+    const [result] = await this.db
+      .select({ value: count() })
+      .from(messages)
+      .where(and(inArray(messages.conversationId, ids), ne(messages.senderId, userId), isNull(messages.readAt)));
+
+    return result?.value ?? 0;
   }
 }
