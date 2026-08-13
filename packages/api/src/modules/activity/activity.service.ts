@@ -118,7 +118,7 @@ export class ActivityService implements OnModuleInit {
       include: { agent: true },
     });
 
-    return agents.map((a: any, i: number) => ({
+    return agents.map((a, i: number) => ({
       rank: i + 1,
       agentId: a.agentId,
       agentName: `${a.agent.firstName} ${a.agent.lastName}`,
@@ -146,19 +146,19 @@ export class ActivityService implements OnModuleInit {
     ]);
 
     const rules = await db(this.prisma).activityRule.findMany();
-    const ruleMap = Object.fromEntries(rules.map((r: any) => [r.id, r]));
+    const ruleMap = Object.fromEntries(rules.map((r) => [r.id, r]));
 
     return {
       totalPoints: points?.totalPoints ?? 0,
       tier: points?.tier ?? 'bronze',
-      recentActivity: recentActivity.map((a: any) => ({
+      recentActivity: recentActivity.map((a) => ({
         id: a.id,
         ruleLabel: a.rule.label,
         points: a.points,
         category: a.rule.category,
         createdAt: a.createdAt,
       })),
-      categoryBreakdown: activityByCategory.map((g: any) => ({
+      categoryBreakdown: activityByCategory.map((g) => ({
         category: ruleMap[g.ruleId]?.category ?? 'unknown',
         label: ruleMap[g.ruleId]?.label ?? 'Unknown',
         points: g._sum.points ?? 0,

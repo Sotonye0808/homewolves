@@ -66,14 +66,22 @@ export class AlertsService {
     });
     if (!listing) return;
 
-    const location = listing.locationJson as any;
+    const location = listing.locationJson as Record<string, string> | null;
     const users = await this.prisma.user.findMany({
       where: { verified: true },
       select: { id: true, preferences: true },
     });
 
+    interface SavedSearch {
+      category?: string;
+      propertyType?: string;
+      minPrice?: number;
+      maxPrice?: number;
+      location?: string;
+    }
+
     for (const user of users) {
-      const prefs = (user.preferences as any)?.savedSearches as any[];
+      const prefs = (user.preferences as { savedSearches?: SavedSearch[] } | null)?.savedSearches ?? [];
       if (!prefs?.length) continue;
 
       for (const search of prefs) {

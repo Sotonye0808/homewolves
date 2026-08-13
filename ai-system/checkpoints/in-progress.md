@@ -2,8 +2,8 @@
 
 > **Metadata**
 >
-> - last-updated-by: execute-feature
-> - last-verified-against-code: 2026-08-11
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: this file is overwritten every session — always current
 
 > **Overview:** Tracks work that is currently in progress but not yet complete. Written _before_ starting risky multi-step work, cleared on clean completion. This is the first file `resume-session.md` reads on interruption — it is the single source of truth for "what was half-done."
@@ -12,41 +12,39 @@
 
 ## Current State
 
-**Status:** In Progress
+**Status:** Clear — no work in progress.
 
 **Command Being Executed:**
-execute-feature.md (then update-ai-system.md)
+(None — previous session completed `execute-feature.md` then `update-ai-system.md`.)
 
 **Directive / Task:**
-Next task (logged in the queue): testing setup — unit tests for core services, component tests, E2E Playwright journeys.
-
-Known blockers to see through from the last session's PR comment:
-- 94 pre-existing `no-explicit-any` lint errors in `@hw/api` (currently 111)
-- 74 pre-existing lint errors in `@hw/types` (currently 61: triple-slash-reference in `global.d.ts` + no-unused-vars on ambient global types)
-
-Plan:
-1. Fix `@hw/types` lint blockers — package-level `.eslintrc` reflecting the intentional global-types pattern (triple-slash refs, ambient interfaces)
-2. Fix `@hw/api` lint blockers — typed `AuthenticatedRequest` replacing `req: any`, typed `where` clauses, typed JSON casts
-3. Unit tests for core services: auth, listings, transactions, crm, notifications, platform-config, blog, audit (activity + referrals already exist)
-4. Web component tests: hw-card, hw-input, landing/shared components
-5. Web lib tests: listings, crm, notifications, auth, blog, subscriptions, referrals, activity
-6. E2E Playwright journeys: guest, auth, agent dashboard, transaction stepper
-7. QA gate: `npm run test`, `npm run typecheck`, `npm run build`, `npm run lint`
-8. Execute `update-ai-system.md` — update stale docs (test-plan, test-results, task-queue, repo-map, dependency-graph, dev-history, session-log, lessons-learned)
+The [L] testing-setup task is complete: 187 unit tests (93 API + 94 web), 16 Playwright E2E journeys, and the full QA gate (test/typecheck/build/lint) is green. Lint has only 3 pre-existing `no-console` warnings in `@hw/api` (intentional dev/stub logging).
 
 **Steps Completed:**
-- Surveyed repo state: test scaffolding exists (vitest+playwright configs, 2 API specs, 2 web lib/component tests, 1 e2e smoke spec) from PR #7, but coverage is thin
-- Baseline: `npm install` done; existing tests pass (16 API + 19 web); lint blockers confirmed: 111 in @hw/api, 61 in @hw/types
-- Read task-queue, session-log, dev-history, test-plan, quality-gate, execute-feature, update-ai-system
+1. Fixed `@hw/types` lint — `.eslintignore` for generated `.js`/`.d.ts` build artifacts
+2. Fixed `@hw/api` lint — typed `AuthenticatedRequest`/`MaybeAuthenticatedRequest` + `toActor()`, typed Prisma clauses (104 → 0 errors)
+3. API unit tests — 8 new service specs (audit, platform-config, notifications, listing, transactions, crm, blog, auth) → 93 tests / 10 files
+4. Web component tests — hw-card, hw-input, hero-section (landing) → 94 tests / 13 files
+5. Web lib tests — listings, crm, notifications, blog, subscriptions, referrals, activity
+6. E2E Playwright journeys — guest, auth, agent dashboard, transaction stepper (API stubbed via `page.route`)
+7. QA gate — `npm test`, `npm run typecheck`, `npm run build`, `npm run lint` all pass
+8. Executed `update-ai-system.md` — refreshed test-plan, test-results, task-queue, repo-map, dependency-graph, project-plan, dev-history, session-log, lessons-learned
 
 **Current Step:**
-Fixing lint blockers (@hw/types first, then @hw/api).
+None — task closed out.
 
-**Files Modified So Far:**
-- (pending)
+**Files Modified:**
+- `packages/api/src/common/types/request.types.ts` — typed request/actor helpers (new)
+- `packages/api/src/modules/*/` — controllers typed, service `where`/`data` clauses + JSON casts typed
+- `packages/api/src/modules/{audit,platform-config,notifications,listings,transactions,crm,blog,auth}/*.service.spec.ts` — 8 new specs
+- `apps/web/components/ui/{hw-card,hw-input}.test.tsx`, `apps/web/components/landing/hero-section.test.tsx` — new
+- `apps/web/lib/{listings,crm,blog,subscriptions,referrals,activity,notifications}.test.ts` — 7 new
+- `apps/web/e2e/{guest,auth,agent-dashboard,transaction-stepper}.spec.ts` — 4 new journeys
+- `packages/types/.eslintignore` — new
+- `ai-system/` docs — refreshed (see above)
 
 **Checkpoint Context:**
-No blockers beyond the known lint counts. typecheck baseline green.
+QA gate green on 2026-08-13. Next incomplete tasks are at the top of `planning/task-queue.md`: [M] SEO, [BUG] blog HTML sanitization, [M] activity-points service wiring, [M] API integration tests, [M] E2E admin journey.
 
 **Last Tool Output / Error:**
 None.
@@ -55,8 +53,8 @@ None.
 
 ## Drift Check
 
-**Last verified against repo:** 2026-08-11
-**Any known drift between ai-system docs and actual code:** yes — test-plan.md/test-results.md are stale (say no test suite exists); task-queue testing item marked done but docs never updated.
+**Last verified against repo:** 2026-08-13
+**Any known drift between ai-system docs and actual code:** none — test-plan/test-results/task-queue now reflect the live test suite. One known flake: `e2e/transaction-stepper.spec.ts` "renders the stepper" intermittently lands on `/auth` under parallel dev-server load before zustand rehydrates the seeded session (self-heals on retry; CI retries: 2).
 
 ---
 

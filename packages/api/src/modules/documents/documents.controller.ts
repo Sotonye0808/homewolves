@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards, Req } from 
 import { DocumentsService } from './documents.service';
 import { JwtGuard } from '../auth/jwt.guard';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { AuthenticatedRequest, toActor } from '../../common/types/request.types';
 import { z } from 'zod';
 
 const uploadDocumentSchema = z
@@ -44,38 +45,35 @@ export class DocumentsController {
       size?: number;
       visibility?: string;
     },
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
     return this.documentsService.upload(
       {
         ...body,
         uploadedById: req.user.sub,
       },
-      actor,
+      toActor(req),
     );
   }
 
   @Get('transaction/:transactionId')
-  findByTransaction(@Param('transactionId') transactionId: string, @Req() req: any) {
+  findByTransaction(@Param('transactionId') transactionId: string, @Req() req: AuthenticatedRequest) {
     return this.documentsService.findByTransaction(transactionId, req.user.sub, req.user.role);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string, @Req() req: any) {
+  findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.documentsService.findById(id, req.user.sub, req.user.role);
   }
 
   @Delete(':id')
-  delete(@Param('id') id: string, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.documentsService.delete(id, req.user.sub, actor);
+  delete(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.documentsService.delete(id, req.user.sub, toActor(req));
   }
 
   @Put(':id/visibility')
-  updateVisibility(@Param('id') id: string, @Body(new ZodValidationPipe(visibilitySchema)) body: { visibility: string }, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.documentsService.updateVisibility(id, body.visibility, req.user.sub, req.user.role, actor);
+  updateVisibility(@Param('id') id: string, @Body(new ZodValidationPipe(visibilitySchema)) body: { visibility: string }, @Req() req: AuthenticatedRequest) {
+    return this.documentsService.updateVisibility(id, body.visibility, req.user.sub, req.user.role, toActor(req));
   }
 
   @Post('upload-url')

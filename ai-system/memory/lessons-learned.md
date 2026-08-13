@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-10
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Homewolves development — things that worked well, things that didn't, and patterns worth repeating. Different from `repair-system.md` (tracks errors); this file tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -190,6 +190,74 @@ In-memory rate limiting is fine for a single instance/dev but gives no protectio
 
 **Apply When:**
 - Deploying the API with >1 instance — replace the in-memory store with Redis `INCR`+`EXPIRE` before relying on the limiter in production.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Lint-Driven Type Migration: Fix the Real Type, Not the `as any`
+
+**Context:**
+Testing session (2026-08-13). `@hw/api` had 104 `no-explicit-any` errors from `@Req() req: any` in controllers and `(x as any[])` JSON casts in services. The fix wasn't blanket `eslint-disable` — it was introducing a shared typed request object.
+
+**What We Learned:**
+The `any` pattern hides a contract bug: `req.user.sub` was the canonical id but several consumers read a different shape, and the type system never caught it because `req` was `any`. Adding `AuthenticatedRequest`/`MaybeAuthenticatedRequest` + a `toActor()` helper forced every controller to agree on the JWT payload shape (see the "Keep JWT Strategy Payload Shape in Sync" lesson). Type a `where`/`data` clause once (e.g. `Prisma.ListingWhereInput`) and the whole call chain stays typed.
+
+**Apply When:**
+- Any controller still using `@Req() req: any` — replace with `AuthenticatedRequest` (or `MaybeAuthenticatedRequest` when auth is optional) and derive the actor via `toActor(req)`.
+- JSON-field casts — use the concrete element type (`TransactionStep[]`, `Prisma.InputJsonValue`) instead of `as any[]`.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Mock the PrismaService Shape Once and Share the Pattern Across Service Specs
+
+**Context:**
+Testing session (2026-08-13). Eight new API service specs mock `PrismaService` with `type MockFn = ReturnType<typeof vi.fn>` and `{ prisma } = { prisma: {} as unknown as PrismaService }` — a pattern already proven in the referrals/activity specs.
+
+**What We Learned:**
+Vitest mocks of a DI service (Prisma) should be built as plain objects of `vi.fn()`s cast `as unknown as PrismaService`, not via `vitest-mock-extended`'s `mockDeep` — the latter couples the mock to the generated Prisma type and breaks on regen. `vi.resetAllMocks()` in `beforeEach` keeps specs isolated. Writing the spec surfaced two real behavioral bugs (preferences replace-not-merge; `complete()` step guard) — worth fixing in the service, not papering over in the test.
+
+**Apply When:**
+- Writing any new `*.service.spec.ts` — copy the referrals spec's mock shape; assert with `expect(prisma.x.mock.calls[0][0])`.
+- If a test reveals behavior that looks wrong, verify against the service contract and fix the service, then pin the test.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Playwright webServer Only Boots the Web App — Stub the API in E2E
+
+**Context:**
+Testing session (2026-08-13). The `apps/web/playwright.config.ts` webServer runs `next dev` only. The API + Postgres are not booted, so auth/dashboard/transaction journeys would hit connection errors.
+
+**What We Learned:**
+Use `page.route('**/api/v1/**', ...)` to fulfill JSON fixtures for the endpoints a journey touches (auth register/verify/complete, transactions, listings, crm stats, notifications). Seed a session with `page.addInitScript(() => localStorage.setItem('hw-auth', JSON.stringify(SESSION)))` before navigating to authenticated routes. This makes journeys deterministic and CI-safe. One caveat: the dashboard layout redirects to `/auth` on first render before zustand rehydrates the seeded session, which can flake under parallel dev-server load — increase the timeout or retry (CI already sets `retries: 2`).
+
+**Apply When:**
+- Adding any E2E journey that needs authenticated/data-backed UI — stub routes + seed localStorage rather than requiring a live DB.
+- Keep `e2e/smoke.spec.ts`'s pattern of static-page assertions for journeys that touch no API.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## API Typecheck Can Cache-Hit at the Turbo Root — Build Compiles Specs
+
+**Context:**
+Testing session (2026-08-13). `npm run typecheck` from the turbo root reported `@hw/api` green, but `nest build` failed on the newly added spec files (unused `MockFn` declarations, an invalid `category: 'BUY'` literal) because the api `build` script compiles `src/**/*.ts` including specs.
+
+**What We Learned:**
+Turbo cache hits can mask fresh type errors. The api `build` (`nest build`) is the stricter gate because it type-checks spec files that `tsc --noEmit` in a cached turbo run may skip. Always validate changed-package typecheck/build from the package directory, and keep spec files type-clean under the same strict config (no unused locals, valid literal unions).
+
+**Apply When:**
+- After editing specs — run `packages/api && npm run build` (or `npm run typecheck` directly) rather than trusting the turbo root summary.
+- Keep spec files in the same `noUnusedLocals`/strict posture as source files.
 
 **Supersedes:** None
 **Superseded by:** None

@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { User as PrismaUser, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { ActivityService } from '../activity/activity.service';
@@ -82,7 +83,7 @@ export class AuthService {
           firstName: dto.firstName,
           lastName: dto.lastName,
           phone: dto.phone,
-          role: (dto.role as any) ?? 'BUYER',
+          role: (dto.role as UserRole) ?? UserRole.BUYER,
         },
       });
     } else {
@@ -93,7 +94,7 @@ export class AuthService {
           firstName: dto.firstName,
           lastName: dto.lastName,
           phone: dto.phone,
-          role: (dto.role as any) ?? 'BUYER',
+          role: (dto.role as UserRole) ?? UserRole.BUYER,
           referralCode,
         },
       });
@@ -113,7 +114,7 @@ export class AuthService {
     return this.generateTokens(user);
   }
 
-  private async applyReferralOnSignup(user: any, code: string) {
+  private async applyReferralOnSignup(user: PrismaUser, code: string) {
     const referrer = await this.prisma.user.findUnique({ where: { referralCode: code.trim().toUpperCase() } });
     if (!referrer || referrer.id === user.id) {
       throw new BadRequestException('Invalid referral code');
@@ -161,7 +162,7 @@ export class AuthService {
     }
   }
 
-  private generateTokens(user: any) {
+  private generateTokens(user: PrismaUser) {
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
     const refreshToken = crypto.randomBytes(32).toString('hex');

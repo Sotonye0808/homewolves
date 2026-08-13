@@ -3,6 +3,7 @@ import { SubscriptionsService } from './subscriptions.service';
 import { JwtGuard } from '../auth/jwt.guard';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { PaystackClient } from '../../common/integrations/paystack.client';
+import { AuthenticatedRequest, toActor } from '../../common/types/request.types';
 import { z } from 'zod';
 
 const checkoutSchema = z
@@ -45,7 +46,7 @@ export class SubscriptionsController {
 
   @Get('my')
   @UseGuards(JwtGuard)
-  getMySubscription(@Req() req: any) {
+  getMySubscription(@Req() req: AuthenticatedRequest) {
     return this.subscriptionsService.getUserSubscription(req.user.sub);
   }
 
@@ -56,13 +57,12 @@ export class SubscriptionsController {
 
   @Post('checkout')
   @UseGuards(JwtGuard)
-  initiateCheckout(@Body(new ZodValidationPipe(checkoutSchema)) body: { planId: string }, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.subscriptionsService.initiateCheckout(req.user.sub, body.planId, actor);
+  initiateCheckout(@Body(new ZodValidationPipe(checkoutSchema)) body: { planId: string }, @Req() req: AuthenticatedRequest) {
+    return this.subscriptionsService.initiateCheckout(req.user.sub, body.planId, toActor(req));
   }
 
   @Post('webhook')
-  async webhook(@Body(new ZodValidationPipe(webhookSchema)) body: { event: string; data: { reference: string } }, @Req() req: any) {
+  async webhook(@Body(new ZodValidationPipe(webhookSchema)) body: { event: string; data: { reference: string } }, @Req() req: AuthenticatedRequest) {
     const rawBody = req.rawBody?.toString() ?? JSON.stringify(body);
     const signature = req.headers?.['x-paystack-signature'];
 
@@ -76,14 +76,13 @@ export class SubscriptionsController {
 
   @Post('cancel')
   @UseGuards(JwtGuard)
-  cancel(@Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.subscriptionsService.cancel(req.user.sub, actor);
+  cancel(@Req() req: AuthenticatedRequest) {
+    return this.subscriptionsService.cancel(req.user.sub, toActor(req));
   }
 
   @Post('check-feature')
   @UseGuards(JwtGuard)
-  checkFeature(@Body(new ZodValidationPipe(featureSchema)) body: { feature: string }, @Req() req: any) {
+  checkFeature(@Body(new ZodValidationPipe(featureSchema)) body: { feature: string }, @Req() req: AuthenticatedRequest) {
     return this.subscriptionsService.checkFeatureAccess(req.user.sub, body.feature);
   }
 }

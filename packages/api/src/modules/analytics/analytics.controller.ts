@@ -4,6 +4,7 @@ import { JwtGuard } from '../auth/jwt.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { AuthenticatedRequest, MaybeAuthenticatedRequest } from '../../common/types/request.types';
 import { z } from 'zod';
 
 const trackSchema = z
@@ -22,10 +23,10 @@ export class AnalyticsController {
   constructor(private analyticsService: AnalyticsService) {}
 
   @Post('events')
-  track(@Body(new ZodValidationPipe(trackSchema)) body: TrackBody, @Req() req: any) {
+  track(@Body(new ZodValidationPipe(trackSchema)) body: TrackBody, @Req() req: MaybeAuthenticatedRequest) {
     return this.analyticsService.track({
       event: body.event,
-      userId: req?.user?.sub,
+      userId: req.user?.sub,
       sessionId: body.sessionId,
       listingId: body.listingId,
       agentId: body.agentId,
@@ -40,7 +41,7 @@ export class AnalyticsController {
 
   @Get('agent/:agentId')
   @UseGuards(JwtGuard)
-  getAgentPerformance(@Param('agentId') agentId: string, @Req() req: any, @Query('days') days?: string) {
+  getAgentPerformance(@Param('agentId') agentId: string, @Req() req: AuthenticatedRequest, @Query('days') days?: string) {
     if (req.user.role !== 'ADMIN' && req.user.role !== 'SUPER_ADMIN' && req.user.sub !== agentId) {
       return { error: 'You can only view your own analytics' };
     }
@@ -72,7 +73,7 @@ export class AnalyticsController {
 
   @Get('me')
   @UseGuards(JwtGuard)
-  getMy(@Req() req: any, @Query('days') days?: string) {
+  getMy(@Req() req: AuthenticatedRequest, @Query('days') days?: string) {
     return this.analyticsService.getMyPerformance(req.user.sub, req.user.role, days ? parseInt(days) : undefined);
   }
 }

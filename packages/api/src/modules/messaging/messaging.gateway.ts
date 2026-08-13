@@ -66,8 +66,8 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
       );
 
       this.server.to(`conversation:${payload.conversationId}`).emit('message:new', message);
-    } catch (err: any) {
-      client.emit('error', { message: err.message });
+    } catch (err) {
+      client.emit('error', { message: err instanceof Error ? err.message : 'Message failed to send' });
     }
   }
 

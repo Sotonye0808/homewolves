@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { ActivityService } from '../activity/activity.service';
@@ -55,7 +56,7 @@ export class CrmService {
   }
 
   async getClients(agentId: string, params: { status?: string; search?: string }) {
-    const where: any = { agentId };
+    const where: Prisma.ClientWhereInput = { agentId };
     if (params.status) where.status = params.status;
     if (params.search) {
       where.buyer = {
@@ -247,7 +248,7 @@ export class CrmService {
   }
 
   async getInspections(agentId: string, date?: string) {
-    const where: any = {
+    const where: Prisma.InspectionWhereInput = {
       client: { agentId },
     };
     if (date) {
@@ -276,7 +277,7 @@ export class CrmService {
     if (!inspection) throw new NotFoundException('Inspection not found');
     if (inspection.client.agentId !== agentId) throw new ForbiddenException('Not your inspection');
 
-    const data: any = {};
+    const data: Prisma.InspectionUpdateInput = {};
     if (dto.status) data.status = dto.status;
     if (dto.scheduledAt) data.scheduledAt = new Date(dto.scheduledAt);
     if (dto.notes) data.notes = dto.notes;

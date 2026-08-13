@@ -9,6 +9,12 @@ export interface JwtUser {
 
 export interface AuthenticatedRequest extends Request {
   user: JwtUser;
+  rawBody?: Buffer;
+}
+
+export interface MaybeAuthenticatedRequest extends Request {
+  user?: JwtUser;
+  rawBody?: Buffer;
 }
 
 export function toActor(req: AuthenticatedRequest): ActorRef {

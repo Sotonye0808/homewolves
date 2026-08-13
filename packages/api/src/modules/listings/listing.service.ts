@@ -6,9 +6,7 @@ import { ActivityService } from '../activity/activity.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto, UpdateListingStatusDto } from './dto/update-listing.dto';
-import type { Prisma } from '@prisma/client';
-
-const db = (prisma: PrismaService) => prisma;
+import type { ListingCategory, ListingStatus, Prisma } from '@prisma/client';
 
 @Injectable()
 export class ListingService {
@@ -79,9 +77,9 @@ export class ListingService {
     featured?: boolean;
   }) {
     const where: Prisma.ListingWhereInput = {};
-    if (params.category) where.category = params.category;
+    if (params.category) where.category = params.category as ListingCategory;
     if (params.propertyType) where.propertyType = params.propertyType;
-    if (params.status) where.status = params.status;
+    if (params.status) where.status = params.status as ListingStatus;
     if (params.ownerId) where.ownerId = params.ownerId;
     if (params.featured != null) where.featured = params.featured;
     if (params.minPrice != null || params.maxPrice != null) {
@@ -116,9 +114,10 @@ export class ListingService {
     if (listing.ownerId !== userId) throw new ForbiddenException('Not your listing');
 
     const oldPrice = Number(listing.price);
-    const data: Prisma.ListingUpdateInput = { ...dto };
-    if (dto.locationJson) data.locationJson = dto.locationJson as Prisma.InputJsonValue;
-    if (dto.metadata) data.metadata = dto.metadata as Prisma.InputJsonValue;
+    const { locationJson, metadata, ...rest } = dto;
+    const data: Prisma.ListingUpdateInput = { ...rest };
+    if (locationJson) data.locationJson = locationJson as Prisma.InputJsonValue;
+    if (metadata) data.metadata = metadata as Prisma.InputJsonValue;
 
     const updated = await this.prisma.listing.update({
       where: { id },

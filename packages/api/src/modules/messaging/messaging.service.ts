@@ -131,7 +131,7 @@ export class MessagingService {
       select: { id: true },
     });
 
-    const ids = conversations.map((c: any) => c.id);
+    const ids = conversations.map((c) => c.id);
     if (ids.length === 0) return 0;
 
     return db(this.prisma).message.count({

@@ -62,7 +62,7 @@ export class DocumentsService {
     });
 
     if (isBuyer) {
-      return docs.filter((d: any) => d.visibility === 'shared' || d.uploadedById === userId);
+      return docs.filter((d) => d.visibility === 'shared' || d.uploadedById === userId);
     }
     return docs;
   }

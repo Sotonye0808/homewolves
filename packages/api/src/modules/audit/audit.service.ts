@@ -52,7 +52,7 @@ export class AuditService {
   }
 
   async findAllFiltered(filter: AuditFilter) {
-    const where: any = {};
+    const where: Prisma.AuditEventWhereInput = {};
 
     if (filter.entityType) where.entityType = filter.entityType;
     if (filter.entityId) where.entityId = filter.entityId;
@@ -83,7 +83,7 @@ export class AuditService {
   }
 
   async exportCsv(filter: AuditFilter): Promise<string> {
-    const where: any = {};
+    const where: Prisma.AuditEventWhereInput = {};
     if (filter.entityType) where.entityType = filter.entityType;
     if (filter.entityId) where.entityId = filter.entityId;
     if (filter.actorId) where.actorId = filter.actorId;
@@ -102,23 +102,30 @@ export class AuditService {
     });
 
     const headers = 'Timestamp,Actor,Actor Role,Action,Entity Type,Entity ID,IP Address\n';
-    const rows = events.map((e: any) =>
-      `"${e.timestamp.toISOString()}","${e.actorName}","${e.actorRole}","${e.action}","${e.entityType}","${e.entityId}","${e.ipAddress ?? ''}"`
-    ).join('\n');
+    const rows = events
+      .map(
+        (e) =>
+          `"${e.timestamp.toISOString()}","${e.actorName}","${e.actorRole}","${e.action}","${e.entityType}","${e.entityId}","${e.ipAddress ?? ''}"`,
+      )
+      .join('\n');
 
     return headers + rows;
   }
 
   async exportPdf(filter: AuditFilter): Promise<{ html: string }> {
     const result = await this.findAllFiltered(filter);
-    const rows = result.events.map((e: any) => `
+    const rows = result.events
+      .map(
+        (e) => `
       <tr>
         <td>${new Date(e.timestamp).toLocaleString()}</td>
         <td>${e.actorName} (${e.actorRole})</td>
         <td>${e.action}</td>
         <td>${e.entityType}</td>
       </tr>
-    `).join('');
+    `,
+      )
+      .join('');
 
     const html = `
       <html><head><style>

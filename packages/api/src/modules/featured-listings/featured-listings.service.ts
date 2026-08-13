@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { PaystackClient } from '../../common/integrations/paystack.client';
@@ -155,7 +156,7 @@ export class FeaturedListingsService {
   }
 
   async listAll(params: { status?: string; page?: number; limit?: number }) {
-    const where: any = {};
+    const where: Prisma.FeaturedPlacementWhereInput = {};
     if (params.status) where.status = params.status;
 
     const page = params.page ?? 1;
