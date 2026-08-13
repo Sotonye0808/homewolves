@@ -3,6 +3,7 @@
 > **Metadata**
 > - last-updated-by: update-ai-system
 > - last-verified-against-code: 2026-08-13
+> - last-synced: 2026-08-13 (Session 5 — v2→v3 migration; queue unchanged by the migration)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session. Sprint 1–3 are complete; the current focus is hardening, Backlog items, and the next scheduled phase.

@@ -1,8 +1,9 @@
 # Homewolves Project Context
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: pull-template-update (v2→v3 migration)
+> - last-verified-against-code: 2026-08-13
+> - installed-ai-system-version: 3.0.0
 > - staleness-policy: re-verify before trusting if project structure has changed
 
 > **AI Instruction:** Read this file at the start of every session. It is the entry point to understanding this project. Then follow `ai-system/protocols/entry-protocol.md` (the mandatory session-start procedure), which directs which `ai-system` files to read based on your context budget and task.
@@ -123,6 +124,8 @@ Full design system in `DESIGN.md`. Key points:
 
 | File | When to Read |
 |---|---|
+| `ai-system/skills/README.md` | Tier 3 — when a skill trigger matches mid-task, load its `SKILL.md` |
+| `ai-system/tools/registry.md` | Tier 3 — before doing by hand what a registered tool does |
 | `ai-system/docs/ROADMAP.md` | Before any architectural, backend, or structural work |
 | `ai-system/docs/DESIGN.md` | Before any UI, component, or styling work |
 | `ai-system/designs/README.md` | Before implementing any page — maps HTML files to routes |

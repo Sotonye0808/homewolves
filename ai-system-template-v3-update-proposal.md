@@ -3,7 +3,7 @@
 > **Metadata**
 > - last-updated-by: pull-template-update
 > - last-verified-against-code: 2026-08-13
-> - staleness-policy: one-time proposal; superseded once the migration is applied or rejected
+> - staleness-policy: one-time proposal; **SUPERSEDED — APPLIED** (Session 6, 2026-08-13). Kept as the decision record; migration details in `ai-system/checkpoints/session-log.md`.
 
 > **Command run:** `pull-template-update.md` (from template v3) — comparison + diff proposal. **Nothing local has been overwritten.** This document is the proposal; a human decides.
 
