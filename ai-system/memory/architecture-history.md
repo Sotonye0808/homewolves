@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: historical entries do not go stale — only the current architecture (in system-architecture.md) needs re-verification
 
 > **Overview:** Chronological record of how the system architecture has evolved. Useful for understanding why things are structured the way they are, and for identifying patterns in how the codebase has grown.
@@ -50,6 +50,26 @@ Replaced v1 `.ai-system/` with v2 `ai-system/` framework (vendor-neutral, functi
 
 **Rationale:**
 Upgrade to the v2 system contract: tool-agnostic, interruption-safe, quality-gated development workflow.
+
+---
+
+### 2026-08-13 — Prisma → Drizzle ORM Migration (`packages/api`)
+
+**State:**
+Replaced Prisma with Drizzle ORM. New `src/drizzle/schema.ts` (28 tables, 5 enums, relations), `DrizzleModule`/`DrizzleService` (`@Global`), all services/DTOs/gateway ported to query-builder chains + `db.query` relational finders. `drizzle-kit` config + `drizzle/seed.ts`; initial migration `0000_faithful_moira_mactaggert.sql` generated offline. `@prisma/client`/`prisma` removed; `packages/api/prisma/` and `src/prisma/` deleted. Specs rewritten against a shared Drizzle mock (`src/test/drizzle.mock.ts`).
+
+**Rationale:**
+No-codegen typed SQL access, offline-generatable migrations (CI has no live Postgres), elimination of the recurring stale-Prisma-client class of bugs.
+
+---
+
+### 2026-08-13 — Web audit rectification (`apps/web`)
+
+**State:**
+Applied the `verify-work.md` audit findings: CategoryBento dead `role="button"` cards → `next/link`s; properties page reads `search` + `category` URL params (and fixed the `for_sale`→`sale` categoryMap bug that silently broke "For Sale" filtering); footer nav `<a>` → `next/link`; dashboard notification dropdown rows clickable (mark single read + navigate); `loading.tsx` added to `(public)` and `(dashboard)` groups; hero + landing property cards use `next/image` (`images.unsplash.com` added to `remotePatterns`).
+
+**Rationale:**
+Verify-work audit pass — clickable/interactive elements now navigate, SPA nav avoids full reloads, and images use the Next.js optimizer.
 
 ---
 

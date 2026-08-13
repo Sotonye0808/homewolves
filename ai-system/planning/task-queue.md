@@ -40,6 +40,8 @@ Tags help agents self-select whether a task needs the full `execute-feature.md` 
 | [M] | Wire activity points into service-layer hooks for automatic awarding | [ ] |
 | [M] | API integration tests — supertest route-level tests (validation, auth guards, 404s) | [ ] |
 | [M] | E2E admin journey — approve/reject a listing, review payment evidence | [ ] |
+| [XL] | Prisma→Drizzle ORM migration (`packages/api`) — schema, services, mock-based specs, initial migration | [x] |
+| [M] | Web audit rectification — clickable bento/cards, URL search+category params, Link nav, loading.tsx, next/image | [x] |
 
 ---
 
@@ -82,12 +84,16 @@ Tags help agents self-select whether a task needs the full `execute-feature.md` 
 | Regenerate Prisma client — new models typed, `(this.prisma as any)` casts removed | [x] |
 | Security pass — REST route guards, rate limiting, zod input validation | [x] |
 | Testing setup — 187 unit tests (93 API + 94 web), 16 E2E journeys, lint/typecheck/build green | [x] |
+| Prisma→Drizzle ORM migration — 28-table schema, all services + DTOs + gateway ported, 93 mock-based specs green, initial migration generated | [x] |
+| Web audit rectification — bento/cards linkable, properties page reads `search`+`category` URL params, footer `next/link`, dashboard notification rows clickable, `loading.tsx` added, hero/landing cards use `next/image` | [x] |
 
 ---
 
 ## Notes
 
-- Prisma client is regenerated (2026-08-10) and in sync with `schema.prisma`. Run `prisma generate` (requires a placeholder `DATABASE_URL`) after any schema change.
+- Prisma has been fully replaced by Drizzle (2026-08-13): `packages/api/prisma/` and `packages/api/src/prisma/` deleted; `@prisma/client` removed. Drizzle schema in `src/drizzle/schema.ts` (28 tables, 5 enums); initial migration `drizzle/migrations/0000_faithful_moira_mactaggert.sql` generated via `npm run db:generate` (offline-safe). `db:push`/`db:migrate`/`db:seed` need real Supabase credentials — CI has no live DB.
+- Drizzle specs use the shared mock `packages/api/src/test/drizzle.mock.ts` (`createChain` thenable proxy + `createDrizzleMock`) instead of a Prisma service mock.
+- Notification dispatch is currently synchronous; BullMQ async queue with retries is planned.
 - API security hardening landed 2026-08-10: global rate limiting (in-memory sliding window, 120 req/min/IP default, 10 req/min on auth), zod-based validation pipes on all REST DTOs, role-based guards (`@Roles`) on admin/moderation/audit/config routes, JWT identity fix (`req.user.sub` now populated), and `GlobalExceptionFilter` wired globally.
 - `packages/types/src` generated build artifacts (`.js`/`.d.ts`/`.map`) are now gitignored — they regenerate during API builds and reference `@prisma/client`. `global.d.ts` is intentionally kept tracked.
 - Notification dispatch is currently synchronous; BullMQ async queue with retries is planned.

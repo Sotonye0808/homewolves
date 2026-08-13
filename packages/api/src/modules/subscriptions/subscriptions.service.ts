@@ -1,14 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import { DrizzleService } from '../../drizzle/drizzle.service';
 import { AuditService } from '../audit/audit.service';
 import { PaystackClient } from '../../common/integrations/paystack.client';
-
-const db = (prisma: PrismaService) => prisma;
+import { subscriptionPlans, subscriptions, users } from '../../drizzle/schema';
 
 @Injectable()
 export class SubscriptionsService {
   constructor(
-    private prisma: PrismaService,
+    private db: DrizzleService,
     private audit: AuditService,
     private paystack: PaystackClient,
   ) {}
@@ -18,46 +18,49 @@ export class SubscriptionsService {
   }
 
   async getPlans() {
-    return db(this.prisma).subscriptionPlan.findMany({
-      where: { active: true },
-      orderBy: { price: 'asc' },
+    return this.db.query.subscriptionPlans.findMany({
+      where: eq(subscriptionPlans.active, true),
+      orderBy: asc(subscriptionPlans.price),
     });
   }
 
   async getPlan(slug: string) {
-    const plan = await db(this.prisma).subscriptionPlan.findUnique({ where: { slug } });
+    const [plan] = await this.db.select().from(subscriptionPlans).where(eq(subscriptionPlans.slug, slug));
     if (!plan) throw new NotFoundException('Plan not found');
     return plan;
   }
 
   async getUserSubscription(userId: string) {
-    const sub = await db(this.prisma).subscription.findFirst({
-      where: { userId, status: { in: ['active', 'trialing'] } },
-      include: { plan: true },
-      orderBy: { createdAt: 'desc' },
+    const [sub] = await this.db.query.subscriptions.findMany({
+      where: and(eq(subscriptions.userId, userId), inArray(subscriptions.status, ['active', 'trialing'])),
+      orderBy: desc(subscriptions.createdAt),
+      limit: 1,
+      with: { plan: true },
     });
     return sub;
   }
 
   async initiateCheckout(userId: string, planId: string, actor: ActorRef) {
-    const plan = await db(this.prisma).subscriptionPlan.findUnique({ where: { id: planId } });
+    const [plan] = await this.db.select().from(subscriptionPlans).where(eq(subscriptionPlans.id, planId));
     if (!plan) throw new NotFoundException('Plan not found');
 
-    const user = await db(this.prisma).user.findUnique({ where: { id: userId } });
+    const [user] = await this.db.select().from(users).where(eq(users.id, userId));
     if (!user) throw new NotFoundException('User not found');
 
     const paystackRef = `hw_sub_${userId.slice(0, 8)}_${Date.now()}`;
 
-    const sub = await db(this.prisma).subscription.create({
-      data: {
+    const [sub] = await this.db
+      .insert(subscriptions)
+      .values({
         userId,
         planId,
         status: 'pending',
         paystackRef,
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      },
-    });
+      })
+      .returning();
+    if (!sub) throw new Error('Failed to create subscription');
 
     await this.audit.log({
       entityType: 'Subscription',
@@ -101,7 +104,7 @@ export class SubscriptionsService {
    * When the provider is configured the transaction is verified before activation.
    */
   async webhookActivate(paystackRef: string) {
-    const sub = await db(this.prisma).subscription.findFirst({ where: { paystackRef } });
+    const [sub] = await this.db.select().from(subscriptions).where(eq(subscriptions.paystackRef, paystackRef));
     if (!sub) throw new NotFoundException('Subscription not found');
 
     if (this.paystack.isConfigured) {
@@ -111,25 +114,29 @@ export class SubscriptionsService {
       }
     }
 
-    const updated = await db(this.prisma).subscription.update({
-      where: { id: sub.id },
-      data: {
+    const [updated] = await this.db
+      .update(subscriptions)
+      .set({
         status: 'active',
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      },
-      include: { plan: true },
-    });
+      })
+      .where(eq(subscriptions.id, sub.id))
+      .returning();
+    if (!updated) throw new Error('Failed to activate subscription');
+
+    const plan = await this.db.select().from(subscriptionPlans).where(eq(subscriptionPlans.id, updated.planId)).then((r) => r[0] ?? null);
+    const updatedWithPlan = { ...updated, plan };
 
     await this.audit.log({
       entityType: 'Subscription',
       entityId: sub.id,
       action: 'SUBSCRIPTION_ACTIVATED',
       actor: { id: 'system', role: 'SYSTEM', name: 'Paystack Webhook' },
-      metadata: { planName: updated.plan?.name, paystackRef },
+      metadata: { planName: updatedWithPlan.plan?.name, paystackRef },
     });
 
-    return updated;
+    return updatedWithPlan;
   }
 
   async processWebhook(event: string, reference: string) {
@@ -140,15 +147,18 @@ export class SubscriptionsService {
   }
 
   async cancel(userId: string, actor: ActorRef) {
-    const sub = await db(this.prisma).subscription.findFirst({
-      where: { userId, status: { in: ['active', 'trialing'] } },
-    });
+    const [sub] = await this.db
+      .select()
+      .from(subscriptions)
+      .where(and(eq(subscriptions.userId, userId), inArray(subscriptions.status, ['active', 'trialing'])))
+      .limit(1);
     if (!sub) throw new NotFoundException('No active subscription found');
 
-    const updated = await db(this.prisma).subscription.update({
-      where: { id: sub.id },
-      data: { status: 'cancelled', cancelledAt: new Date() },
-    });
+    const [updated] = await this.db
+      .update(subscriptions)
+      .set({ status: 'cancelled', cancelledAt: new Date() })
+      .where(eq(subscriptions.id, sub.id))
+      .returning();
 
     await this.audit.log({
       entityType: 'Subscription',
@@ -161,9 +171,11 @@ export class SubscriptionsService {
   }
 
   async checkFeatureAccess(userId: string, feature: string): Promise<{ allowed: boolean; plan?: string }> {
-    const sub = await db(this.prisma).subscription.findFirst({
-      where: { userId, status: { in: ['active', 'trialing'] } },
-      include: { plan: true },
+    const [sub] = await this.db.query.subscriptions.findMany({
+      where: and(eq(subscriptions.userId, userId), inArray(subscriptions.status, ['active', 'trialing'])),
+      orderBy: desc(subscriptions.createdAt),
+      limit: 1,
+      with: { plan: true },
     });
     if (!sub) return { allowed: false };
     const features = (sub.plan?.features as string[] | undefined) ?? [];

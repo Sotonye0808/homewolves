@@ -49,13 +49,13 @@ export function Footer() {
                 {col.title}
               </div>
               {col.links.map((link) => (
-                <a
+                <Link
                   key={link.label}
                   href={link.href}
                   className="block font-body text-sm text-secondary py-1 transition-colors duration-fast hover:text-accent"
                 >
                   {link.label}
-                </a>
+                </Link>
               ))}
             </div>
           ))}

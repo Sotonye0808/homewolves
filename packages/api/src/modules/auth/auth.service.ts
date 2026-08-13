@@ -1,12 +1,15 @@
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { User as PrismaUser, UserRole } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { eq } from 'drizzle-orm';
+import { DrizzleService } from '../../drizzle/drizzle.service';
+import { UserRole, users, referrals } from '../../drizzle/schema';
 import { AuditService } from '../audit/audit.service';
 import { ActivityService } from '../activity/activity.service';
 import { ReferralsService } from '../referrals/referrals.service';
 import { RegisterDto, VerifyOtpDto, LoginDto, CompleteProfileDto } from './dto/register.dto';
 import * as crypto from 'crypto';
+
+export type UserRow = typeof users.$inferSelect;
 
 @Injectable()
 export class AuthService {
@@ -14,7 +17,7 @@ export class AuthService {
   private refreshStore = new Map<string, { userId: string; expiresAt: number }>();
 
   constructor(
-    private prisma: PrismaService,
+    private db: DrizzleService,
     private jwtService: JwtService,
     private audit: AuditService,
     private activityService: ActivityService,
@@ -22,7 +25,7 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const [existing] = await this.db.select().from(users).where(eq(users.email, dto.email));
     if (existing) throw new ConflictException('Email already registered');
 
     const otp = this.generateOtp();
@@ -44,7 +47,7 @@ export class AuthService {
     }
     this.otpStore.delete(dto.email);
 
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const [user] = await this.db.select().from(users).where(eq(users.email, dto.email));
     if (!user) throw new UnauthorizedException('User not found. Please register first.');
 
     await this.audit.log({
@@ -62,7 +65,7 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const [user] = await this.db.select().from(users).where(eq(users.email, dto.email));
     if (!user) throw new UnauthorizedException('No account found with this email');
 
     const otp = this.generateOtp();
@@ -74,35 +77,41 @@ export class AuthService {
   }
 
   async completeProfile(dto: CompleteProfileDto) {
-    let user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    let user: UserRow | undefined | null = (await this.db.select().from(users).where(eq(users.email, dto.email)))[0] ?? null;
+
+    const role = (dto.role ?? UserRole.BUYER) as (typeof users.$inferInsert)['role'];
 
     if (user) {
-      user = await this.prisma.user.update({
-        where: { id: user.id },
-        data: {
+      [user] = await this.db
+        .update(users)
+        .set({
           firstName: dto.firstName,
           lastName: dto.lastName,
           phone: dto.phone,
-          role: (dto.role as UserRole) ?? UserRole.BUYER,
-        },
-      });
+          role,
+        })
+        .where(eq(users.id, user.id))
+        .returning();
     } else {
       const referralCode = await this.referralsService.ensureCodeForNewUser();
-      user = await this.prisma.user.create({
-        data: {
+      [user] = await this.db
+        .insert(users)
+        .values({
           email: dto.email,
           firstName: dto.firstName,
           lastName: dto.lastName,
           phone: dto.phone,
-          role: (dto.role as UserRole) ?? UserRole.BUYER,
+          role,
           referralCode,
-        },
-      });
+        })
+        .returning();
 
       if (dto.referralCode) {
-        await this.applyReferralOnSignup(user, dto.referralCode);
+        await this.applyReferralOnSignup(user!, dto.referralCode);
       }
     }
+
+    if (!user) throw new Error('Failed to create user');
 
     await this.audit.log({
       entityType: 'User',
@@ -114,29 +123,28 @@ export class AuthService {
     return this.generateTokens(user);
   }
 
-  private async applyReferralOnSignup(user: PrismaUser, code: string) {
-    const referrer = await this.prisma.user.findUnique({ where: { referralCode: code.trim().toUpperCase() } });
+  private async applyReferralOnSignup(user: UserRow, code: string) {
+    const [referrer] = await this.db.select().from(users).where(eq(users.referralCode, code.trim().toUpperCase()));
     if (!referrer || referrer.id === user.id) {
       throw new BadRequestException('Invalid referral code');
     }
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { referredById: referrer.id },
-    });
+    await this.db.update(users).set({ referredById: referrer.id }).where(eq(users.id, user.id));
 
-    await this.prisma.referral.create({
-      data: {
+    const [referral] = await this.db
+      .insert(referrals)
+      .values({
         code: code.trim().toUpperCase(),
         referrerId: referrer.id,
         referredId: user.id,
         status: 'active',
-      },
-    });
+      })
+      .returning();
+    if (!referral) throw new Error('Failed to create referral');
 
     await this.audit.log({
       entityType: 'Referral',
-      entityId: user.id,
+      entityId: referral.id,
       action: 'REFERRAL_APPLIED',
       actor: { id: user.id, role: user.role, name: `${user.firstName} ${user.lastName}` },
       metadata: { referrerId: referrer.id, code: code.trim().toUpperCase() },
@@ -149,7 +157,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    const user = await this.prisma.user.findUnique({ where: { id: stored.userId } });
+    const [user] = await this.db.select().from(users).where(eq(users.id, stored.userId));
     if (!user) throw new UnauthorizedException('User not found');
 
     this.refreshStore.delete(refreshToken);
@@ -162,7 +170,7 @@ export class AuthService {
     }
   }
 
-  private generateTokens(user: PrismaUser) {
+  private generateTokens(user: UserRow) {
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
     const refreshToken = crypto.randomBytes(32).toString('hex');

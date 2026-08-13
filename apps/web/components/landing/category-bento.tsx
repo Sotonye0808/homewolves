@@ -1,12 +1,13 @@
+import Link from 'next/link';
 import { Home, Building2, Users, Mountain, Compass, PenTool } from 'lucide-react';
 
 const categories = [
-  { label: 'For Sale', icon: Home, category: 'sale' },
-  { label: 'For Rent', icon: Building2, category: 'rent' },
-  { label: 'Shortlet', icon: Users, category: 'shortlet' },
-  { label: 'Land', icon: Mountain, category: 'land' },
-  { label: 'New Dev', icon: Compass, category: 'new-dev' },
-  { label: 'Direct Brief', icon: PenTool, category: 'direct-brief' },
+  { label: 'For Sale', icon: Home, category: 'sale', href: '/properties?category=sale' },
+  { label: 'For Rent', icon: Building2, category: 'rent', href: '/properties?category=rent' },
+  { label: 'Shortlet', icon: Users, category: 'shortlet', href: '/properties?category=shortlet' },
+  { label: 'Land', icon: Mountain, category: 'land', href: '/properties?category=land' },
+  { label: 'New Dev', icon: Compass, category: 'new-dev', href: '/properties?category=new_dev' },
+  { label: 'Direct Brief', icon: PenTool, category: 'direct-brief', href: '/properties' },
 ];
 
 export function CategoryBento() {
@@ -20,12 +21,12 @@ export function CategoryBento() {
           {categories.map((cat) => {
             const Icon = cat.icon;
             return (
-              <article
+              <Link
                 key={cat.category}
-                className="bg-[var(--color-bg-glass)] backdrop-blur-[var(--glass-blur-subtle)] border border-[var(--color-border-glass)] rounded-xl p-6 lg:p-8 flex items-center gap-5 shadow-card cursor-pointer transition-transform duration-normal ease-out hover:-translate-y-1 hover:shadow-hover"
-                role="button"
-                tabIndex={0}
+                href={cat.href}
+                className="bg-[var(--color-bg-glass)] backdrop-blur-[var(--glass-blur-subtle)] border border-[var(--color-border-glass)] rounded-xl p-6 lg:p-8 flex items-center gap-5 shadow-card transition-transform duration-normal ease-out hover:-translate-y-1 hover:shadow-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
                 data-category={cat.category}
+                aria-label={`Browse ${cat.label.toLowerCase()} properties`}
               >
                 <div className="w-12 h-12 lg:w-14 lg:h-14 shrink-0 grid place-items-center bg-primary rounded-md text-primary-foreground">
                   <Icon className="w-6 h-6 lg:w-7 lg:h-7" />
@@ -33,7 +34,7 @@ export function CategoryBento() {
                 <span className="font-body text-base lg:text-lg font-semibold text-foreground">
                   {cat.label}
                 </span>
-              </article>
+              </Link>
             );
           })}
         </div>

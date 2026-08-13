@@ -3,7 +3,7 @@
 > **Metadata**
 >
 > - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase. This file is the **append-only historical record** — use `checkpoints/in-progress.md` for current in-progress work.
@@ -246,3 +246,45 @@ Run the actual QA gate is unaffected (docs-only change). Next dev task: top inco
 **Notes / Blockers:**
 - No code changed — docs-only migration; `npm test`/typecheck/build/lint unaffected.
 - The proposal file `ai-system-template-v3-update-proposal.md` is now superseded (applied); kept at repo root as the decision record.
+
+---
+
+## Session 7 — 2026-08-13 (Prisma→Drizzle migration + web audit rectification)
+
+**Completed:**
+Migrated `packages/api` from Prisma to Drizzle ORM end-to-end, then ran the `verify-work.md` web audit on `apps/web` and rectified its findings.
+
+- **Drizzle schema** — `packages/api/src/drizzle/schema.ts`: 28 tables, 5 pgEnum types (with `as const` enum maps), relations, and `ListingCategory` re-exported. `drizzle.config.ts` (TS config, `./src/drizzle/schema.ts` out) + `drizzle/seed.ts` moved from Prisma.
+- **DrizzleService / module** — `@Global` `DrizzleModule` with `DrizzleService` exposing getter-based `select`/`insert`/`update`/`delete` plus `db`/`query`; services now use `db.select()/insert()/update()/delete().where()/onConflictDoUpdate()` chains and `db.query.<table>.findMany/findFirst` relational queries. `app.module.ts` wired `DrizzleModule`; removed `PrismaModule` imports from `audit/documents/subscriptions/signatures` modules. JWT strategy + notifications gateway ported.
+- **Dependency cleanup** — `@prisma/client`/`prisma` removed from `packages/api/package.json`; `packages/api/prisma/` and `packages/api/src/prisma/` deleted.
+- **Migration** — generated `drizzle/migrations/0000_faithful_moira_mactaggert.sql` via `npm run db:generate` (offline-safe; CI has no live DB).
+- **Specs rewritten (10 files, 93 tests)** — new shared mock `packages/api/src/test/drizzle.mock.ts`: `createChain(value, onMethod?)` returns a thenable Proxy (every chain method returns the same thenable; accepts `PromiseLike` for rejected chains; `onMethod` records args — used to assert `.values()`/`.set()` payloads) and `createDrizzleMock()` returning `{ db, select, insert, update, delete, query, table(name) }`. `table(name)` exposes per-table `findMany/findFirst/findUnique` vi.fn()s. `npx vitest run` → 10 files / 93 tests pass.
+- **Web audit rectification (`apps/web`)** — CategoryBento `role="button"` dead cards → real `next/link`s to `/properties?category=…`; properties page now initializes `search` + `activePill` from URL query params (via `window.location.search` in state initializers — no Suspense coupling) and fixed the `categoryMap` keys (were `for_sale`, actual pill id is `sale` — "For Sale" filtering was silently broken); footer nav `<a>` → `next/link`; dashboard notification dropdown rows now clickable (mark single notification read + navigate to notifications); `useNotificationBell` now exposes per-notification `markRead`; added `loading.tsx` to `(public)` and `(dashboard)` route groups; hero + landing `property-card` raw `<img>` → `next/image` (added `images.unsplash.com` to `next.config.js` `remotePatterns`).
+- **Verification** — `apps/web`: `tsc --noEmit` clean, `next lint` clean, `vitest run` 13 files / 94 tests pass, `next build` succeeds. `packages/api`: `tsc --noEmit` clean, lint 0 errors (3 pre-existing `no-console` warnings), 93 tests pass, `nest build` succeeds.
+
+**Files Modified:**
+- `packages/api/src/drizzle/` (schema, service, module, config) + `packages/api/drizzle/` (migrations, seed) — new
+- All `packages/api/src/modules/*/` services + DTOs (2 files) + jwt.strategy + notifications.gateway + app.module — Prisma→Drizzle port
+- 10 `*.service.spec.ts` files + `packages/api/src/test/drizzle.mock.ts` — Drizzle mock rewrite
+- `packages/api/package.json`, `package.json`, `package-lock.json` — deps
+- Deleted `packages/api/prisma/`, `packages/api/src/prisma/`
+- `apps/web/app/(public)/properties/page.tsx` — URL param init + categoryMap fix
+- `apps/web/components/landing/{category-bento,footer,hero-section,property-card}.tsx` — linkability + next/image
+- `apps/web/app/(dashboard)/layout.tsx` + `apps/web/hooks/use-notifications.ts` — notification row click behavior
+- `apps/web/app/(public)/loading.tsx`, `apps/web/app/(dashboard)/loading.tsx` — new
+- `apps/web/next.config.js` — `images.unsplash.com` remotePattern
+
+**Next Task:**
+Top incomplete item in `planning/task-queue.md` ([M] SEO, [BUG] blog sanitization, [M] activity-points wiring, [M] API integration tests, or [M] E2E admin journey). If a live Supabase DB is available, run `npm run db:migrate` + `npm run db:seed` to apply `0000_faithful_moira_mactaggert.sql` and smoke-test.
+
+**Assumptions Made:**
+- Drizzle spec mocks accept `result!` non-null assertions where query results may be `undefined` — mirrors the previous Prisma mock style.
+- Bentoo `new_dev` pill maps to no category filter (its `queryParam` is `type`, not `category`; the page has no type-filter plumbing yet) and `direct-brief` links to `/properties` (all) — logged in `project-decisions.md`.
+- Remaining raw `<img>` tags in dashboard/blog/auth/listings pages are dynamic user/API media and were out of scope for the landing-page audit — flagged for a follow-up `next/image` pass.
+
+**Notes / Blockers:**
+- Migration file `0000` generated but not applied — no live DB in CI; `db:push/migrate/seed` require real Supabase credentials.
+- Playwright E2E journeys unchanged (stub the API); not re-run this session — web build/tests green.
+- Lint across both packages: 0 errors; only the 3 pre-existing `no-console` warnings in `@hw/api`.
+
+---

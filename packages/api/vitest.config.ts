@@ -7,7 +7,7 @@ export default defineConfig({
     include: ['src/**/*.spec.ts'],
     coverage: {
       reporter: ['text', 'json', 'html'],
-      exclude: ['src/main.ts', 'src/prisma/**', '**/*.module.ts', '**/*.controller.ts'],
+      exclude: ['src/main.ts', 'src/drizzle/**', '**/*.module.ts', '**/*.controller.ts'],
     },
   },
 });

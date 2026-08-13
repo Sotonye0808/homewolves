@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { eq, sql } from 'drizzle-orm';
+import { DrizzleService } from '../../drizzle/drizzle.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
-
-const db = (prisma: PrismaService) => prisma;
+import { listings, savedCollections, recentlyViewed, users } from '../../drizzle/schema';
 
 @Injectable()
 export class AlertsService {
   constructor(
-    private prisma: PrismaService,
+    private db: DrizzleService,
     private notificationsService: NotificationsService,
     private notificationsGateway: NotificationsGateway,
   ) {}
@@ -17,21 +17,12 @@ export class AlertsService {
     if (newPrice >= oldPrice) return;
 
     const dropPercent = Math.round((1 - newPrice / oldPrice) * 100);
-    const listing = await this.prisma.listing.findUnique({
-      where: { id: listingId },
-      select: { title: true, id: true },
-    });
+    const [listing] = await this.db.select({ title: listings.title, id: listings.id }).from(listings).where(eq(listings.id, listingId));
     if (!listing) return;
 
-    const savedBy = await db(this.prisma).savedCollection.findMany({
-      where: { listingIds: { has: listingId } },
-      select: { userId: true },
-    });
+    const savedBy = await this.db.select({ userId: savedCollections.userId }).from(savedCollections).where(sql`${savedCollections.listingIds} @> ARRAY[${listingId}]`);
 
-    const recentlyViewedBy = await db(this.prisma).recentlyViewed.findMany({
-      where: { listingId },
-      select: { userId: true },
-    });
+    const recentlyViewedBy = await this.db.select({ userId: recentlyViewed.userId }).from(recentlyViewed).where(eq(recentlyViewed.listingId, listingId));
 
     const userIds = new Set<string>();
     for (const s of savedBy) if (s.userId) userIds.add(s.userId);
@@ -52,25 +43,25 @@ export class AlertsService {
   }
 
   async checkNewListingMatch(listingId: string) {
-    const listing = await this.prisma.listing.findUnique({
-      where: { id: listingId },
-      select: {
-        title: true,
-        id: true,
-        price: true,
-        category: true,
-        propertyType: true,
-        amenityIds: true,
-        locationJson: true,
-      },
-    });
+    const [listing] = await this.db
+      .select({
+        title: listings.title,
+        id: listings.id,
+        price: listings.price,
+        category: listings.category,
+        propertyType: listings.propertyType,
+        amenityIds: listings.amenityIds,
+        locationJson: listings.locationJson,
+      })
+      .from(listings)
+      .where(eq(listings.id, listingId));
     if (!listing) return;
 
     const location = listing.locationJson as Record<string, string> | null;
-    const users = await this.prisma.user.findMany({
-      where: { verified: true },
-      select: { id: true, preferences: true },
-    });
+    const rows = await this.db
+      .select({ id: users.id, preferences: users.preferences })
+      .from(users)
+      .where(eq(users.verified, true));
 
     interface SavedSearch {
       category?: string;
@@ -80,7 +71,7 @@ export class AlertsService {
       location?: string;
     }
 
-    for (const user of users) {
+    for (const user of rows) {
       const prefs = (user.preferences as { savedSearches?: SavedSearch[] } | null)?.savedSearches ?? [];
       if (!prefs?.length) continue;
 

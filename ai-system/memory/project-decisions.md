@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-10
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions. Agents consult this before proposing changes to avoid contradicting prior reasoning. Uses supersedes/superseded-by links so contradictory entries are explicitly resolved rather than both appearing equally valid.
@@ -263,3 +263,44 @@ The v3 spec (§10.3) explicitly flagged this as a judgment call. `update-ai-syst
 **Implications:**
 - Five commands now carry mandatory `Chains to` triggers that invoke `update-ai-system.md` automatically under their conditions — its own `Does NOT` contract is worded accordingly (invoked explicitly or via a command's mandated chain trigger, never on a schedule).
 - `verification-rules.md` and `audit-drift.md` check chain order mechanically from `session-log.md`, so a skipped trigger is caught, not trusted.
+
+---
+
+## Drizzle ORM replaces Prisma in `packages/api`
+
+**Decision:** Migrate `packages/api` from Prisma (`@prisma/client`) to Drizzle ORM — schema in `src/drizzle/schema.ts`, `DrizzleModule`/`DrizzleService` (`@Global`), services use raw query-builder chains (`db.select()/insert()/update()/delete()`) and `db.query.<table>` relational finders.
+**Date:** 2026-08-13
+**Made by:** Implementer (Session 7)
+**Supersedes:** All Prisma-related decisions referencing `packages/api/prisma/schema.prisma` and `PrismaService` (the Prisma client regeneration decision 2026-08-10, the Subscription-relation Prisma decision above).
+**Superseded by:** None
+
+**Reason:**
+Drizzle gives a typed SQL query builder with no codegen step (no stale-client class of bugs), is closer to SQL, and its generated migration workflow (`drizzle-kit`) is offline-generatable — CI has no live Postgres, so `db:generate` produces `0000_faithful_moira_mactaggert.sql` without a connection.
+
+**Alternatives Considered:**
+- **Keep Prisma:** Generated client was a recurring source of staleness; `prisma generate` requires a `DATABASE_URL`.
+- **Kysely:** Type-safe but no schema DSL/relations built in.
+
+**Implications:**
+- Specs use a new shared mock `packages/api/src/test/drizzle.mock.ts` (`createChain` thenable proxy + `createDrizzleMock`) instead of a Prisma mock.
+- New services must use `DrizzleService` query chains and enum consts from `src/drizzle/schema.ts`, not the Prisma client.
+- `db:push`/`db:migrate`/`db:seed` require real Supabase credentials — the generated migration is unapplied until a live DB is available.
+
+---
+
+## CategoryBento link mapping (web audit rectification)
+
+**Decision:** CategoryBento cards link to `/properties?category=<pill-id>` where the bento category maps to a real filter pill: `sale→sale`, `rent→rent`, `shortlet→shortlet`, `land→land`, `new-dev→new_dev`; `direct-brief` (no pill) links to `/properties` (all).
+**Date:** 2026-08-13
+**Made by:** Implementer (Session 7, verify-work web audit)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The cards were `role="button"`+`tabIndex=0` with no click handler — a dead interactive region. Mapping to existing filter pill ids means the properties page can consume the `category` query param directly.
+
+**Implications:**
+- The `new_dev` pill currently applies no category filter (its `queryParam` is `type`, not `category`; the properties page has no type-filter plumbing) — it highlights the chip and shows all listings. A future type-filter pass can wire it.
+- The properties page initializes `search` and `activePill` from URL query params via `window.location.search` in state initializers (avoids `useSearchParams` Suspense coupling) and treats unknown `category` values as `all`.
+
+---

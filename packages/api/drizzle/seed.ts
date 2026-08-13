@@ -1,6 +1,17 @@
-import { PrismaClient } from '@prisma/client';
+import { postgres } from 'postgres';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import * as schema from '../src/drizzle/schema';
 
-const prisma = new PrismaClient();
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  console.error('DATABASE_URL is not set. Set it to run the seed.');
+  process.exit(1);
+}
+
+const client = postgres(DATABASE_URL, { max: 1 });
+const db = drizzle(client, { schema });
+
+const ADMIN_ID = 'seed-system';
 
 const FALLBACK_AMENITIES = [
   { id: 'parking', label: 'Parking', icon: 'Car', active: true, display_order: 1 },
@@ -56,8 +67,6 @@ const FALLBACK_FEATURE_FLAGS = [
 ];
 
 async function seedConfig() {
-  const adminId = 'seed-system';
-
   const seeds: { key: string; value: unknown }[] = [
     { key: 'amenities', value: FALLBACK_AMENITIES },
     { key: 'filter_pills', value: FALLBACK_FILTER_PILLS },
@@ -79,11 +88,13 @@ async function seedConfig() {
   ];
 
   for (const seed of seeds) {
-    await prisma.platformConfig.upsert({
-      where: { key: seed.key },
-      update: { value: seed.value as Record<string, unknown>, updatedById: adminId },
-      create: { key: seed.key, value: seed.value as Record<string, unknown>, updatedById: adminId },
-    });
+    await db
+      .insert(schema.platformConfig)
+      .values({ key: seed.key, value: seed.value, updatedById: ADMIN_ID })
+      .onConflictDoUpdate({
+        target: schema.platformConfig.key,
+        set: { value: seed.value, updatedById: ADMIN_ID },
+      });
   }
 
   console.log('PlatformConfig seeded successfully.');
@@ -134,11 +145,13 @@ const FALLBACK_SUBSCRIPTION_PLANS = [
 
 async function seedSubscriptionPlans() {
   for (const plan of FALLBACK_SUBSCRIPTION_PLANS) {
-    await prisma.subscriptionPlan.upsert({
-      where: { slug: plan.slug },
-      update: plan,
-      create: plan,
-    });
+    await db
+      .insert(schema.subscriptionPlans)
+      .values(plan)
+      .onConflictDoUpdate({
+        target: schema.subscriptionPlans.slug,
+        set: plan,
+      });
   }
   console.log('SubscriptionPlans seeded successfully.');
 }
@@ -154,5 +167,5 @@ main()
     process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    await client.end();
   });

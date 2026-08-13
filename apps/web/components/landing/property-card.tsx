@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Bookmark, Share2 } from 'lucide-react';
 import { HwBadge } from '@/components/ui';
 
@@ -10,6 +11,7 @@ interface PropertyCardProps {
   badge: { label: string; variant: 'sale' | 'rent' | 'verified' };
   verified?: boolean;
   agent: string;
+  href?: string;
 }
 
 export function PropertyCard({
@@ -20,17 +22,35 @@ export function PropertyCard({
   badge,
   verified,
   agent,
+  href = '/properties',
 }: PropertyCardProps) {
   return (
     <article className="rounded-lg overflow-hidden bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] shadow-card transition-all duration-normal ease-out hover:-translate-y-1.5 hover:shadow-hover">
-      <div className="relative w-full aspect-video overflow-hidden group">
-        <img
-          src={image}
-          alt={imageAlt}
-          loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-slow ease-smooth group-hover:scale-104"
-        />
-        <div className="absolute bottom-3 right-3 flex gap-2">
+      <div className="relative">
+        <Link href={href} className="block" aria-label={`View ${imageAlt} property details`}>
+          <div className="relative w-full aspect-video overflow-hidden group">
+            <Image
+              src={image}
+              alt={imageAlt}
+              fill
+              sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+              className="object-cover transition-transform duration-slow ease-smooth group-hover:scale-104"
+            />
+          </div>
+
+          <div className="bg-[var(--color-bg-glass)] backdrop-blur-[var(--glass-blur-subtle)] border-t border-[var(--color-border-glass)] px-5 py-4">
+            <div className="font-display text-2xl font-bold text-[var(--color-text-accent)] leading-tight">
+              {price}
+            </div>
+            <div className="font-body text-sm text-muted-foreground mt-1">{meta}</div>
+            <div className="flex items-center gap-3 mt-3">
+              <HwBadge variant={badge.variant}>{badge.label}</HwBadge>
+              {verified && <HwBadge variant="verified">Verified</HwBadge>}
+            </div>
+          </div>
+        </Link>
+
+        <div className="absolute bottom-3 right-3 flex gap-2 z-10">
           <button
             type="button"
             aria-label="Save property"
@@ -45,17 +65,6 @@ export function PropertyCard({
           >
             <Share2 className="w-4 h-4" />
           </button>
-        </div>
-      </div>
-
-      <div className="bg-[var(--color-bg-glass)] backdrop-blur-[var(--glass-blur-subtle)] border-t border-[var(--color-border-glass)] px-5 py-4">
-        <div className="font-display text-2xl font-bold text-[var(--color-text-accent)] leading-tight">
-          {price}
-        </div>
-        <div className="font-body text-sm text-muted-foreground mt-1">{meta}</div>
-        <div className="flex items-center gap-3 mt-3">
-          <HwBadge variant={badge.variant}>{badge.label}</HwBadge>
-          {verified && <HwBadge variant="verified">Verified</HwBadge>}
         </div>
       </div>
 

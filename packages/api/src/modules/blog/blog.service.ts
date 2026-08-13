@@ -1,15 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { and, desc, eq, count, sql } from 'drizzle-orm';
+import { DrizzleService } from '../../drizzle/drizzle.service';
 import { AuditService } from '../audit/audit.service';
 import { sanitizeBlogHtml } from '../../common/utils/html-sanitizer';
-
-const db = (prisma: PrismaService) => prisma;
+import { blogPosts } from '../../drizzle/schema';
 
 @Injectable()
 export class BlogService {
   constructor(
-    private prisma: PrismaService,
+    private db: DrizzleService,
     private audit: AuditService,
   ) {}
 
@@ -24,8 +23,9 @@ export class BlogService {
     tags?: string[];
     published?: boolean;
   }, actor: ActorRef) {
-    const post = await db(this.prisma).blogPost.create({
-      data: {
+    const [post] = await this.db
+      .insert(blogPosts)
+      .values({
         title: dto.title,
         slug: dto.slug,
         excerpt: dto.excerpt,
@@ -36,8 +36,13 @@ export class BlogService {
         tags: dto.tags ?? [],
         published: dto.published ?? false,
         publishedAt: dto.published ? new Date() : null,
-      },
-      include: { author: true },
+      })
+      .returning();
+    if (!post) throw new Error('Failed to create blog post');
+
+    const full = await this.db.query.blogPosts.findFirst({
+      where: eq(blogPosts.id, post.id),
+      with: { author: true },
     });
 
     await this.audit.log({
@@ -48,7 +53,7 @@ export class BlogService {
       metadata: { title: dto.title, slug: dto.slug },
     });
 
-    return post;
+    return full;
   }
 
   async findAll(params: {
@@ -59,43 +64,44 @@ export class BlogService {
     page?: number;
     limit?: number;
   }) {
-    const where: Prisma.BlogPostWhereInput = {};
-    if (params.published != null) where.published = params.published;
-    if (params.category) where.categories = { has: params.category };
-    if (params.tag) where.tags = { has: params.tag };
-    if (params.featured != null) where.featured = params.featured;
+    const conditions = [];
+    if (params.published != null) conditions.push(eq(blogPosts.published, params.published));
+    if (params.category) conditions.push(sql`${blogPosts.categories} @> ARRAY[${params.category}]`);
+    if (params.tag) conditions.push(sql`${blogPosts.tags} @> ARRAY[${params.tag}]`);
+    if (params.featured != null) conditions.push(eq(blogPosts.featured, params.featured));
 
     const page = params.page ?? 1;
     const limit = params.limit ?? 12;
     const skip = (page - 1) * limit;
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
 
     const [posts, total] = await Promise.all([
-      db(this.prisma).blogPost.findMany({
+      this.db.query.blogPosts.findMany({
         where,
-        skip,
-        take: limit,
-        orderBy: params.featured ? { updatedAt: 'desc' } : { publishedAt: 'desc' },
-        include: { author: true },
+        offset: skip,
+        limit,
+        orderBy: params.featured ? desc(blogPosts.updatedAt) : desc(blogPosts.publishedAt),
+        with: { author: true },
       }),
-      db(this.prisma).blogPost.count({ where }),
+      this.db.select({ value: count() }).from(blogPosts).where(where),
     ]);
 
-    return { posts, total, page, limit };
+    return { posts, total: total[0]?.value ?? 0, page, limit };
   }
 
   async findBySlug(slug: string) {
-    const post = await db(this.prisma).blogPost.findUnique({
-      where: { slug },
-      include: { author: true },
+    const post = await this.db.query.blogPosts.findFirst({
+      where: eq(blogPosts.slug, slug),
+      with: { author: true },
     });
     if (!post) throw new NotFoundException('Blog post not found');
     return post;
   }
 
   async findById(id: string) {
-    const post = await db(this.prisma).blogPost.findUnique({
-      where: { id },
-      include: { author: true },
+    const post = await this.db.query.blogPosts.findFirst({
+      where: eq(blogPosts.id, id),
+      with: { author: true },
     });
     if (!post) throw new NotFoundException('Blog post not found');
     return post;
@@ -112,19 +118,20 @@ export class BlogService {
     published: boolean;
     featured: boolean;
   }>, actor: ActorRef) {
-    const post = await db(this.prisma).blogPost.findUnique({ where: { id } });
+    const [post] = await this.db.select().from(blogPosts).where(eq(blogPosts.id, id));
     if (!post) throw new NotFoundException('Blog post not found');
 
-    const data: Prisma.BlogPostUpdateInput = { ...dto };
-    if (dto.content) data.content = sanitizeBlogHtml(dto.content);
+    const set: Partial<typeof blogPosts.$inferInsert> = { ...dto };
+    if (dto.content) set.content = sanitizeBlogHtml(dto.content);
     if (dto.published && !post.publishedAt) {
-      data.publishedAt = new Date();
+      set.publishedAt = new Date();
     }
 
-    const updated = await db(this.prisma).blogPost.update({
-      where: { id },
-      data,
-      include: { author: true },
+    await this.db.update(blogPosts).set(set).where(eq(blogPosts.id, id));
+
+    const updated = await this.db.query.blogPosts.findFirst({
+      where: eq(blogPosts.id, id),
+      with: { author: true },
     });
 
     await this.audit.log({
@@ -139,10 +146,10 @@ export class BlogService {
   }
 
   async delete(id: string, actor: ActorRef) {
-    const post = await db(this.prisma).blogPost.findUnique({ where: { id } });
+    const [post] = await this.db.select().from(blogPosts).where(eq(blogPosts.id, id));
     if (!post) throw new NotFoundException('Blog post not found');
 
-    await db(this.prisma).blogPost.delete({ where: { id } });
+    await this.db.delete(blogPosts).where(eq(blogPosts.id, id));
 
     await this.audit.log({
       entityType: 'BlogPost',
@@ -154,10 +161,7 @@ export class BlogService {
   }
 
   async getCategories() {
-    const posts = await db(this.prisma).blogPost.findMany({
-      where: { published: true },
-      select: { categories: true },
-    });
+    const posts = await this.db.select({ categories: blogPosts.categories }).from(blogPosts).where(eq(blogPosts.published, true));
     const categorySet = new Set<string>();
     posts.forEach((p) => p.categories?.forEach((c: string) => categorySet.add(c)));
     return Array.from(categorySet).sort();

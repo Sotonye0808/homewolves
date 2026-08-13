@@ -1,89 +1,69 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ActivityService } from './activity.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { createDrizzleMock, createChain } from '../../test/drizzle.mock';
 import { AuditService } from '../audit/audit.service';
+import { agentActivities, agentPoints } from '../../drizzle/schema';
 
 type MockFn = ReturnType<typeof vi.fn>;
 
 describe('ActivityService', () => {
   let service: ActivityService;
-  let prisma: PrismaService;
+  let mocks: ReturnType<typeof createDrizzleMock>;
   let audit: { log: MockFn };
-
-  const ruleFindUnique = vi.fn();
-  const ruleCreate = vi.fn();
-  const activityFindFirst = vi.fn();
-  const activityCreate = vi.fn();
-  const pointsUpsert = vi.fn();
-  const pointsUpdate = vi.fn();
 
   const actor = { id: 'agent-1', role: 'AGENT', name: 'Test Agent' };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    prisma = {
-      activityRule: { findUnique: ruleFindUnique, create: ruleCreate, findMany: vi.fn() },
-      agentActivity: { findFirst: activityFindFirst, create: activityCreate, findMany: vi.fn(), groupBy: vi.fn() },
-      agentPoints: { findUnique: vi.fn(), upsert: pointsUpsert, update: pointsUpdate, findMany: vi.fn() },
-      user: { findUnique: vi.fn() },
-    } as unknown as PrismaService;
+    mocks = createDrizzleMock();
     audit = { log: vi.fn().mockResolvedValue(undefined) };
-    service = new ActivityService(prisma, audit as unknown as AuditService);
+    service = new ActivityService(mocks.db, audit as unknown as AuditService);
   });
 
   describe('award', () => {
     it('returns null when rule does not exist or is inactive', async () => {
-      ruleFindUnique.mockResolvedValueOnce(null);
+      mocks.select
+        .mockReturnValueOnce(createChain([]))
+        .mockReturnValueOnce(createChain([{ key: 'x', active: false, points: 10 }]));
+
       const result = await service.award('agent-1', 'listing_created', actor);
       expect(result).toBeNull();
-      expect(activityCreate).not.toHaveBeenCalled();
+      expect(mocks.insert).not.toHaveBeenCalled();
 
-      ruleFindUnique.mockResolvedValueOnce({ key: 'x', active: false, points: 10 });
       const result2 = await service.award('agent-1', 'x', actor);
       expect(result2).toBeNull();
+      expect(mocks.insert).not.toHaveBeenCalled();
     });
 
     it('respects cooldownMs on recent activity', async () => {
-      ruleFindUnique.mockResolvedValue({
-        id: 'rule-1',
-        key: 'message_sent',
-        active: true,
-        points: 1,
-        cooldownMs: 60000,
-      });
-      activityFindFirst.mockResolvedValue({
-        createdAt: new Date(Date.now() - 1000),
-      });
+      mocks.select
+        .mockReturnValueOnce(
+          createChain([{ id: 'rule-1', key: 'message_sent', active: true, points: 1, cooldownMs: 60000 }]),
+        )
+        .mockReturnValueOnce(createChain([{ createdAt: new Date(Date.now() - 1000) }]));
 
       const result = await service.award('agent-1', 'message_sent', actor);
       expect(result).toBeNull();
-      expect(activityCreate).not.toHaveBeenCalled();
+      expect(mocks.insert).not.toHaveBeenCalled();
     });
 
     it('awards points, upserts total, upgrades tier, and audits', async () => {
-      ruleFindUnique.mockResolvedValue({
-        id: 'rule-1',
-        key: 'listing_created',
-        active: true,
-        points: 10,
-        cooldownMs: null,
-      });
-      activityFindFirst.mockResolvedValue(null);
-      activityCreate.mockResolvedValue({ id: 'activity-1', agentId: 'agent-1' });
-      // upsert returns stored points (510) whose stored tier (bronze) is stale → triggers upgrade
-      pointsUpsert.mockResolvedValue({ agentId: 'agent-1', totalPoints: 510, tier: 'bronze' });
+      mocks.select
+        .mockReturnValueOnce(
+          createChain([{ id: 'rule-1', key: 'listing_created', active: true, points: 10, cooldownMs: null }]),
+        )
+        .mockReturnValueOnce(createChain([null]));
+
+      mocks.insert
+        .mockReturnValueOnce(createChain([{ id: 'activity-1', agentId: 'agent-1' }]))
+        .mockReturnValueOnce(createChain([{ agentId: 'agent-1', totalPoints: 520, tier: 'bronze' }]));
+      mocks.update.mockReturnValue(createChain([]));
 
       const result = await service.award('agent-1', 'listing_created', actor, { listingId: 'l-1' });
 
-      expect(pointsUpsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          update: { totalPoints: { increment: 10 } },
-        }),
-      );
-      // 510 → tier should become silver
-      expect(pointsUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { agentId: 'agent-1' }, data: { tier: 'silver' } }),
-      );
+      expect(mocks.insert).toHaveBeenNthCalledWith(1, agentActivities);
+      expect(mocks.insert).toHaveBeenNthCalledWith(2, agentPoints);
+      expect(mocks.update).toHaveBeenCalledWith(agentPoints);
       expect(audit.log).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'POINTS_AWARDED',
@@ -100,20 +80,17 @@ describe('ActivityService', () => {
     it('does not award points to non-agent roles', async () => {
       const result = await service.awardForUser('buyer-1', 'BUYER', 'listing_created', actor);
       expect(result).toBeNull();
-      expect(activityCreate).not.toHaveBeenCalled();
+      expect(mocks.insert).not.toHaveBeenCalled();
     });
 
     it('awards points to agent roles', async () => {
-      ruleFindUnique.mockResolvedValue({
-        id: 'rule-1',
-        key: 'listing_created',
-        active: true,
-        points: 10,
-        cooldownMs: null,
-      });
-      activityFindFirst.mockResolvedValue(null);
-      activityCreate.mockResolvedValue({ id: 'activity-1' });
-      pointsUpsert.mockResolvedValue({ agentId: 'agent-1', totalPoints: 0, tier: 'bronze' });
+      mocks.select.mockReturnValueOnce(
+        createChain([{ id: 'rule-1', key: 'listing_created', active: true, points: 10, cooldownMs: null }]),
+      );
+      mocks.insert
+        .mockReturnValueOnce(createChain([{ id: 'activity-1' }]))
+        .mockReturnValueOnce(createChain([{ agentId: 'agent-1', totalPoints: 10, tier: 'bronze' }]));
+      mocks.update.mockReturnValue(createChain([]));
 
       const result = await service.awardForUser('agent-1', 'AGENT', 'listing_created', actor);
       expect(result).not.toBeNull();

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { RateLimitModule } from './common/rate-limit/rate-limit.module';
 import { IntegrationsModule } from './common/integrations/integrations.module';
-import { PrismaModule } from './prisma/prisma.module';
+import { DrizzleModule } from './drizzle/drizzle.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { PlatformConfigModule } from './modules/platform-config/platform-config.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -26,7 +26,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
   imports: [
     RateLimitModule,
     IntegrationsModule,
-    PrismaModule,
+    DrizzleModule,
     AuditModule.forRoot(),
     PlatformConfigModule,
     AuthModule,

@@ -1,18 +1,17 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { and, desc, eq, gt, lte, count, inArray } from 'drizzle-orm';
+import { DrizzleService } from '../../drizzle/drizzle.service';
 import { AuditService } from '../audit/audit.service';
 import { PaystackClient } from '../../common/integrations/paystack.client';
 import { PlatformConfigService } from '../platform-config/platform-config.service';
-
-const db = (prisma: PrismaService) => prisma;
+import { listings, users, featuredPlacements, media } from '../../drizzle/schema';
 
 const DEFAULT_DAILY_PRICE = 5000; // NGN per day, overridable via platform config
 
 @Injectable()
 export class FeaturedListingsService {
   constructor(
-    private prisma: PrismaService,
+    private db: DrizzleService,
     private audit: AuditService,
     private paystack: PaystackClient,
     private config: PlatformConfigService,
@@ -25,11 +24,11 @@ export class FeaturedListingsService {
   /** Public: listings with an active, unexpired placement. */
   async getActivePlacements(take = 6) {
     const now = new Date();
-    const placements = await db(this.prisma).featuredPlacement.findMany({
-      where: { status: 'active', endDate: { gt: now } },
-      orderBy: { startDate: 'desc' },
-      take,
-      include: { listing: { include: { owner: true, media: true } } },
+    const placements = await this.db.query.featuredPlacements.findMany({
+      where: and(eq(featuredPlacements.status, 'active'), gt(featuredPlacements.endDate, now)),
+      orderBy: desc(featuredPlacements.startDate),
+      limit: take,
+      with: { listing: { with: { owner: true, media: true } } },
     });
     return placements.map((p) => ({ placement: { id: p.id, startDate: p.startDate, endDate: p.endDate }, listing: p.listing }));
   }
@@ -39,13 +38,15 @@ export class FeaturedListingsService {
       throw new BadRequestException('days must be between 1 and 90');
     }
 
-    const listing = await db(this.prisma).listing.findUnique({ where: { id: listingId } });
+    const [listing] = await this.db.select().from(listings).where(eq(listings.id, listingId));
     if (!listing) throw new NotFoundException('Listing not found');
     if (listing.ownerId !== userId) throw new ForbiddenException('Not your listing');
 
-    const existing = await db(this.prisma).featuredPlacement.findFirst({
-      where: { listingId, status: 'active', endDate: { gt: new Date() } },
-    });
+    const [existing] = await this.db
+      .select()
+      .from(featuredPlacements)
+      .where(and(eq(featuredPlacements.listingId, listingId), eq(featuredPlacements.status, 'active'), gt(featuredPlacements.endDate, new Date())))
+      .limit(1);
     if (existing) throw new BadRequestException('Listing is already featured');
 
     const storedPrice = await this.config.get<number>('featured_listing_price_daily');
@@ -53,17 +54,19 @@ export class FeaturedListingsService {
     const amount = days * dailyPrice;
     const paystackRef = `hw_feat_${listingId.slice(0, 8)}_${Date.now()}`;
 
-    const placement = await db(this.prisma).featuredPlacement.create({
-      data: {
+    const [placement] = await this.db
+      .insert(featuredPlacements)
+      .values({
         listingId,
         startDate: new Date(),
         endDate: new Date(Date.now() + days * 24 * 60 * 60 * 1000),
-        amountPaid: amount,
+        amountPaid: String(amount),
         currency: listing.currency ?? 'NGN',
         status: 'pending_payment',
         paystackRef,
-      },
-    });
+      })
+      .returning();
+    if (!placement) throw new Error('Failed to create placement');
 
     await this.audit.log({
       entityType: 'FeaturedPlacement',
@@ -75,7 +78,7 @@ export class FeaturedListingsService {
 
     let authorizationUrl: string | null = null;
     if (this.paystack.isConfigured) {
-      const user = await db(this.prisma).user.findUnique({ where: { id: userId } });
+      const [user] = await this.db.select().from(users).where(eq(users.id, userId));
       try {
         const init = await this.paystack.initializeTransaction({
           email: user?.email ?? '',
@@ -107,19 +110,17 @@ export class FeaturedListingsService {
   }
 
   async activate(placementId: string, source: string) {
-    const placement = await db(this.prisma).featuredPlacement.findUnique({ where: { id: placementId } });
+    const [placement] = await this.db.select().from(featuredPlacements).where(eq(featuredPlacements.id, placementId));
     if (!placement) throw new NotFoundException('Placement not found');
     if (placement.status === 'active') return placement;
 
-    const updated = await db(this.prisma).featuredPlacement.update({
-      where: { id: placementId },
-      data: { status: 'active' },
-    });
+    const [updated] = await this.db
+      .update(featuredPlacements)
+      .set({ status: 'active' })
+      .where(eq(featuredPlacements.id, placementId))
+      .returning();
 
-    await db(this.prisma).listing.update({
-      where: { id: placement.listingId },
-      data: { featured: true },
-    });
+    await this.db.update(listings).set({ featured: true }).where(eq(listings.id, placement.listingId));
 
     await this.audit.log({
       entityType: 'FeaturedPlacement',
@@ -134,7 +135,7 @@ export class FeaturedListingsService {
 
   /** Webhook handler: activate a placement by its Paystack reference. */
   async activateByReference(paystackRef: string) {
-    const placement = await db(this.prisma).featuredPlacement.findFirst({ where: { paystackRef } });
+    const [placement] = await this.db.select().from(featuredPlacements).where(eq(featuredPlacements.paystackRef, paystackRef));
     if (!placement) throw new NotFoundException('Placement not found');
 
     if (this.paystack.isConfigured) {
@@ -148,52 +149,59 @@ export class FeaturedListingsService {
   }
 
   async getMyPlacements(userId: string) {
-    return db(this.prisma).featuredPlacement.findMany({
-      where: { listing: { ownerId: userId } },
-      orderBy: { createdAt: 'desc' },
-      include: { listing: { include: { media: { where: { isPrimary: true }, take: 1 } } } },
+    const agentListings = await this.db.select({ id: listings.id }).from(listings).where(eq(listings.ownerId, userId));
+    const listingIds = agentListings.map((l) => l.id);
+    if (listingIds.length === 0) return [];
+
+    return this.db.query.featuredPlacements.findMany({
+      where: inArray(featuredPlacements.listingId, listingIds),
+      orderBy: desc(featuredPlacements.createdAt),
+      with: {
+        listing: { with: { media: { where: eq(media.isPrimary, true), limit: 1 } } },
+      },
     });
   }
 
   async listAll(params: { status?: string; page?: number; limit?: number }) {
-    const where: Prisma.FeaturedPlacementWhereInput = {};
-    if (params.status) where.status = params.status;
+    const conditions = [];
+    if (params.status) conditions.push(eq(featuredPlacements.status, params.status as never));
 
     const page = params.page ?? 1;
     const limit = params.limit ?? 20;
     const skip = (page - 1) * limit;
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
 
     const [placements, total] = await Promise.all([
-      db(this.prisma).featuredPlacement.findMany({
+      this.db.query.featuredPlacements.findMany({
         where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: { listing: { include: { owner: true, media: true } } },
+        offset: skip,
+        limit,
+        orderBy: desc(featuredPlacements.createdAt),
+        with: { listing: { with: { owner: true, media: true } } },
       }),
-      db(this.prisma).featuredPlacement.count({ where }),
+      this.db.select({ value: count() }).from(featuredPlacements).where(where),
     ]);
 
-    return { placements, total, page, limit };
+    return { placements, total: total[0]?.value ?? 0, page, limit };
   }
 
   async cancel(placementId: string, actor: ActorRef) {
-    const placement = await db(this.prisma).featuredPlacement.findUnique({ where: { id: placementId } });
+    const [placement] = await this.db.select().from(featuredPlacements).where(eq(featuredPlacements.id, placementId));
     if (!placement) throw new NotFoundException('Placement not found');
 
-    const updated = await db(this.prisma).featuredPlacement.update({
-      where: { id: placementId },
-      data: { status: 'cancelled' },
-    });
+    const [updated] = await this.db
+      .update(featuredPlacements)
+      .set({ status: 'cancelled' })
+      .where(eq(featuredPlacements.id, placementId))
+      .returning();
 
-    const stillFeatured = await db(this.prisma).featuredPlacement.findFirst({
-      where: { listingId: placement.listingId, status: 'active', endDate: { gt: new Date() } },
-    });
+    const [stillFeatured] = await this.db
+      .select()
+      .from(featuredPlacements)
+      .where(and(eq(featuredPlacements.listingId, placement.listingId), eq(featuredPlacements.status, 'active'), gt(featuredPlacements.endDate, new Date())))
+      .limit(1);
     if (!stillFeatured) {
-      await db(this.prisma).listing.update({
-        where: { id: placement.listingId },
-        data: { featured: false },
-      });
+      await this.db.update(listings).set({ featured: false }).where(eq(listings.id, placement.listingId));
     }
 
     await this.audit.log({
@@ -210,24 +218,20 @@ export class FeaturedListingsService {
   /** Housekeeping: mark expired placements and unfeature listings. */
   async expireExpired() {
     const now = new Date();
-    const expired = await db(this.prisma).featuredPlacement.findMany({
-      where: { status: 'active', endDate: { lte: now } },
-      select: { id: true, listingId: true },
-    });
+    const expired = await this.db
+      .select({ id: featuredPlacements.id, listingId: featuredPlacements.listingId })
+      .from(featuredPlacements)
+      .where(and(eq(featuredPlacements.status, 'active'), lte(featuredPlacements.endDate, now)));
 
     for (const placement of expired) {
-      await db(this.prisma).featuredPlacement.update({
-        where: { id: placement.id },
-        data: { status: 'expired' },
-      });
-      const stillFeatured = await db(this.prisma).featuredPlacement.findFirst({
-        where: { listingId: placement.listingId, status: 'active', endDate: { gt: now } },
-      });
+      await this.db.update(featuredPlacements).set({ status: 'expired' }).where(eq(featuredPlacements.id, placement.id));
+      const [stillFeatured] = await this.db
+        .select()
+        .from(featuredPlacements)
+        .where(and(eq(featuredPlacements.listingId, placement.listingId), eq(featuredPlacements.status, 'active'), gt(featuredPlacements.endDate, now)))
+        .limit(1);
       if (!stillFeatured) {
-        await db(this.prisma).listing.update({
-          where: { id: placement.listingId },
-          data: { featured: false },
-        });
+        await this.db.update(listings).set({ featured: false }).where(eq(listings.id, placement.listingId));
       }
     }
 

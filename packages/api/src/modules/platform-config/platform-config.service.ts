@@ -1,13 +1,14 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import type { Prisma } from '@prisma/client';
+import { eq } from 'drizzle-orm';
+import { DrizzleService } from '../../drizzle/drizzle.service';
+import { platformConfig } from '../../drizzle/schema';
 
 @Injectable()
 export class PlatformConfigService implements OnModuleInit {
   private cache = new Map<string, { value: unknown; expiresAt: number }>();
   private readonly TTL = 5 * 60 * 1000;
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private db: DrizzleService) {}
 
   async onModuleInit() {
     await this.warmCache();
@@ -15,7 +16,7 @@ export class PlatformConfigService implements OnModuleInit {
 
   private async warmCache() {
     try {
-      const configs = await this.prisma.platformConfig.findMany();
+      const configs = await this.db.select().from(platformConfig);
       for (const config of configs) {
         this.cache.set(config.key, {
           value: config.value,
@@ -34,7 +35,10 @@ export class PlatformConfigService implements OnModuleInit {
     }
 
     try {
-      const config = await this.prisma.platformConfig.findUnique({ where: { key } });
+      const [config] = await this.db
+        .select()
+        .from(platformConfig)
+        .where(eq(platformConfig.key, key));
       if (config) {
         this.cache.set(key, {
           value: config.value,
@@ -51,7 +55,7 @@ export class PlatformConfigService implements OnModuleInit {
 
   async getAll(): Promise<Record<string, unknown>> {
     try {
-      const configs = await this.prisma.platformConfig.findMany();
+      const configs = await this.db.select().from(platformConfig);
       return configs.reduce(
         (acc, c) => {
           acc[c.key] = c.value;
@@ -65,12 +69,13 @@ export class PlatformConfigService implements OnModuleInit {
   }
 
   async set(key: string, value: unknown, updatedById: string): Promise<void> {
-    const json = value as Prisma.InputJsonValue;
-    await this.prisma.platformConfig.upsert({
-      where: { key },
-      update: { value: json, updatedById },
-      create: { key, value: json, updatedById },
-    });
+    await this.db
+      .insert(platformConfig)
+      .values({ key, value, updatedById })
+      .onConflictDoUpdate({
+        target: platformConfig.key,
+        set: { value, updatedById },
+      });
     this.cache.set(key, { value, expiresAt: Date.now() + this.TTL });
   }
 

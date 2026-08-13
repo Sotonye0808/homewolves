@@ -1,37 +1,40 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AuthService } from './auth.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { createDrizzleMock, createChain } from '../../test/drizzle.mock';
 import { AuditService } from '../audit/audit.service';
 import { ActivityService } from '../activity/activity.service';
 import { ReferralsService } from '../referrals/referrals.service';
+import { users, referrals } from '../../drizzle/schema';
 
 type MockFn = ReturnType<typeof vi.fn>;
 
 describe('AuthService', () => {
   let service: AuthService;
-  let prisma: PrismaService;
+  let mocks: ReturnType<typeof createDrizzleMock>;
   let audit: { log: MockFn };
   let activityService: { awardForUser: MockFn };
   let referralsService: { ensureCodeForNewUser: MockFn };
   let jwtService: { sign: MockFn };
 
-  const userFindUnique = vi.fn();
-  const userCreate = vi.fn();
-  const userUpdate = vi.fn();
-  const referralCreate = vi.fn();
+  const user = {
+    id: 'u-1',
+    email: 'a@b.com',
+    role: 'BUYER',
+    firstName: 'A',
+    lastName: 'B',
+    verified: true,
+    avatar: null,
+  };
 
   beforeEach(() => {
     vi.resetAllMocks();
-    prisma = {
-      user: { findUnique: userFindUnique, create: userCreate, update: userUpdate },
-      referral: { create: referralCreate },
-    } as unknown as PrismaService;
+    mocks = createDrizzleMock();
     audit = { log: vi.fn().mockResolvedValue(undefined) };
     activityService = { awardForUser: vi.fn().mockResolvedValue(null) };
     referralsService = { ensureCodeForNewUser: vi.fn().mockResolvedValue('CODE1234') };
     jwtService = { sign: vi.fn().mockReturnValue('access-token') };
     service = new AuthService(
-      prisma,
+      mocks.db,
       jwtService as never,
       audit as unknown as AuditService,
       activityService as unknown as ActivityService,
@@ -41,12 +44,12 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('throws ConflictException for a duplicate email', async () => {
-      userFindUnique.mockResolvedValue({ id: 'u-1' });
+      mocks.select.mockReturnValue(createChain([{ id: 'u-1' }]));
       await expect(service.register({ email: 'a@b.com', phone: '123', firstName: 'A', lastName: 'B' })).rejects.toThrow('Email already registered');
     });
 
     it('issues an OTP for a new email', async () => {
-      userFindUnique.mockResolvedValue(null);
+      mocks.select.mockReturnValue(createChain([]));
       const result = await service.register({ email: 'a@b.com', phone: '123', firstName: 'A', lastName: 'B' });
       expect(result.message).toBe('OTP sent');
       expect(result.otp).toMatch(/^\d{6}$/);
@@ -59,14 +62,17 @@ describe('AuthService', () => {
     });
 
     it('rejects a wrong OTP', async () => {
+      mocks.select.mockReturnValue(createChain([]));
       await service.register({ email: 'a@b.com', phone: '123', firstName: 'A', lastName: 'B' });
       await expect(service.verifyOtp({ email: 'a@b.com', otp: '000000' })).rejects.toThrow('Invalid OTP');
     });
 
     it('verifies a valid OTP and returns tokens', async () => {
-      const reg = await service.register({ email: 'a@b.com', phone: '123', firstName: 'A', lastName: 'B' });
-      userFindUnique.mockResolvedValue({ id: 'u-1', email: 'a@b.com', role: 'BUYER', firstName: 'A', lastName: 'B' });
+      mocks.select
+        .mockReturnValueOnce(createChain([]))
+        .mockReturnValue(createChain([user]));
 
+      const reg = await service.register({ email: 'a@b.com', phone: '123', firstName: 'A', lastName: 'B' });
       const result = await service.verifyOtp({ email: 'a@b.com', otp: reg.otp });
 
       expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'OTP_VERIFIED' }));
@@ -78,12 +84,12 @@ describe('AuthService', () => {
 
   describe('login', () => {
     it('rejects an unknown email', async () => {
-      userFindUnique.mockResolvedValue(null);
+      mocks.select.mockReturnValue(createChain([]));
       await expect(service.login({ email: 'x@y.com' })).rejects.toThrow('No account found with this email');
     });
 
     it('issues an OTP for an existing user', async () => {
-      userFindUnique.mockResolvedValue({ id: 'u-1', email: 'a@b.com' });
+      mocks.select.mockReturnValue(createChain([user]));
       const result = await service.login({ email: 'a@b.com' });
       expect(result.message).toBe('OTP sent');
       expect(result.otp).toMatch(/^\d{6}$/);
@@ -92,9 +98,13 @@ describe('AuthService', () => {
 
   describe('completeProfile', () => {
     it('updates an existing user with a chosen role', async () => {
-      userFindUnique.mockResolvedValue({ id: 'u-1', email: 'a@b.com', role: 'BUYER', firstName: 'A', lastName: 'B' });
-      userUpdate.mockResolvedValue({ id: 'u-1', email: 'a@b.com', role: 'AGENT', firstName: 'A', lastName: 'B' });
-      userFindUnique.mockResolvedValue({ id: 'u-1', email: 'a@b.com', role: 'AGENT', firstName: 'A', lastName: 'B' });
+      mocks.select.mockReturnValue(createChain([{ ...user, role: 'AGENT' }]));
+      const setArgs: Array<Record<string, unknown>> = [];
+      mocks.update.mockReturnValue(
+        createChain([{ ...user, role: 'AGENT', firstName: 'Ada', lastName: 'Okon' }], (method, args) => {
+          if (method === 'set') setArgs.push(args[0] as Record<string, unknown>);
+        }),
+      );
 
       const result = await service.completeProfile({
         email: 'a@b.com',
@@ -104,20 +114,36 @@ describe('AuthService', () => {
         role: 'AGENT',
       });
 
-      expect(userUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 'u-1' }, data: expect.objectContaining({ role: 'AGENT' }) }),
-      );
+      expect(mocks.update).toHaveBeenCalledWith(users);
+      expect(setArgs[0]).toMatchObject({ role: 'AGENT' });
       expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'PROFILE_COMPLETED' }));
       expect(result.accessToken).toBe('access-token');
     });
 
     it('creates a new user, ensures a referral code, and applies an optional referral', async () => {
-      userFindUnique
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce({ id: 'agent-9', referralCode: 'AGENT999' })
-        .mockResolvedValue({ id: 'u-new', email: 'new@b.com', role: 'BUYER', firstName: 'New', lastName: 'User' });
-      userCreate.mockResolvedValue({ id: 'u-new', email: 'new@b.com', role: 'BUYER', firstName: 'New', lastName: 'User' });
-      referralCreate.mockResolvedValue({ id: 'r-1' });
+      mocks.select
+        .mockReturnValueOnce(createChain([]))
+        .mockReturnValueOnce(createChain([{ id: 'agent-9', firstName: 'Agent', lastName: 'Nine', role: 'AGENT', referralCode: 'AGENT999' }]));
+
+      const updateSet: Array<Record<string, unknown>> = [];
+      mocks.update.mockReturnValue(
+        createChain([], (method, args) => {
+          if (method === 'set') updateSet.push(args[0] as Record<string, unknown>);
+        }),
+      );
+
+      const insertValues: Array<Record<string, unknown>> = [];
+      mocks.insert
+        .mockReturnValueOnce(
+          createChain([{ ...user, id: 'u-new', email: 'new@b.com', referralCode: 'CODE1234' }], (method, args) => {
+            if (method === 'values') insertValues.push(args[0] as Record<string, unknown>);
+          }),
+        )
+        .mockReturnValueOnce(
+          createChain([{ id: 'r-1', code: 'AGENT999', referrerId: 'agent-9', referredId: 'u-new', status: 'active' }], (method, args) => {
+            if (method === 'values') insertValues.push(args[0] as Record<string, unknown>);
+          }),
+        );
 
       const result = await service.completeProfile({
         email: 'new@b.com',
@@ -127,21 +153,20 @@ describe('AuthService', () => {
         referralCode: 'agent999',
       });
 
-      expect(userCreate).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ referralCode: 'CODE1234' }) }),
-      );
-      expect(userUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 'u-new' }, data: expect.objectContaining({ referredById: 'agent-9' }) }),
-      );
-      expect(referralCreate).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ code: 'AGENT999', referrerId: 'agent-9', referredId: 'u-new' }) }),
-      );
+      expect(mocks.insert).toHaveBeenNthCalledWith(1, users);
+      expect(mocks.insert).toHaveBeenNthCalledWith(2, referrals);
+      expect(insertValues[0]).toMatchObject({ referralCode: 'CODE1234' });
+      expect(updateSet[0]).toEqual({ referredById: 'agent-9' });
+      expect(insertValues[1]).toMatchObject({ code: 'AGENT999', referrerId: 'agent-9', referredId: 'u-new' });
+      expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'PROFILE_COMPLETED' }));
       expect(result.accessToken).toBe('access-token');
     });
 
     it('rejects an invalid referral code', async () => {
-      userFindUnique.mockResolvedValueOnce(null).mockResolvedValue(null);
-      userCreate.mockResolvedValue({ id: 'u-new', role: 'BUYER' });
+      mocks.select
+        .mockReturnValueOnce(createChain([]))
+        .mockReturnValue(createChain([]));
+      mocks.insert.mockReturnValue(createChain([{ ...user, id: 'u-new', role: 'BUYER' }]));
 
       await expect(
         service.completeProfile({
@@ -161,11 +186,13 @@ describe('AuthService', () => {
     });
 
     it('rotates a valid refresh token', async () => {
+      mocks.select
+        .mockReturnValueOnce(createChain([]))
+        .mockReturnValue(createChain([user]));
+
       const reg = await service.register({ email: 'a@b.com', phone: '123', firstName: 'A', lastName: 'B' });
-      userFindUnique.mockResolvedValue({ id: 'u-1', email: 'a@b.com', role: 'BUYER', firstName: 'A', lastName: 'B' });
       const verified = await service.verifyOtp({ email: 'a@b.com', otp: reg.otp });
 
-      userFindUnique.mockResolvedValue({ id: 'u-1', email: 'a@b.com', role: 'BUYER' });
       const rotated = await service.refreshToken(verified.refreshToken);
 
       expect(rotated.accessToken).toBe('access-token');
@@ -174,8 +201,11 @@ describe('AuthService', () => {
     });
 
     it('logs out by revoking the users refresh tokens', async () => {
+      mocks.select
+        .mockReturnValueOnce(createChain([]))
+        .mockReturnValue(createChain([user]));
+
       const reg = await service.register({ email: 'a@b.com', phone: '123', firstName: 'A', lastName: 'B' });
-      userFindUnique.mockResolvedValue({ id: 'u-1', role: 'BUYER' });
       const verified = await service.verifyOtp({ email: 'a@b.com', otp: reg.otp });
 
       await service.logout('u-1');
