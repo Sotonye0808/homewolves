@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-08-19
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions. Agents consult this before proposing changes to avoid contradicting prior reasoning. Uses supersedes/superseded-by links so contradictory entries are explicitly resolved rather than both appearing equally valid.
@@ -72,8 +72,67 @@ The implemented codebase uses NestJS REST controllers exclusively (no tRPC route
 - **GraphQL:** Adds complexity without sufficient benefit for a mostly-CRUD application.
 
 **Implications:**
-- All API contracts are REST controllers with DTOs validated via class-validator
-- Clients use typed API client helpers in `apps/web/lib/`
+- All API contracts are REST controllers with DTOs validated via zod schemas + `ZodValidationPipe` (as of 2026-08-10 security pass; previously there was no runtime validation).
+
+---
+
+## Zod Schemas + ZodValidationPipe for Input Validation
+
+**Decision:** Validate all REST request bodies with zod schemas through a shared `ZodValidationPipe`, using `.strict()` to reject unknown keys.
+**Date:** 2026-08-10
+**Made by:** Implementer (dev-cycle, security pass)
+**Supersedes:** The (previously aspirational) "DTOs validated via class-validator" note in the REST-as-primary decision — class-validator was never installed; validation is implemented with zod.
+**Superseded by:** None
+
+**Reason:**
+The API had no runtime input validation; DTO classes were unvalidated and several controllers accepted `@Body() dto: any`. `zod` was already a dependency, avoiding new packages. `.strict()` blocks mass-assignment (unknown keys never reach Prisma `data`). The pipe is applied per-route so existing non-decorated DTO classes needed no structural change.
+
+**Alternatives Considered:**
+- **class-validator + global ValidationPipe:** NestJS-idiomatic but requires adding dependencies and decorating every DTO class.
+- **Manual guards/checks in each controller:** Duplicated, easy to skip.
+
+**Implications:**
+- New DTOs must export a zod schema (`*.schema`) + `z.infer` type, applied via `@Body(new ZodValidationPipe(schema))`.
+- Mutation schemas use `.strict()`; numeric fields use `z.coerce.number()` to tolerate numeric-string input.
+- Validation failures return `400` with `code: VALIDATION_ERROR` (handled by the now-global `GlobalExceptionFilter`).
+
+---
+
+## Role-Based Guards for Admin/Moderation Routes
+
+**Decision:** Protect privileged routes with a `@Roles(...)` decorator + `RolesGuard` (checks `user.role` against allowed roles), composed as `@UseGuards(JwtGuard, RolesGuard)`.
+**Date:** 2026-08-10
+**Made by:** Implementer (dev-cycle, security pass)
+**Supersedes:** The original `RbacGuard` design which called `user.hasPermission()` — the JWT strategy returns a plain `{ sub, id, email, role }` object, not a `BaseUser` instance, so permission-method checks were unimplementable without building a full role→permission matrix service.
+**Superseded by:** None (may be layered onto a PlatformConfig permission matrix later)
+
+**Reason:**
+`req.user` is a plain object; role-string comparison is simple, correct for the current hierarchy, and the same check the services already perform (`role === 'ADMIN'`). Guard order in the array ensures JWT runs first and populates `req.user` before roles are checked.
+
+**Implications:**
+- Privileged routes: listings `admin/pending` + `moderate`, audit (all), config `PUT`, blog mutations, activity `seed`, transactions `payments/pending` → `@Roles('ADMIN', 'SUPER_ADMIN')`.
+- Roles are compared as strings (role is a plain string from the DB via the strategy).
+
+---
+
+## Global In-Memory Rate Limiting
+
+**Decision:** Register a `RateLimitGuard` as a global `APP_GUARD` (120 req/min/IP default; auth endpoints 10 req/min via `@Throttle`), using an in-memory sliding-window store.
+**Date:** 2026-08-10
+**Made by:** Implementer (dev-cycle, security pass)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The API had no rate limiting. No throttler dependency existed; a self-contained guard avoided adding `@nestjs/throttler`. The store is isolated behind the guard interface so a Redis-backed store (ioredis is already a dependency) can replace it for multi-instance production.
+
+**Alternatives Considered:**
+- **`@nestjs/throttler`:** Standard, but a new dependency; in-memory store only anyway.
+- **Redis-backed from the start:** Better for multi-instance but adds operational coupling before the API is deployed at scale.
+
+**Implications:**
+- 429 responses return `{ code: 'RATE_LIMITED', message: ... }`.
+- For multi-instance deployments, replace the in-memory store with Redis before relying on the limit in production.
 
 ---
 
@@ -145,6 +204,26 @@ The product requirement for admin-controlled UI without code deploys is non-nego
 
 ---
 
+## Subscription ↔ SubscriptionPlan Prisma Relation (added 2026-08-10)
+
+**Decision:** Add the missing `Subscription.plan` relation (`SubscriptionPlan.subscriptions` back-relation) to `packages/api/prisma/schema.prisma`.
+**Date:** 2026-08-10
+**Made by:** Implementer (dev-cycle, Prisma client regeneration task)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The `Subscription` model had a `planId` column but no relation field. The `SubscriptionsService` already used `include: { plan: true }`, `sub.plan?.features`, and `sub.plan?.slug` — the relation was intended but missing from the schema. It was previously invisible because the stale Prisma client accessed everything through `(this.prisma as any)`. Regenerating the typed client surfaced it as a compile error. The relation was added to match existing code rather than removing the usage.
+
+**Alternatives Considered:**
+- **Remove `include: { plan: true }` usage:** Would have lost plan data the frontend expects; the relation is clearly intended.
+
+**Implications:**
+- Schema now requires `prisma generate` (needs placeholder `DATABASE_URL` in CI).
+- No DB migration exists yet in the repo (`prisma/migrations/` not present) — schema is applied via seed/db push in the current workflow.
+
+---
+
 ## PostgreSQL FTS Phase 1 → Meilisearch Phase 5
 
 **Decision:** Use PostgreSQL full-text search for MVP. Migrate to Meilisearch in Phase 5.
@@ -164,3 +243,229 @@ Avoiding external search infrastructure during MVP accelerates initial delivery.
 **Implications:**
 - Search uses PostgreSQL FTS for Phase 1
 - Meilisearch migration planned for Phase 5
+
+---
+
+## update-ai-system.md triggers: conditional, not unconditional
+
+**Decision:** `update-ai-system.md` fires only on the conditional triggers defined in each command's `Chains to` row (architecture-affecting work in `execute-feature.md`, an emptied sprint table in `dev-cycle.md`, always in `refactor-codebase.md`, major drift in `resume-session.md`, and always in `cloud-session.md`) — not after every task unconditionally.
+**Date:** 2026-08-13
+**Made by:** v3 upgrade (opencode session)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The v3 spec (§10.3) explicitly flagged this as a judgment call. `update-ai-system.md` is the *heavier* sibling of `sync-context.md` by v2's own design; running the full deep sync after every trivial `[XS]`/`[S]` task would burn tokens on work that only `sync-context.md`'s lightweight check needs. The conditional set is the point where skipping the deep sync is actually risky.
+
+**Alternatives Considered:**
+- Unconditional invocation on the four named commands — rejected: predicts many trivial-task deep syncs per day, violating the token/context-economy goal (§12). It remains a one-line override per command if the operator prefers it.
+
+**Implications:**
+- Five commands now carry mandatory `Chains to` triggers that invoke `update-ai-system.md` automatically under their conditions — its own `Does NOT` contract is worded accordingly (invoked explicitly or via a command's mandated chain trigger, never on a schedule).
+- `verification-rules.md` and `audit-drift.md` check chain order mechanically from `session-log.md`, so a skipped trigger is caught, not trusted.
+
+---
+
+## Drizzle ORM replaces Prisma in `packages/api`
+
+**Decision:** Migrate `packages/api` from Prisma (`@prisma/client`) to Drizzle ORM — schema in `src/drizzle/schema.ts`, `DrizzleModule`/`DrizzleService` (`@Global`), services use raw query-builder chains (`db.select()/insert()/update()/delete()`) and `db.query.<table>` relational finders.
+**Date:** 2026-08-13
+**Made by:** Implementer (Session 7)
+**Supersedes:** All Prisma-related decisions referencing `packages/api/prisma/schema.prisma` and `PrismaService` (the Prisma client regeneration decision 2026-08-10, the Subscription-relation Prisma decision above).
+**Superseded by:** None
+
+**Reason:**
+Drizzle gives a typed SQL query builder with no codegen step (no stale-client class of bugs), is closer to SQL, and its generated migration workflow (`drizzle-kit`) is offline-generatable — CI has no live Postgres, so `db:generate` produces `0000_faithful_moira_mactaggert.sql` without a connection.
+
+**Alternatives Considered:**
+- **Keep Prisma:** Generated client was a recurring source of staleness; `prisma generate` requires a `DATABASE_URL`.
+- **Kysely:** Type-safe but no schema DSL/relations built in.
+
+**Implications:**
+- Specs use a new shared mock `packages/api/src/test/drizzle.mock.ts` (`createChain` thenable proxy + `createDrizzleMock`) instead of a Prisma mock.
+- New services must use `DrizzleService` query chains and enum consts from `src/drizzle/schema.ts`, not the Prisma client.
+- `db:push`/`db:migrate`/`db:seed` require real Supabase credentials — the generated migration is unapplied until a live DB is available.
+
+---
+
+## CategoryBento link mapping (web audit rectification)
+
+**Decision:** CategoryBento cards link to `/properties?category=<pill-id>` where the bento category maps to a real filter pill: `sale→sale`, `rent→rent`, `shortlet→shortlet`, `land→land`, `new-dev→new_dev`; `direct-brief` (no pill) links to `/properties` (all).
+**Date:** 2026-08-13
+**Made by:** Implementer (Session 7, verify-work web audit)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The cards were `role="button"`+`tabIndex=0` with no click handler — a dead interactive region. Mapping to existing filter pill ids means the properties page can consume the `category` query param directly.
+
+**Implications:**
+- The `new_dev` pill currently applies no category filter (its `queryParam` is `type`, not `category`; the properties page has no type-filter plumbing) — it highlights the chip and shows all listings. A future type-filter pass can wire it.
+- The properties page initializes `search` and `activePill` from URL query params via `window.location.search` in state initializers (avoids `useSearchParams` Suspense coupling) and treats unknown `category` values as `all`.
+
+---
+
+## Google OAuth via Supabase Auth (Google-only)
+
+**Decision:** Google is the sole OAuth provider, routed through Supabase Auth. The browser flow: `supabase.auth.signInWithOAuth()` → `/auth/callback#access_token=…` → `POST /api/v1/auth/supabase` with the Supabase access token → `AuthService.exchangeSupabaseToken()` verifies the Supabase JWT via `SUPABASE_JWT_SECRET`, find-or-creates the user, returns HW JWTs.
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 8)
+**Supersedes:** Any future multi-provider OAuth shortcut
+**Superseded by:** None
+
+**Reason:**
+The Google provider client ID/secret must live in the Supabase dashboard, not `.env` (Supabase-managed). The user decided the OAuth transport/verification should use Supabase (environment already provisioned) rather than a hand-rolled Google OAuth endpoint.
+
+**Alternatives Considered:**
+- **Google OAuth2 directly (ID token verification):** More moving parts (client secret in env, refresh-token management) and duplicates what Supabase already manages.
+- **next-auth:** Another dependency + session model to reconcile with the existing zustand `hw-auth` store.
+
+**Implications:**
+- `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` needed in `.env` for the web client; `SUPABASE_JWT_SECRET` needed for token verification at the exchange endpoint. Without it, the exchange returns an error and the web callback shows a fallback message.
+- `users` gained `provider`/`providerId` columns (migration `0001`).
+- `use-auth.ts` gained the `exchangeSupabase` action and persists the session in the existing `hw-auth` zustand store.
+
+---
+
+## Config-driven Resend email infrastructure (DB-backed, admin-editable)
+
+**Decision:** Transactional emails are config/metadata-driven end-to-end: `emailTemplates` table holds subject/body/active per template key; `EmailService` (in the `@Global` EmailModule) resolves DB row → `FALLBACK_EMAIL_TEMPLATES` in `packages/config/src/fallbacks.ts`, renders `{{var}}` placeholders, sends via Resend, and writes an `emailLogs` row. When `RESEND_API_KEY` is unset, sends are simulated (logged as `simulated`) and never block the caller. Admins edit templates at `/dashboard/admin/email-templates`.
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 8)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+Matches the platform's metadata-driven principle (like PlatformConfig): admins change email copy without deploys, fallbacks keep the system functional offline/without the DB, and email outages can never break a business flow.
+
+**Alternatives Considered:**
+- **Hardcoded template strings in services:** Not admin-editable; would drift from the config-driven convention.
+- **Third-party email UI (e.g., Resend hosted templates):** Splits copy control out of the platform; the user wants an in-house admin GUI.
+
+**Implications:**
+- `EmailModule` is `@Global()`; feature services only add `private emailService: EmailService` to their constructor (no module imports).
+- `EmailTemplate` type is global via `packages/types/src/global.d.ts` (both API and web tsconfigs include it); API does not depend on `@hw/config`.
+- Template keys in use: `otp_code`, `welcome`, `transaction_created`, `transaction_completed`, `transaction_rejected`, `transaction_cancelled`, `payment_confirmed`, `subscription_activated`, `signature_requested`, `listing_approved`, `listing_rejected`, `referral_signup`, `price_drop` (all seeded in `email-templates.defaults.ts`).
+- `RESEND_FROM_EMAIL`/`RESEND_FROM_NAME` in `.env` configure the sender.
+
+---
+
+## Blog create flow accepts `featured` (parity with update)
+
+**Decision:** `createBlogPostSchema` accepts an optional `featured` boolean (matching `updateBlogPostSchema`), `BlogService.create` persists it, and the web `createBlogPost` lib type includes it. The admin new-post form already submits `featured`.
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 8)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The admin post form always submits `featured`; the strict zod schema rejected the unknown key on create (only update accepted it). This aligns the create contract with the UI.
+
+**Implications:**
+- New blog posts can be marked featured from the first save.
+- `lib/blog.ts` `createBlogPost` accepts `featured?: boolean`.
+
+---
+
+## DocuSeal webhook verified with HMAC (matching Paystack)
+
+**Decision:** The DocuSeal signatures webhook (`POST /api/v1/signatures/webhook`) verifies the `X-Docuseal-Signature` header: value format `[timestamp].[signature]`, hex HMAC-SHA256 of `${timestamp}.${rawBody}` keyed by `DOCUSEAL_WEBHOOK_SECRET` (`whsec_…`), 5-minute replay tolerance, timing-safe compare. When `DOCUSEAL_WEBHOOK_SECRET` is unset, verification passes (dev bypass) — matching the Paystack webhook's existing dev-bypass convention.
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 9)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+DocuSeal webhook carried no signature check, so a forged POST could advance signature/transaction state. Paystack already verified HMAC; DocuSeal documents the same pattern. The dev bypass keeps local dev (no secret) working exactly like Paystack.
+
+**Implications:**
+- `docuseal.client.ts` exposes `verifyWebhookSignature(rawBody, signature)`; controller returns 401 `UnauthorizedException` on invalid/stale/malformed signatures.
+- `DOCUSEAL_WEBHOOK_SECRET` documented in `.env.example`; unset = skip verification (log it in prod deployment checklist).
+
+---
+
+## `JWT_SECRET` fails hard in production (dev fallback only outside prod)
+
+**Decision:** One shared `resolveJwtSecret()` in `packages/api/src/common/config/env.ts`: returns `process.env.JWT_SECRET` when set, else `homewolves-dev-secret`, and **throws** when `NODE_ENV=production` and `JWT_SECRET` is unset. `jwt.strategy.ts`, `auth.module.ts`, and a `main.ts` boot check all use it.
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 9)
+**Supersedes:** The implicit per-file `process.env.JWT_SECRET ?? 'homewolves-dev-secret'` fallbacks
+**Superseded by:** None
+
+**Reason:**
+The dev fallback silently deployed would sign every token with a public secret. Failing fast in production prevents a misconfigured deploy; dev/test keep working with the deterministic fallback (vitest runs with `NODE_ENV=test`).
+
+**Implications:**
+- Production boot aborts (throw) if `JWT_SECRET` unset — caught in `main.ts`.
+- Test/CI unaffected (fallback active outside `production`).
+
+---
+
+## Redis-backed rate limiter with in-memory fallback
+
+**Decision:** The global rate-limit guard now injects a pluggable store via the `RATE_LIMIT_STORE` token. Factory in `rate-limit.module.ts` selects `RedisRateLimitStore` (ioredis sorted-set sliding window) when `REDIS_URL` is set and connects, otherwise `MemoryRateLimitStore` (sliding window, 10k bucket cap) with a warning. Both implement `RateLimitStore.hit(key, limit, ttlMs) -> {allowed, count}`.
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 9)
+**Supersedes:** The single in-memory `Map` sliding window inside `RateLimitGuard`
+**Superseded by:** None
+
+**Reason:**
+The in-memory limiter is per-instance, so a multi-instance deploy multiplies the effective limit. Redis makes limits shared and consistent; falling back to memory when Redis is absent keeps local dev and single-instance deploys working without infra.
+
+**Implications:**
+- `REDIS_URL` set + reachable → Redis store (graceful; a bad Redis URL logs a warning and falls back).
+- `RateLimitGuard` is now async; semantics unchanged (120/min default, 10/min auth).
+- Unit coverage via `rate-limit.store.spec.ts` (memory store) + integration 429 test.
+
+---
+
+## Web auth redirect gated on zustand hydration
+
+**Decision:** `use-auth.ts` (zustand `persist`) gained a non-persisted `hydrated` flag set via `useAuth.persist.onFinishHydration`. The dashboard layout only runs `router.replace('/auth')` and only renders the dashboard when `hydrated && accessToken`, otherwise it shows the loading state.
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 9)
+**Supersedes:** The layout's unconditional `if (!accessToken) router.replace('/auth')` on mount
+**Superseded by:** None
+
+**Reason:**
+zustand v4 `persist` rehydrates **asynchronously** (a promise chain), so on slow loads the mount-time `useEffect` could observe `accessToken === null` before hydration finished and bounce an already-logged-in user to `/auth`. The E2E admin-journey suite caught this as a flaky auth redirect.
+
+**Implications:**
+- The redirect and the "Loading dashboard..." gate are now driven by `hydrated`; no flash-to-auth for logged-in users.
+- Same pattern should be reused by any future mount-time guard on persisted zustand state.
+
+---
+
+## SEO verified already present; blog detail stays a client component
+
+**Decision:** No SEO code changes this sprint — listing detail already has `generateMetadata` + JSON-LD, and `app/sitemap.ts` + `robots.ts` already exist. The blog detail page remains a client component with client-side JSON-LD (no server `generateMetadata`); converting it to a server component is out of scope for MVP.
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 9)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The "SEO" sprint item was already implemented (verify-only). Blog detail's client-render JSON-LD is acceptable for MVP; a server-component conversion is a separate perf task. Listings `take` is capped at 50 in the controller, so sitemap lists at most 50 listings — accepted for MVP.
+
+**Implications:**
+- Sitemap covers listings (`?take=500&status=ACTIVE`) + blog (`?published=true&limit=500`); controllers clamp `take` to 50 — sitemap completeness bounded by that.
+- Blog detail JSON-LD is emitted client-side only.
+
+---
+
+## Next.js SWC lockfile patch requires `NEXT_IGNORE_INCORRECT_LOCKFILE=1` (env quirk)
+
+**Decision:** Documented (not code-fixed) environmental workaround: `next build` in this workspace warns "Found lockfile missing swc dependencies, patching…" and then crashes the patch step because Next 14.2.35's `optionalDependencies` pin `@next/swc-*@14.2.33` while `patch-incorrect-lockfile.js` fetches registry metadata for version 14.2.35 (missing). Setting `NEXT_IGNORE_INCORRECT_LOCKFILE=1` makes the build skip the patch and succeed (compilation + static generation unaffected).
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 9)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The prior session's `npm install` pruned the non-current-platform `@next/swc-*` entries from `package-lock.json`; Next's auto-patch then tries to re-add them at the wrong version and crashes. Not a code or build-output issue.
+
+**Implications:**
+- CI/build hosts must set `NEXT_IGNORE_INCORRECT_LOCKFILE=1` (or ensure the lockfile carries all 9 `@next/swc-*` entries).
+- The two present entries (`swc-linux-x64-gnu`, `swc-win32-x64-msvc` @14.2.33) are correct for this machine.
+
+---

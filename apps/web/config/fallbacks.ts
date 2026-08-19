@@ -105,3 +105,33 @@ export const FALLBACK_PROPERTY_CARD_CONFIG: PropertyCardConfig = {
 export const FALLBACK_BENTO_CONFIG: BentoCellConfig = {
   size: '1x1',
 };
+
+// Lightweight email-template fallbacks — activation only when the templates
+// API is unreachable. The API seeds its own full copies (email-templates.defaults.ts).
+export const FALLBACK_EMAIL_TEMPLATES: EmailTemplate[] = [
+  {
+    key: 'otp_code',
+    name: 'Login / Signup Code',
+    subject: 'Your Homewolves verification code is {{otp}}',
+    htmlBody: 'Hi {{firstName}},<br/><br/>Your verification code is <strong>{{otp}}</strong>. It expires in {{expiresInMinutes}} minutes.',
+    active: true,
+    description: 'Six-digit code used for email/OTP login and registration.',
+    variables: [
+      { name: 'firstName', label: 'Recipient first name', example: 'Ada' },
+      { name: 'otp', label: 'Verification code', example: '482913' },
+      { name: 'expiresInMinutes', label: 'Code expiry (minutes)', example: '10' },
+    ],
+  },
+  {
+    key: 'welcome',
+    name: 'Welcome',
+    subject: 'Welcome to Homewolves, {{firstName}}!',
+    htmlBody: 'Hi {{firstName}},<br/><br/>Your account is ready. Explore properties at {{siteUrl}}.',
+    active: true,
+    description: 'Sent after account creation / profile completion.',
+    variables: [
+      { name: 'firstName', label: 'Recipient first name', example: 'Ada' },
+      { name: 'siteUrl', label: 'Platform URL', example: 'https://homewolves.com' },
+    ],
+  },
+];

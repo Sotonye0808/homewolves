@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { and, desc, eq, gte, ilike, lte, count, asc } from 'drizzle-orm';
+import { DrizzleService } from '../../drizzle/drizzle.service';
+import { auditEvents } from '../../drizzle/schema';
 
 interface AuditLogInput {
   entityType: string;
@@ -24,100 +26,81 @@ interface AuditFilter {
 
 @Injectable()
 export class AuditService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private db: DrizzleService) {}
 
   async log(input: AuditLogInput): Promise<void> {
-    await (this.prisma as any).auditEvent.create({
-      data: {
-        entityType: input.entityType,
-        entityId: input.entityId,
-        action: input.action,
-        actorId: input.actor.id,
-        actorRole: input.actor.role,
-        actorName: input.actor.name,
-        ipAddress: input.ipAddress,
-        deviceInfo: input.deviceInfo ?? {},
-        metadata: input.metadata ?? {},
-      },
+    await this.db.insert(auditEvents).values({
+      entityType: input.entityType,
+      entityId: input.entityId,
+      action: input.action,
+      actorId: input.actor.id,
+      actorRole: input.actor.role,
+      actorName: input.actor.name,
+      ipAddress: input.ipAddress,
+      deviceInfo: input.deviceInfo ?? {},
+      metadata: input.metadata ?? {},
     });
   }
 
   async findByEntity(entityType: string, entityId: string): Promise<AuditEvent[]> {
-    const events = await (this.prisma as any).auditEvent.findMany({
-      where: { entityType, entityId },
-      orderBy: { timestamp: 'asc' },
-    });
+    const events = await this.db
+      .select()
+      .from(auditEvents)
+      .where(and(eq(auditEvents.entityType, entityType), eq(auditEvents.entityId, entityId)))
+      .orderBy(asc(auditEvents.timestamp));
     return events as unknown as AuditEvent[];
   }
 
   async findAllFiltered(filter: AuditFilter) {
-    const where: any = {};
-
-    if (filter.entityType) where.entityType = filter.entityType;
-    if (filter.entityId) where.entityId = filter.entityId;
-    if (filter.actorId) where.actorId = filter.actorId;
-    if (filter.action) where.action = { contains: filter.action, mode: 'insensitive' };
-
-    if (filter.dateFrom || filter.dateTo) {
-      where.timestamp = {};
-      if (filter.dateFrom) where.timestamp.gte = new Date(filter.dateFrom);
-      if (filter.dateTo) where.timestamp.lte = new Date(filter.dateTo + 'T23:59:59.999Z');
-    }
+    const where = this.buildWhere(filter);
 
     const page = filter.page ?? 1;
     const limit = filter.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const [events, total] = await Promise.all([
-      (this.prisma as any).auditEvent.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { timestamp: 'desc' },
-      }),
-      (this.prisma as any).auditEvent.count({ where }),
+    const [events, totalResult] = await Promise.all([
+      this.db.select().from(auditEvents).where(where).orderBy(desc(auditEvents.timestamp)).limit(limit).offset(skip),
+      this.db.select({ value: count() }).from(auditEvents).where(where),
     ]);
 
-    return { events: events as unknown as AuditEvent[], total, page, limit };
+    return { events: events as unknown as AuditEvent[], total: totalResult[0]?.value ?? 0, page, limit };
   }
 
   async exportCsv(filter: AuditFilter): Promise<string> {
-    const where: any = {};
-    if (filter.entityType) where.entityType = filter.entityType;
-    if (filter.entityId) where.entityId = filter.entityId;
-    if (filter.actorId) where.actorId = filter.actorId;
-    if (filter.action) where.action = { contains: filter.action, mode: 'insensitive' };
+    const where = this.buildWhere(filter);
 
-    if (filter.dateFrom || filter.dateTo) {
-      where.timestamp = {};
-      if (filter.dateFrom) where.timestamp.gte = new Date(filter.dateFrom);
-      if (filter.dateTo) where.timestamp.lte = new Date(filter.dateTo + 'T23:59:59.999Z');
-    }
-
-    const events = await (this.prisma as any).auditEvent.findMany({
-      where,
-      orderBy: { timestamp: 'desc' },
-      take: 10000,
-    });
+    const events = await this.db
+      .select()
+      .from(auditEvents)
+      .where(where)
+      .orderBy(desc(auditEvents.timestamp))
+      .limit(10000);
 
     const headers = 'Timestamp,Actor,Actor Role,Action,Entity Type,Entity ID,IP Address\n';
-    const rows = events.map((e: any) =>
-      `"${e.timestamp.toISOString()}","${e.actorName}","${e.actorRole}","${e.action}","${e.entityType}","${e.entityId}","${e.ipAddress ?? ''}"`
-    ).join('\n');
+    const rows = events
+      .map(
+        (e) =>
+          `"${e.timestamp.toISOString()}","${e.actorName}","${e.actorRole}","${e.action}","${e.entityType}","${e.entityId}","${e.ipAddress ?? ''}"`,
+      )
+      .join('\n');
 
     return headers + rows;
   }
 
   async exportPdf(filter: AuditFilter): Promise<{ html: string }> {
     const result = await this.findAllFiltered(filter);
-    const rows = result.events.map((e: any) => `
+    const rows = result.events
+      .map(
+        (e) => `
       <tr>
         <td>${new Date(e.timestamp).toLocaleString()}</td>
         <td>${e.actorName} (${e.actorRole})</td>
         <td>${e.action}</td>
         <td>${e.entityType}</td>
       </tr>
-    `).join('');
+    `,
+      )
+      .join('');
 
     const html = `
       <html><head><style>
@@ -133,5 +116,20 @@ export class AuditService {
       </body></html>`;
 
     return { html };
+  }
+
+  private buildWhere(filter: AuditFilter) {
+    const conditions = [];
+    if (filter.entityType) conditions.push(eq(auditEvents.entityType, filter.entityType));
+    if (filter.entityId) conditions.push(eq(auditEvents.entityId, filter.entityId));
+    if (filter.actorId) conditions.push(eq(auditEvents.actorId, filter.actorId));
+    if (filter.action) conditions.push(ilike(auditEvents.action, `%${filter.action}%`));
+
+    if (filter.dateFrom || filter.dateTo) {
+      if (filter.dateFrom) conditions.push(gte(auditEvents.timestamp, new Date(filter.dateFrom)));
+      if (filter.dateTo) conditions.push(lte(auditEvents.timestamp, new Date(filter.dateTo + 'T23:59:59.999Z')));
+    }
+
+    return conditions.length > 0 ? and(...conditions) : undefined;
   }
 }

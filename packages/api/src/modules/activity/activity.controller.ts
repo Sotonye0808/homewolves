@@ -1,6 +1,9 @@
 import { Controller, Get, Post, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { ActivityService } from './activity.service';
 import { JwtGuard } from '../auth/jwt.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { AuthenticatedRequest, toActor } from '../../common/types/request.types';
 
 @Controller('activity')
 export class ActivityController {
@@ -8,12 +11,13 @@ export class ActivityController {
 
   @Get('leaderboard')
   getLeaderboard(@Query('limit') limit?: string) {
-    return this.activityService.getLeaderboard(limit ? parseInt(limit) : 20);
+    const parsed = limit ? Math.min(parseInt(limit) || 20, 100) : 20;
+    return this.activityService.getLeaderboard(parsed);
   }
 
   @Get('stats')
   @UseGuards(JwtGuard)
-  getMyStats(@Req() req: any) {
+  getMyStats(@Req() req: AuthenticatedRequest) {
     return this.activityService.getAgentStats(req.user.sub);
   }
 
@@ -28,6 +32,8 @@ export class ActivityController {
   }
 
   @Post('seed')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN')
   async seed() {
     await this.activityService.ensureRules();
     return { message: 'Activity rules seeded' };
@@ -35,8 +41,7 @@ export class ActivityController {
 
   @Post('award/:ruleKey')
   @UseGuards(JwtGuard)
-  award(@Param('ruleKey') ruleKey: string, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.activityService.award(req.user.sub, ruleKey, actor);
+  award(@Param('ruleKey') ruleKey: string, @Req() req: AuthenticatedRequest) {
+    return this.activityService.award(req.user.sub, ruleKey, toActor(req));
   }
 }

@@ -2,8 +2,8 @@
 
 > **Metadata**
 >
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: dev-cycle
+> - last-verified-against-code: 2026-08-10
 > - staleness-policy: historical entries do not go stale
 
 > **Overview:** Chronological log of completed development work. Each sprint ends with a summary entry. Agents add entries after completing tasks. Useful for understanding what has been built, when decisions were made, and what patterns have emerged.
@@ -184,3 +184,97 @@ Upgraded the development system from v1 `.ai-system/` to the v2 `ai-system/` fra
 
 **Next Sprint Focus:**
 Prisma regeneration, security/testing/SEO hardening, and Backlog items (WhatsApp, analytics, Expo parity).
+
+---
+
+## 2026-08-10 — Prisma Client Regeneration
+
+**Summary:**
+Regenerated the Prisma Client so the Phase 3 models (Client, Note, Rating, Inspection, ActivityRule, AgentActivity, AgentPoints, BlogPost) are fully typed instead of being accessed through `(this.prisma as any)` casts.
+
+**Completed:**
+
+- Fixed schema: added 7 missing opposite-relation fields (User→agentActivities/agentPoints/blogPosts, Listing→inspections, Transaction→signatureRequests, TransactionDocument→signatureRequests, Subscription↔SubscriptionPlan) that were blocking `prisma validate`
+- Regenerated Prisma Client (v5.22.0); new models now typed
+- Removed all `(this.prisma as any)` and `db(prisma as any)` casts across 11 services; `db()` helper now returns the typed client
+- Fixed type errors surfaced by the typed client (JSON metadata casts, `Notification` type collision in notifications service/gateway, `plan.features` JSON cast)
+
+**Key Changes:**
+
+- `Subscription.plan` relation added to schema — the service already used `include: { plan: true }`, so the relation was intended but missing
+- Remaining `as any` casts in services are limited to Prisma `Json` field access (locationJson, preferences, stepsJson) — legitimate JSON payload typing, not stale-client workarounds
+
+**Next Sprint Focus:**
+Security pass (REST route guards, rate limiting, input validation), then testing setup.
+
+---
+
+## 2026-08-10 — API Security Pass
+
+**Summary:**
+Completed the security pass across all 15 REST controllers: fixed an authentication identity bug, added role-based access control to privileged routes, introduced zod input validation on every DTO, added global rate limiting, and closed unguarded-endpoint gaps.
+
+**Completed:**
+
+- **Identity bug fixed:** `JwtStrategy` returned `{ id, email, role }` but controllers read `req.user.sub` → `sub` was `undefined` on every authenticated request. Strategy now returns `sub` (plus `id` for the notifications controller).
+- **RBAC:** New `@Roles(...)` decorator + `RolesGuard` enforced on `listings/admin/pending`, `listings/:id/moderate`, audit (all), config `PUT`, blog mutations, activity `seed`, and transactions `payments/pending`. `platform-config PUT` was previously completely unguarded.
+- **Input validation:** New `ZodValidationPipe` + zod schemas for every DTO (auth, listings, transactions, crm, notifications, blog, documents, signatures, subscriptions, messaging, config, recently-viewed) plus inline bodies. Rejects unknown keys (`.strict()`) to prevent mass-assignment. Used the existing `zod` dependency — no new packages.
+- **Rate limiting:** Global `RateLimitGuard` (in-memory sliding window, 120 req/min/IP default) registered as `APP_GUARD`; auth endpoints tightened to 10 req/min.
+- **Guards added where missing:** `notifications` (was unauthenticated), `platform-config PUT`, `activity seed`, audit role restriction.
+- **recently-viewed:** Server now derives `userId` from the JWT (`OptionalJwtGuard`) instead of trusting client-supplied `userId` (was spoofable). Web client updated to send the token.
+- **messaging:** `createConversation` now always adds the caller as a participant.
+- **GlobalExceptionFilter** wired globally in `main.ts`.
+- **Webhook bodies** (subscriptions, signatures) now shape-validated via zod.
+
+**Key Changes:**
+
+- `packages/types/src` generated build artifacts (`.js`/`.d.ts`/`.map`) gitignored + untracked — they regenerate on API builds and reference `@prisma/client`; `global.d.ts` stays tracked.
+- `req.user.sub` is now the canonical authenticated-user id across the API.
+
+**Next Sprint Focus:**
+Testing setup ([L] task), then SEO, error handling, blog HTML sanitization.
+
+---
+
+## 2026-08-13 — Testing Setup
+
+**Summary:**
+Completed the [L] testing task: eliminated all `@hw/api` lint blockers, stood up a 187-test vitest suite (API service specs + web lib/component tests) and 16 Playwright E2E journeys, and passed the full QA gate (test/typecheck/build/lint).
+
+**Completed:**
+
+- **Lint blockers cleared** — `@hw/api` 104 `no-explicit-any` errors → 0 by typing `req` as `AuthenticatedRequest`/`MaybeAuthenticatedRequest` (new `common/types/request.types.ts` with `toActor()`), typed Prisma clauses, typed JSON casts. `@hw/types` lint fixed via `.eslintignore` for generated `.js`/`.d.ts` build artifacts.
+- **API unit tests** — 8 new service specs (audit, platform-config, notifications, listing, transactions, crm, blog, auth) on top of the pre-existing referrals/activity specs → 93 tests across 10 files.
+- **Web tests** — 7 new lib specs (listings, crm, blog, subscriptions, referrals, activity, notifications) + 2 new component specs (hw-card, hw-input) + hero-section landing test → 94 tests across 13 files.
+- **E2E journeys** — guest, auth (register→OTP→profile), agent dashboard, transaction stepper; API stubbed via `page.route` since the Playwright webServer only boots the web app.
+- **QA gate** — `npm test` (187), `npm run typecheck`, `npm run build`, `npm run lint` all green.
+
+**Key Changes:**
+
+- Test-driven fixes to real behavior: notifications `updatePreferences` now replaces (not merges) preferences; transaction `complete()` requires `currentStep >= steps.length`.
+- Prisma client regenerated (was stale); `packages/types/.eslintignore` added.
+- Remaining lint warnings: 3 `no-console` in `@hw/api` (intentional dev/stub logging).
+
+**Next Sprint Focus:**
+SEO, blog HTML sanitization, activity-points service wiring, API integration tests, E2E admin journey — see the open `[ ]` items at the top of `planning/task-queue.md`.
+
+## 2026-08-13 — Prisma→Drizzle Migration + Web Audit Rectification
+
+**Summary:**
+Migrated `packages/api` from Prisma to Drizzle ORM end-to-end, then ran the `verify-work.md` web audit on `apps/web` and fixed its findings. Both packages green (typecheck/lint/tests/build).
+
+**Completed:**
+
+- **Drizzle schema** — `src/drizzle/schema.ts` (28 tables, 5 enums, relations, `ListingCategory` re-exported); `drizzle.config.ts` + `drizzle/seed.ts`; `DrizzleModule`/`DrizzleService` (`@Global`) with getter-based query chains; all services/DTOs/gateway ported. `@prisma/client` removed; `packages/api/prisma/` + `src/prisma/` deleted.
+- **Migration** — `0000_faithful_moira_mactaggert.sql` generated offline via `npm run db:generate` (unapplied; no live DB in CI).
+- **Specs** — 10 files / 93 tests rewritten against a shared Drizzle mock (`src/test/drizzle.mock.ts` with `createChain` thenable proxy + `createDrizzleMock`).
+- **Web audit fixes** — CategoryBento dead cards → `next/link`s; properties page reads `search`+`category` URL params (fixed `for_sale`→`sale` categoryMap bug that silently broke "For Sale"); footer nav → `next/link`; dashboard notification dropdown rows clickable (mark one read + navigate); `useNotificationBell` exposes `markRead`; `loading.tsx` for `(public)`+`(dashboard)`; hero + landing cards use `next/image` (`images.unsplash.com` added to `remotePatterns`).
+
+**Key Changes:**
+
+- `packages/api/src/test/drizzle.mock.ts` is now the shared pattern for all service specs.
+- Drizzle enum consts + query chains are the canonical DB access pattern (no generated client, no stale-client class of bugs).
+- Web: navigation/linkability/dead-zone defects from the audit closed.
+
+**Next Sprint Focus:**
+Apply `0000` migration + seed on a live Supabase DB; then open `[ ]` items at the top of `planning/task-queue.md` ([M] SEO, [BUG] blog sanitization, [M] activity-points wiring, [M] API integration tests, [M] E2E admin journey). Follow-up `next/image` pass for dashboard/blog/auth dynamic media `<img>` tags.

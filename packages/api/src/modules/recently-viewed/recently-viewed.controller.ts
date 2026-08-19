@@ -1,22 +1,38 @@
-import { Controller, Post, Get, Body, Query } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, UseGuards, Req } from '@nestjs/common';
 import { RecentlyViewedService } from './recently-viewed.service';
+import { OptionalJwtGuard } from '../../common/guards/optional-jwt.guard';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { MaybeAuthenticatedRequest } from '../../common/types/request.types';
+import { z } from 'zod';
+
+const recordSchema = z
+  .object({
+    listingId: z.string().min(1).max(64),
+    sessionId: z.string().trim().min(1).max(200).optional(),
+  })
+  .strict();
 
 @Controller('recently-viewed')
 export class RecentlyViewedController {
   constructor(private service: RecentlyViewedService) {}
 
   @Post()
+  @UseGuards(OptionalJwtGuard)
   record(
-    @Body() body: { listingId: string; userId?: string; sessionId?: string },
+    @Body(new ZodValidationPipe(recordSchema)) body: { listingId: string; sessionId?: string },
+    @Req() req: MaybeAuthenticatedRequest,
   ) {
-    return this.service.record(body.userId ?? null, body.sessionId ?? null, body.listingId);
+    const userId = req.user?.sub ?? null;
+    return this.service.record(userId, body.sessionId ?? null, body.listingId);
   }
 
   @Get()
+  @UseGuards(OptionalJwtGuard)
   getRecent(
-    @Query('userId') userId?: string,
+    @Req() req: MaybeAuthenticatedRequest,
     @Query('sessionId') sessionId?: string,
   ) {
-    return this.service.getRecent(userId ?? null, sessionId ?? null);
+    const userId = req.user?.sub ?? null;
+    return this.service.getRecent(userId, sessionId ?? null);
   }
 }

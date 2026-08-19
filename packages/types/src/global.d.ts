@@ -8,6 +8,7 @@
 /// <reference path="./entities/notification.types.ts" />
 /// <reference path="./entities/crm.types.ts" />
 /// <reference path="./entities/activity.types.ts" />
+/// <reference path="./entities/email.types.ts" />
 /// <reference path="./config/platform-config.types.ts" />
 /// <reference path="./config/filter.types.ts" />
 /// <reference path="./config/subscription.types.ts" />

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Search, ArrowRight } from 'lucide-react';
 
 export function HeroSection() {
@@ -10,11 +11,13 @@ export function HeroSection() {
 
   return (
     <section className="relative w-full h-[500px] lg:h-[600px] overflow-hidden" role="banner">
-      <img
+      <Image
         src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=2560&q=80"
         alt="Beautiful African property"
-        className="w-full h-full object-cover"
-        loading="eager"
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover"
       />
       <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/65" />
       <div className="absolute inset-0 flex flex-col items-center justify-end pb-16 lg:pb-20 px-4 lg:px-10">

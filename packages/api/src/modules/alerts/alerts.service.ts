@@ -1,41 +1,42 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { eq, inArray, sql } from 'drizzle-orm';
+import { DrizzleService } from '../../drizzle/drizzle.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
-
-const db = (prisma: PrismaService) => prisma as any;
+import { EmailService } from '../email/email.service';
+import { listings, savedCollections, recentlyViewed, users } from '../../drizzle/schema';
 
 @Injectable()
 export class AlertsService {
   constructor(
-    private prisma: PrismaService,
+    private db: DrizzleService,
     private notificationsService: NotificationsService,
     private notificationsGateway: NotificationsGateway,
+    private emailService: EmailService,
   ) {}
 
   async checkPriceDrop(listingId: string, oldPrice: number, newPrice: number) {
     if (newPrice >= oldPrice) return;
 
     const dropPercent = Math.round((1 - newPrice / oldPrice) * 100);
-    const listing = await this.prisma.listing.findUnique({
-      where: { id: listingId },
-      select: { title: true, id: true },
-    });
+    const [listing] = await this.db.select({ title: listings.title, id: listings.id }).from(listings).where(eq(listings.id, listingId));
     if (!listing) return;
 
-    const savedBy = await db(this.prisma).savedCollection.findMany({
-      where: { listingIds: { has: listingId } },
-      select: { userId: true },
-    });
+    const savedBy = await this.db.select({ userId: savedCollections.userId }).from(savedCollections).where(sql`${savedCollections.listingIds} @> ARRAY[${listingId}]`);
 
-    const recentlyViewedBy = await db(this.prisma).recentlyViewed.findMany({
-      where: { listingId },
-      select: { userId: true },
-    });
+    const recentlyViewedBy = await this.db.select({ userId: recentlyViewed.userId }).from(recentlyViewed).where(eq(recentlyViewed.listingId, listingId));
 
     const userIds = new Set<string>();
     for (const s of savedBy) if (s.userId) userIds.add(s.userId);
     for (const r of recentlyViewedBy) if (r.userId) userIds.add(r.userId);
+
+    let watchers: { id: string; email: string | null; firstName: string | null }[] = [];
+    if (userIds.size > 0) {
+      watchers = await this.db
+        .select({ id: users.id, email: users.email, firstName: users.firstName })
+        .from(users)
+        .where(inArray(users.id, [...userIds]));
+    }
 
     for (const userId of userIds) {
       await this.notificationsService.createAndDispatch(
@@ -49,31 +50,51 @@ export class AlertsService {
         (uid, n) => this.notificationsGateway.sendNotification(uid, n),
       );
     }
+
+    for (const watcher of watchers) {
+      if (!watcher.email) continue;
+      void this.emailService.send(watcher.email, 'price_drop', {
+        firstName: watcher.firstName ?? 'there',
+        listingTitle: listing.title ?? '',
+        listingId,
+        oldPrice: String(oldPrice),
+        newPrice: String(newPrice),
+        dropPercent: `${dropPercent}%`,
+      });
+    }
   }
 
   async checkNewListingMatch(listingId: string) {
-    const listing = await this.prisma.listing.findUnique({
-      where: { id: listingId },
-      select: {
-        title: true,
-        id: true,
-        price: true,
-        category: true,
-        propertyType: true,
-        amenityIds: true,
-        locationJson: true,
-      },
-    });
+    const [listing] = await this.db
+      .select({
+        title: listings.title,
+        id: listings.id,
+        price: listings.price,
+        category: listings.category,
+        propertyType: listings.propertyType,
+        amenityIds: listings.amenityIds,
+        locationJson: listings.locationJson,
+      })
+      .from(listings)
+      .where(eq(listings.id, listingId));
     if (!listing) return;
 
-    const location = listing.locationJson as any;
-    const users = await this.prisma.user.findMany({
-      where: { verified: true },
-      select: { id: true, preferences: true },
-    });
+    const location = listing.locationJson as Record<string, string> | null;
+    const rows = await this.db
+      .select({ id: users.id, preferences: users.preferences })
+      .from(users)
+      .where(eq(users.verified, true));
 
-    for (const user of users) {
-      const prefs = (user.preferences as any)?.savedSearches as any[];
+    interface SavedSearch {
+      category?: string;
+      propertyType?: string;
+      minPrice?: number;
+      maxPrice?: number;
+      location?: string;
+    }
+
+    for (const user of rows) {
+      const prefs = (user.preferences as { savedSearches?: SavedSearch[] } | null)?.savedSearches ?? [];
       if (!prefs?.length) continue;
 
       for (const search of prefs) {

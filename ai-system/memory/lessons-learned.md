@@ -1,8 +1,8 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Homewolves development — things that worked well, things that didn't, and patterns worth repeating. Different from `repair-system.md` (tracks errors); this file tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -111,6 +111,23 @@ Any project with a dedicated design phase. Require designers to export HTML with
 
 ---
 
+## Regenerate Prisma Client After Every Schema Change
+
+**Context:**
+Post-MVP, Phase 3 added models (Client, Note, Rating, Inspection, ActivityRule, AgentActivity, AgentPoints, BlogPost) but the Prisma client was never regenerated. Services accessed them via `(this.prisma as any)` / `db(prisma as any)` helpers, hiding type safety for a whole sprint.
+
+**What We Learned:**
+A stale Prisma client silently degrades type safety across all services. Regenerating surfaced real issues the `as any` casts had masked — missing opposite-relation fields in the schema (7 of them), a missing `Subscription.plan` relation, and a `Notification` type collision (DOM global vs Prisma model). Removing the casts after regeneration is low-risk when done methodically and verified with `tsc --noEmit`.
+
+**Apply When:**
+- After ANY change to `schema.prisma` — run `prisma generate` (needs a placeholder `DATABASE_URL`).
+- When cleaning up `as any` casts on Prisma access — remove the cast, run typecheck, fix what surfaces. Don't pre-emptively revert casts to hide real schema gaps.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
 ## Design Tokens Must Replace Raw Tailwind Colors
 
 **Context:**
@@ -121,6 +138,126 @@ Rapid feature development drifts toward Tailwind shorthand. The audit pass repla
 
 **Apply When:**
 Any frontend work — use `var(--color-*)` tokens exclusively. Run `grep` for raw hex/Tailwind color classes in review.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Keep JWT Strategy Payload Shape in Sync With Controllers
+
+**Context:**
+Security pass (2026-08-10). `JwtStrategy.validate()` returned `{ id, email, role }` while every controller read `req.user.sub`. Because TS controllers typed `req` as `any`, the mismatch compiled cleanly but `req.user.sub` was `undefined` at runtime — meaning mutations like `listingService.create(dto, undefined, actor)` wrote no owner. The notifications controller happened to use `req.user.id` and worked, which masked the bug.
+
+**What We Learned:**
+When a Passport strategy customizes the `validate()` return, its field names are the contract. `req.user.sub` is the JWT convention (payload `sub` claim); if `validate()` returns a different shape, all consumers break silently because `req: any`. Fix: return `{ sub, id, email, role }` so both conventions work.
+
+**Apply When:**
+- Changing `JwtStrategy.validate()` — update the returned object to include `sub`.
+- Grep for `req.user.` across controllers when auth behavior seems broken but TS is green.
+- Avoid `@Req() req: any` in new controllers; define a typed request user interface.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Validate Inputs at the Boundary and Reject Unknown Keys
+
+**Context:**
+Security pass (2026-08-10). The API had zero input validation: DTO classes had no decorators, several controllers accepted `@Body() dto: any`, and mutation paths spread the raw body into Prisma `data`. A client could mass-assign fields (e.g. `ownerId`, `featured`) or blow up services with malformed types.
+
+**What We Learned:**
+Zod schemas + a shared `ZodValidationPipe` using `.strict()` (reject unknown keys) gives boundary validation, mass-assignment protection, and typed `z.infer` DTOs — using the already-present `zod` dependency, so no new packages. Global validation pipes are harder to retrofit when DTOs aren't decorated; per-route pipes on the existing DTO classes were the low-churn path.
+
+**Apply When:**
+- Adding any new endpoint/DTO — write a zod schema and apply `@Body(new ZodValidationPipe(schema))`.
+- Use `.strict()` on all mutation schemas to block unknown-key injection.
+- Keep `.coerce.number()` for numeric fields the frontend may send as strings (price, amount).
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Rate Limiting Should Be Redis-Backed for Multi-Instance Deploys
+
+**Context:**
+Security pass (2026-08-10). Added a global `RateLimitGuard` using an in-memory sliding-window store, registered via `APP_GUARD`, with a tighter limit on auth endpoints. This protects a single instance but each replica counts separately.
+
+**What We Learned:**
+In-memory rate limiting is fine for a single instance/dev but gives no protection when the API runs behind multiple replicas (each instance has its own window). The store is isolated in `RateLimitGuard` so a Redis-backed store (ioredis is already a dependency) can swap in without touching route decorators.
+
+**Apply When:**
+- Deploying the API with >1 instance — replace the in-memory store with Redis `INCR`+`EXPIRE` before relying on the limiter in production.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Lint-Driven Type Migration: Fix the Real Type, Not the `as any`
+
+**Context:**
+Testing session (2026-08-13). `@hw/api` had 104 `no-explicit-any` errors from `@Req() req: any` in controllers and `(x as any[])` JSON casts in services. The fix wasn't blanket `eslint-disable` — it was introducing a shared typed request object.
+
+**What We Learned:**
+The `any` pattern hides a contract bug: `req.user.sub` was the canonical id but several consumers read a different shape, and the type system never caught it because `req` was `any`. Adding `AuthenticatedRequest`/`MaybeAuthenticatedRequest` + a `toActor()` helper forced every controller to agree on the JWT payload shape (see the "Keep JWT Strategy Payload Shape in Sync" lesson). Type a `where`/`data` clause once (e.g. `Prisma.ListingWhereInput`) and the whole call chain stays typed.
+
+**Apply When:**
+- Any controller still using `@Req() req: any` — replace with `AuthenticatedRequest` (or `MaybeAuthenticatedRequest` when auth is optional) and derive the actor via `toActor(req)`.
+- JSON-field casts — use the concrete element type (`TransactionStep[]`, `Prisma.InputJsonValue`) instead of `as any[]`.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Mock the PrismaService Shape Once and Share the Pattern Across Service Specs
+
+**Context:**
+Testing session (2026-08-13). Eight new API service specs mock `PrismaService` with `type MockFn = ReturnType<typeof vi.fn>` and `{ prisma } = { prisma: {} as unknown as PrismaService }` — a pattern already proven in the referrals/activity specs.
+
+**What We Learned:**
+Vitest mocks of a DI service (Prisma) should be built as plain objects of `vi.fn()`s cast `as unknown as PrismaService`, not via `vitest-mock-extended`'s `mockDeep` — the latter couples the mock to the generated Prisma type and breaks on regen. `vi.resetAllMocks()` in `beforeEach` keeps specs isolated. Writing the spec surfaced two real behavioral bugs (preferences replace-not-merge; `complete()` step guard) — worth fixing in the service, not papering over in the test.
+
+**Apply When:**
+- Writing any new `*.service.spec.ts` — copy the referrals spec's mock shape; assert with `expect(prisma.x.mock.calls[0][0])`.
+- If a test reveals behavior that looks wrong, verify against the service contract and fix the service, then pin the test.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Playwright webServer Only Boots the Web App — Stub the API in E2E
+
+**Context:**
+Testing session (2026-08-13). The `apps/web/playwright.config.ts` webServer runs `next dev` only. The API + Postgres are not booted, so auth/dashboard/transaction journeys would hit connection errors.
+
+**What We Learned:**
+Use `page.route('**/api/v1/**', ...)` to fulfill JSON fixtures for the endpoints a journey touches (auth register/verify/complete, transactions, listings, crm stats, notifications). Seed a session with `page.addInitScript(() => localStorage.setItem('hw-auth', JSON.stringify(SESSION)))` before navigating to authenticated routes. This makes journeys deterministic and CI-safe. One caveat: the dashboard layout redirects to `/auth` on first render before zustand rehydrates the seeded session, which can flake under parallel dev-server load — increase the timeout or retry (CI already sets `retries: 2`).
+
+**Apply When:**
+- Adding any E2E journey that needs authenticated/data-backed UI — stub routes + seed localStorage rather than requiring a live DB.
+- Keep `e2e/smoke.spec.ts`'s pattern of static-page assertions for journeys that touch no API.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## API Typecheck Can Cache-Hit at the Turbo Root — Build Compiles Specs
+
+**Context:**
+Testing session (2026-08-13). `npm run typecheck` from the turbo root reported `@hw/api` green, but `nest build` failed on the newly added spec files (unused `MockFn` declarations, an invalid `category: 'BUY'` literal) because the api `build` script compiles `src/**/*.ts` including specs.
+
+**What We Learned:**
+Turbo cache hits can mask fresh type errors. The api `build` (`nest build`) is the stricter gate because it type-checks spec files that `tsc --noEmit` in a cached turbo run may skip. Always validate changed-package typecheck/build from the package directory, and keep spec files type-clean under the same strict config (no unused locals, valid literal unions).
+
+**Apply When:**
+- After editing specs — run `packages/api && npm run build` (or `npm run typecheck` directly) rather than trusting the turbo root summary.
+- Keep spec files in the same `noUnusedLocals`/strict posture as source files.
 
 **Supersedes:** None
 **Superseded by:** None

@@ -1,35 +1,48 @@
 import { Injectable, NotFoundException, ForbiddenException, Optional, Inject } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { and, desc, eq, gte, gt, lte, or, ilike, count, sql } from 'drizzle-orm';
+import { DrizzleService } from '../../drizzle/drizzle.service';
 import { AuditService } from '../audit/audit.service';
 import { AlertsService } from '../alerts/alerts.service';
+import { ActivityService } from '../activity/activity.service';
+import { AnalyticsService } from '../analytics/analytics.service';
+import { EmailService } from '../email/email.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto, UpdateListingStatusDto } from './dto/update-listing.dto';
-import type { Prisma } from '@prisma/client';
+import { listings, media, featuredPlacements } from '../../drizzle/schema';
 
 @Injectable()
 export class ListingService {
   constructor(
-    private prisma: PrismaService,
+    private db: DrizzleService,
     private audit: AuditService,
+    private activityService: ActivityService,
+    private analyticsService: AnalyticsService,
+    private emailService: EmailService,
     @Optional() @Inject(AlertsService) private alertsService?: AlertsService,
   ) {}
 
   async create(dto: CreateListingDto, ownerId: string, actor: ActorRef) {
-    const listing = await this.prisma.listing.create({
-      data: {
+    const [listing] = await this.db
+      .insert(listings)
+      .values({
         title: dto.title,
         description: dto.description,
-        price: dto.price,
+        price: String(dto.price),
         currency: dto.currency ?? 'NGN',
         category: dto.category,
         propertyType: dto.propertyType,
-        locationJson: dto.locationJson as Prisma.InputJsonValue,
+        locationJson: dto.locationJson,
         amenityIds: dto.amenityIds ?? [],
-        metadata: (dto.metadata ?? {}) as Prisma.InputJsonValue,
+        metadata: dto.metadata ?? {},
         ownerId,
         agentId: dto.agentId ?? ownerId,
-      },
-      include: { owner: true, media: true },
+      })
+      .returning();
+    if (!listing) throw new Error('Failed to create listing');
+
+    const full = await this.db.query.listings.findFirst({
+      where: eq(listings.id, listing.id),
+      with: { owner: true, media: true },
     });
 
     await this.audit.log({
@@ -44,13 +57,17 @@ export class ListingService {
       this.alertsService.checkNewListingMatch(listing.id).catch(() => {});
     }
 
-    return listing;
+    this.activityService
+      .awardForUser(ownerId, actor.role, 'listing_created', actor, { listingId: listing.id })
+      .catch(() => {});
+
+    return full;
   }
 
   async findById(id: string) {
-    const listing = await this.prisma.listing.findUnique({
-      where: { id },
-      include: { owner: true, media: true },
+    const listing = await this.db.query.listings.findFirst({
+      where: eq(listings.id, id),
+      with: { owner: true, media: true },
     });
     if (!listing) throw new NotFoundException('Listing not found');
     return listing;
@@ -68,52 +85,63 @@ export class ListingService {
     ownerId?: string;
     featured?: boolean;
   }) {
-    const where: any = {};
-    if (params.category) where.category = params.category;
-    if (params.propertyType) where.propertyType = params.propertyType;
-    if (params.status) where.status = params.status;
-    if (params.ownerId) where.ownerId = params.ownerId;
-    if (params.featured != null) where.featured = params.featured;
-    if (params.minPrice != null || params.maxPrice != null) {
-      where.price = {};
-      if (params.minPrice != null) where.price.gte = params.minPrice;
-      if (params.maxPrice != null) where.price.lte = params.maxPrice;
-    }
+    const conditions = [];
+    if (params.category) conditions.push(eq(listings.category, params.category as never));
+    if (params.propertyType) conditions.push(eq(listings.propertyType, params.propertyType));
+    if (params.status) conditions.push(eq(listings.status, params.status as never));
+    if (params.ownerId) conditions.push(eq(listings.ownerId, params.ownerId));
+    if (params.featured != null) conditions.push(eq(listings.featured, params.featured));
+    if (params.minPrice != null) conditions.push(gte(listings.price, String(params.minPrice)));
+    if (params.maxPrice != null) conditions.push(lte(listings.price, String(params.maxPrice)));
     if (params.search) {
-      where.OR = [
-        { title: { contains: params.search, mode: 'insensitive' } },
-        { description: { contains: params.search, mode: 'insensitive' } },
-      ];
+      conditions.push(
+        or(
+          ilike(listings.title, `%${params.search}%`),
+          ilike(listings.description, `%${params.search}%`),
+        ),
+      );
     }
 
-    const [listings, total] = await Promise.all([
-      this.prisma.listing.findMany({
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [rows, totalResult] = await Promise.all([
+      this.db.query.listings.findMany({
         where,
-        skip: params.skip ?? 0,
-        take: params.take ?? 12,
-        orderBy: { createdAt: 'desc' },
-        include: { owner: true, media: true },
+        offset: params.skip ?? 0,
+        limit: params.take ?? 12,
+        orderBy: desc(listings.createdAt),
+        with: { owner: true, media: true },
       }),
-      this.prisma.listing.count({ where }),
+      this.db.select({ value: count() }).from(listings).where(where),
     ]);
 
-    return { listings, total, skip: params.skip ?? 0, take: params.take ?? 12 };
+    return { listings: rows, total: totalResult[0]?.value ?? 0, skip: params.skip ?? 0, take: params.take ?? 12 };
   }
 
   async update(id: string, dto: UpdateListingDto, userId: string, actor: ActorRef) {
-    const listing = await this.prisma.listing.findUnique({ where: { id } });
+    const [listing] = await this.db.select().from(listings).where(eq(listings.id, id));
     if (!listing) throw new NotFoundException('Listing not found');
     if (listing.ownerId !== userId) throw new ForbiddenException('Not your listing');
 
     const oldPrice = Number(listing.price);
-    const data: any = { ...dto };
-    if (dto.locationJson) data.locationJson = dto.locationJson as Prisma.InputJsonValue;
-    if (dto.metadata) data.metadata = dto.metadata as Prisma.InputJsonValue;
 
-    const updated = await this.prisma.listing.update({
-      where: { id },
-      data,
-      include: { owner: true, media: true },
+    const set: Partial<typeof listings.$inferInsert> = {};
+    if (dto.title != null) set.title = dto.title;
+    if (dto.description != null) set.description = dto.description;
+    if (dto.price != null) set.price = String(dto.price);
+    if (dto.currency != null) set.currency = dto.currency;
+    if (dto.propertyType != null) set.propertyType = dto.propertyType;
+    if (dto.status != null) set.status = dto.status as never;
+    if (dto.locationJson != null) set.locationJson = dto.locationJson;
+    if (dto.metadata != null) set.metadata = dto.metadata;
+    if (dto.amenityIds != null) set.amenityIds = dto.amenityIds;
+    if (dto.featured != null) set.featured = dto.featured;
+
+    await this.db.update(listings).set(set).where(eq(listings.id, id));
+
+    const updated = await this.db.query.listings.findFirst({
+      where: eq(listings.id, id),
+      with: { owner: true, media: true },
     });
 
     await this.audit.log({
@@ -133,14 +161,15 @@ export class ListingService {
   }
 
   async updateStatus(id: string, dto: UpdateListingStatusDto, userId: string, actor: ActorRef) {
-    const listing = await this.prisma.listing.findUnique({ where: { id } });
+    const [listing] = await this.db.select().from(listings).where(eq(listings.id, id));
     if (!listing) throw new NotFoundException('Listing not found');
     if (listing.ownerId !== userId) throw new ForbiddenException('Not your listing');
 
-    const updated = await this.prisma.listing.update({
-      where: { id },
-      data: { status: dto.status },
-      include: { owner: true, media: true },
+    await this.db.update(listings).set({ status: dto.status as never }).where(eq(listings.id, id));
+
+    const updated = await this.db.query.listings.findFirst({
+      where: eq(listings.id, id),
+      with: { owner: true, media: true },
     });
 
     await this.audit.log({
@@ -155,22 +184,23 @@ export class ListingService {
   }
 
   async getPendingModeration() {
-    return this.prisma.listing.findMany({
-      where: { status: 'PENDING' },
-      orderBy: { createdAt: 'desc' },
-      include: { owner: true, media: true },
+    return this.db.query.listings.findMany({
+      where: eq(listings.status, 'PENDING'),
+      orderBy: desc(listings.createdAt),
+      with: { owner: true, media: true },
     });
   }
 
   async moderateListing(id: string, action: 'approve' | 'reject', actor: ActorRef) {
-    const listing = await this.prisma.listing.findUnique({ where: { id } });
+    const [listing] = await this.db.select().from(listings).where(eq(listings.id, id));
     if (!listing) throw new NotFoundException('Listing not found');
 
     const newStatus = action === 'approve' ? 'ACTIVE' : 'DRAFT';
-    const updated = await this.prisma.listing.update({
-      where: { id },
-      data: { status: newStatus },
-      include: { owner: true, media: true },
+    await this.db.update(listings).set({ status: newStatus as never }).where(eq(listings.id, id));
+
+    const updated = await this.db.query.listings.findFirst({
+      where: eq(listings.id, id),
+      with: { owner: true, media: true },
     });
 
     await this.audit.log({
@@ -181,15 +211,36 @@ export class ListingService {
       metadata: { from: listing.status, to: newStatus },
     });
 
+    if (action === 'approve' && updated?.owner?.role) {
+      void this.activityService.awardForUser(
+        updated.ownerId,
+        updated.owner.role,
+        'listing_approved',
+        actor,
+        { listingId: id, title: updated.title ?? '' },
+      );
+    }
+
+    if (updated?.owner?.email) {
+      const templateKey = action === 'approve' ? 'listing_approved' : 'listing_rejected';
+      void this.emailService.send(updated.owner.email, templateKey, {
+        firstName: updated.owner.firstName ?? 'there',
+        listingTitle: updated.title ?? '',
+        listingId: updated.id,
+        amount: updated.price ? String(Number(updated.price)) : '',
+        currency: updated.currency ?? 'NGN',
+      });
+    }
+
     return updated;
   }
 
   async delete(id: string, userId: string, actor: ActorRef) {
-    const listing = await this.prisma.listing.findUnique({ where: { id } });
+    const [listing] = await this.db.select().from(listings).where(eq(listings.id, id));
     if (!listing) throw new NotFoundException('Listing not found');
     if (listing.ownerId !== userId) throw new ForbiddenException('Not your listing');
 
-    await this.prisma.listing.delete({ where: { id } });
+    await this.db.delete(listings).where(eq(listings.id, id));
 
     await this.audit.log({
       entityType: 'Listing',
@@ -200,12 +251,14 @@ export class ListingService {
   }
 
   async getFeatured() {
-    return this.prisma.listing.findMany({
-      where: { featured: true, status: 'ACTIVE' },
-      take: 6,
-      orderBy: { createdAt: 'desc' },
-      include: { owner: true, media: true },
+    const now = new Date();
+    const placements = await this.db.query.featuredPlacements.findMany({
+      where: and(eq(featuredPlacements.status, 'active'), gt(featuredPlacements.endDate, now)),
+      orderBy: desc(featuredPlacements.startDate),
+      limit: 6,
+      with: { listing: { with: { owner: true, media: true } } },
     });
+    return placements.map((p) => p.listing);
   }
 
   async uploadMediaUrl(filename: string, _contentType: string) {
@@ -218,31 +271,43 @@ export class ListingService {
   }
 
   async attachMedia(listingId: string, mediaData: { url: string; type: string; isPrimary?: boolean; altText?: string }[], userId: string) {
-    const listing = await this.prisma.listing.findUnique({ where: { id: listingId } });
+    const [listing] = await this.db.select().from(listings).where(eq(listings.id, listingId));
     if (!listing) throw new NotFoundException('Listing not found');
     if (listing.ownerId !== userId) throw new ForbiddenException('Not your listing');
 
-    const media = await Promise.all(
+    const rows = await Promise.all(
       mediaData.map((m, i) =>
-        this.prisma.media.create({
-          data: {
+        this.db
+          .insert(media)
+          .values({
             listingId,
             url: m.url,
             type: m.type,
             altText: m.altText,
             isPrimary: m.isPrimary ?? false,
             displayOrder: i,
-          },
-        }),
+          })
+          .returning()
+          .then((r) => r[0]),
       ),
     );
-    return media;
+    return rows;
   }
 
   async incrementView(id: string) {
-    await this.prisma.listing.update({
-      where: { id },
-      data: { viewCount: { increment: 1 } },
-    });
+    const [updated] = await this.db
+      .update(listings)
+      .set({ viewCount: sql`${listings.viewCount} + 1` })
+      .where(eq(listings.id, id))
+      .returning();
+    if (!updated) return;
+    this.analyticsService
+      .track({
+        event: 'listing_view',
+        listingId: id,
+        agentId: updated.agentId ?? undefined,
+        metadata: { category: updated.category, propertyType: updated.propertyType },
+      })
+      .catch(() => {});
   }
 }

@@ -1,16 +1,26 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards, Req } from '@nestjs/common';
 import { BlogService } from './blog.service';
 import { JwtGuard } from '../auth/jwt.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { AuthenticatedRequest, toActor } from '../../common/types/request.types';
+import {
+  CreateBlogPostDto,
+  UpdateBlogPostDto,
+  createBlogPostSchema,
+  updateBlogPostSchema,
+} from './dto/blog-post.dto';
 
 @Controller('blog')
 export class BlogController {
   constructor(private blogService: BlogService) {}
 
   @Post()
-  @UseGuards(JwtGuard)
-  create(@Body() dto: any, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.blogService.create({ ...dto, authorId: req.user.sub }, actor);
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  create(@Body(new ZodValidationPipe(createBlogPostSchema)) dto: CreateBlogPostDto, @Req() req: AuthenticatedRequest) {
+    return this.blogService.create({ ...dto, authorId: req.user.sub }, toActor(req));
   }
 
   @Get()
@@ -23,12 +33,12 @@ export class BlogController {
     @Query('limit') limit?: string,
   ) {
     return this.blogService.findAll({
-      published: published != null ? published === 'true' : true,
+      published: published === 'all' ? undefined : published != null ? published === 'true' : true,
       category,
       tag,
       featured: featured != null ? featured === 'true' : undefined,
-      page: page ? parseInt(page) : undefined,
-      limit: limit ? parseInt(limit) : undefined,
+      page: page ? Math.max(parseInt(page) || 1, 1) : undefined,
+      limit: limit ? Math.min(parseInt(limit) || 12, 50) : undefined,
     });
   }
 
@@ -43,16 +53,16 @@ export class BlogController {
   }
 
   @Put(':id')
-  @UseGuards(JwtGuard)
-  update(@Param('id') id: string, @Body() dto: any, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.blogService.update(id, dto, actor);
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  update(@Param('id') id: string, @Body(new ZodValidationPipe(updateBlogPostSchema)) dto: UpdateBlogPostDto, @Req() req: AuthenticatedRequest) {
+    return this.blogService.update(id, dto, toActor(req));
   }
 
   @Delete(':id')
-  @UseGuards(JwtGuard)
-  remove(@Param('id') id: string, @Req() req: any) {
-    const actor = { id: req.user.sub, role: req.user.role, name: req.user.email };
-    return this.blogService.delete(id, actor);
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.blogService.delete(id, toActor(req));
   }
 }

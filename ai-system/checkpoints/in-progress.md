@@ -2,53 +2,25 @@
 
 > **Metadata**
 >
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: execute-feature
+> - last-verified-against-code: 2026-08-19
 > - staleness-policy: this file is overwritten every session — always current
 
-> **Overview:** Tracks work that is currently in progress but not yet complete. Written _before_ starting risky multi-step work, cleared on clean completion. This is the first file `resume-session.md` reads on interruption — it is the single source of truth for "what was half-done."
+> **Overview:** Tracks work that is currently in progress but not yet complete. Written _before_ starting risky multi-step work, cleared on clean completion.
 
 ---
 
 ## Current State
 
-**Status:** Not Started
+**Status:** CLEARED — Session 9 (`execute-feature`) completed cleanly on 2026-08-19. QA gate fully green (API 135 tests, web 100 tests, 22 E2E journeys, both builds pass), DB migration `0000`+`0001` applied to live Supabase Postgres, docs reconciled. See `checkpoints/session-log.md` → Session 9 for the full record.
 
-**Command Being Executed:**
-bootstrap-project.md
+**Outstanding user-fill items (not blockers to code):**
+- `SUPABASE_JWT_SECRET` — real Google OAuth exchange (provider creds live in the Supabase dashboard).
+- `RESEND_API_KEY` — real transactional email delivery (unset = simulated log-only, by design).
+- `NEXT_IGNORE_INCORRECT_LOCKFILE=1` — set on build hosts for `next build` (Next 14.2.35 SWC lockfile-patch registry quirk).
+- `DATABASE_URL` must be exported for `npm run db:migrate`/`db:seed` (`drizzle-kit` does not auto-load root `.env`).
 
-**Directive / Task:**
-Install the v2 ai-system framework and bootstrap it to the current state of the project.
-
-**Steps Completed:**
-
-- Copied v2 `ai-system/` kit into the repository
-- Migrated all v1 project content into the new structure
-- Moved design/docs assets into `ai-system/designs/` and `ai-system/docs/`
-- Updated root `ai-context.md`
-- Removed outdated `.ai-system/` directory
-
-**Current Step:**
-None — bootstrap complete.
-
-**Files Modified So Far:**
-
-- `ai-system/` (new framework + migrated content)
-- `ai-context.md`
-- deleted `.ai-system/`
-
-**Checkpoint Context:**
-None — no in-progress implementation work.
-
-**Last Tool Output / Error:**
-None.
-
----
-
-## Drift Check
-
-**Last verified against repo:** 2026-08-05
-**Any known drift between ai-system docs and actual code:** no
+**Next feature:** pick the next incomplete `planning/task-queue.md` backlog item.
 
 ---
 

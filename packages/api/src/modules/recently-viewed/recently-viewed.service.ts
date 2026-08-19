@@ -1,48 +1,50 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { and, desc, eq, inArray } from 'drizzle-orm';
+import { DrizzleService } from '../../drizzle/drizzle.service';
+import { recentlyViewed, listings } from '../../drizzle/schema';
 
 @Injectable()
 export class RecentlyViewedService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private db: DrizzleService) {}
 
   async record(userId: string | null, sessionId: string | null, listingId: string) {
-    const existing = await this.prisma.recentlyViewed.findFirst({
-      where: {
-        listingId,
-        ...(userId ? { userId } : { sessionId }),
-      },
-    });
+    const [existing] = await this.db
+      .select()
+      .from(recentlyViewed)
+      .where(
+        and(
+          eq(recentlyViewed.listingId, listingId),
+          userId ? eq(recentlyViewed.userId, userId) : eq(recentlyViewed.sessionId, sessionId as string),
+        ),
+      )
+      .limit(1);
 
     if (existing) {
-      await this.prisma.recentlyViewed.update({
-        where: { id: existing.id },
-        data: { viewedAt: new Date() },
-      });
+      await this.db
+        .update(recentlyViewed)
+        .set({ viewedAt: new Date() })
+        .where(eq(recentlyViewed.id, existing.id));
     } else {
-      await this.prisma.recentlyViewed.create({
-        data: { userId, sessionId, listingId },
-      });
+      await this.db.insert(recentlyViewed).values({ userId, sessionId, listingId });
     }
   }
 
   async getRecent(userId: string | null, sessionId: string | null, limit = 6) {
-    const recent = await this.prisma.recentlyViewed.findMany({
-      where: {
-        ...(userId ? { userId } : { sessionId }),
-      },
-      orderBy: { viewedAt: 'desc' },
-      take: limit,
+    const recent = await this.db.query.recentlyViewed.findMany({
+      where: userId ? eq(recentlyViewed.userId, userId) : eq(recentlyViewed.sessionId, sessionId as string),
+      orderBy: desc(recentlyViewed.viewedAt),
+      limit,
     });
 
     if (recent.length === 0) return [];
 
     const listingIds = recent.map((r) => r.listingId);
-    const listings = await this.prisma.listing.findMany({
-      where: { id: { in: listingIds } },
-      include: { owner: true, media: true },
+    const rows = await this.db.query.listings.findMany({
+      where: inArray(listings.id, listingIds),
+      with: { owner: true, media: true },
     });
 
-    const listingMap = new Map(listings.map((l) => [l.id, l]));
+    const listingMap = new Map(rows.map((l) => [l.id, l]));
     return listingIds.map((id) => listingMap.get(id)).filter(Boolean);
   }
 }

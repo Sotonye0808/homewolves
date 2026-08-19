@@ -1,21 +1,24 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { PrismaService } from '../../prisma/prisma.service';
+import { eq } from 'drizzle-orm';
+import { DrizzleService } from '../../drizzle/drizzle.service';
+import { users } from '../../drizzle/schema';
+import { resolveJwtSecret } from '../../common/config/env';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private prisma: PrismaService) {
+  constructor(private db: DrizzleService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET ?? 'homewolves-dev-secret',
+      secretOrKey: resolveJwtSecret(),
     });
   }
 
   async validate(payload: { sub: string; email: string; role: string }) {
-    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+    const [user] = await this.db.select().from(users).where(eq(users.id, payload.sub));
     if (!user) throw new UnauthorizedException('User not found');
-    return { id: user.id, email: user.email, role: user.role };
+    return { sub: user.id, id: user.id, email: user.email, role: user.role };
   }
 }

@@ -93,7 +93,7 @@ class Agent extends BaseUser {
   commissionRate: number;
   rating: number;
   listings: Listing[];
-  clients: any[];
+  clients: BaseUser[];
 
   getPermissions(): Permission[] {
     return [Permission.LISTING_CREATE, Permission.LISTING_UPDATE_OWN, Permission.LISTING_DELETE_OWN, Permission.CRM_VIEW_OWN_CLIENTS, Permission.CRM_MANAGE_CLIENTS, Permission.TRANSACTION_CREATE, Permission.TRANSACTION_ADVANCE, Permission.ANALYTICS_VIEW_OWN];
@@ -106,7 +106,7 @@ class Agent extends BaseUser {
 }
 
 class Developer extends BaseUser {
-  portfolio: any[] = [];
+  portfolio: Listing[] = [];
 
   getPermissions(): Permission[] {
     return [Permission.LISTING_CREATE, Permission.LISTING_UPDATE_OWN, Permission.LISTING_DELETE_OWN, Permission.ANALYTICS_VIEW_OWN];

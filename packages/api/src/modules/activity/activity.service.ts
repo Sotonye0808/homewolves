@@ -1,11 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { and, desc, eq, gt, sql, sum, count } from 'drizzle-orm';
+import { DrizzleService } from '../../drizzle/drizzle.service';
 import { AuditService } from '../audit/audit.service';
+import { activityRules, agentActivities, agentPoints } from '../../drizzle/schema';
 
-const db = (prisma: PrismaService) => prisma as any;
+const AGENT_ROLES = ['AGENT', 'DEVELOPER', 'HOMEOWNER'];
 
 const DEFAULT_RULES = [
   { key: 'listing_created', label: 'Listing Created', points: 10, category: 'listing' },
+  { key: 'listing_approved', label: 'Listing Approved', points: 20, category: 'listing' },
   { key: 'listing_sold', label: 'Listing Sold', points: 100, category: 'deal' },
   { key: 'client_added', label: 'Client Added', points: 5, category: 'crm' },
   { key: 'inspection_scheduled', label: 'Inspection Scheduled', points: 3, category: 'crm' },
@@ -25,56 +28,83 @@ const TIER_THRESHOLDS = [
 ];
 
 @Injectable()
-export class ActivityService {
+export class ActivityService implements OnModuleInit {
+  private readonly logger = new Logger(ActivityService.name);
+
   constructor(
-    private prisma: PrismaService,
+    private db: DrizzleService,
     private audit: AuditService,
   ) {}
 
+  async onModuleInit() {
+    this.ensureRules()
+      .then(() => this.logger.log('Activity rules ensured'))
+      .catch((err) => this.logger.warn(`Could not seed activity rules: ${err.message}`));
+  }
+
   async ensureRules() {
     for (const rule of DEFAULT_RULES) {
-      const existing = await db(this.prisma).activityRule.findUnique({ where: { key: rule.key } });
+      const [existing] = await this.db
+        .select()
+        .from(activityRules)
+        .where(eq(activityRules.key, rule.key));
       if (!existing) {
-        await db(this.prisma).activityRule.create({ data: rule as any });
+        await this.db.insert(activityRules).values(rule);
       }
     }
   }
 
+  async awardForUser(
+    userId: string,
+    role: string,
+    ruleKey: string,
+    actor: ActorRef,
+    metadata?: Record<string, unknown>,
+  ) {
+    if (!AGENT_ROLES.includes(role)) return null;
+    return this.award(userId, ruleKey, actor, metadata);
+  }
+
   async award(agentId: string, ruleKey: string, actor: ActorRef, metadata?: Record<string, unknown>) {
-    const rule = await db(this.prisma).activityRule.findUnique({ where: { key: ruleKey } });
+    const [rule] = await this.db.select().from(activityRules).where(eq(activityRules.key, ruleKey));
     if (!rule || !rule.active) return null;
 
     if (rule.cooldownMs) {
-      const recent = await db(this.prisma).agentActivity.findFirst({
-        where: { agentId, ruleId: rule.id },
-        orderBy: { createdAt: 'desc' },
-      });
+      const [recent] = await this.db
+        .select()
+        .from(agentActivities)
+        .where(and(eq(agentActivities.agentId, agentId), eq(agentActivities.ruleId, rule.id)))
+        .orderBy(desc(agentActivities.createdAt))
+        .limit(1);
       if (recent && Date.now() - new Date(recent.createdAt).getTime() < rule.cooldownMs) {
         return null;
       }
     }
 
-    const activity = await db(this.prisma).agentActivity.create({
-      data: {
+    const [activity] = await this.db
+      .insert(agentActivities)
+      .values({
         agentId,
         ruleId: rule.id,
         points: rule.points,
         metadata: metadata ?? {},
-      },
-    });
+      })
+      .returning();
+    if (!activity) throw new Error('Failed to create activity');
 
-    const points = await db(this.prisma).agentPoints.upsert({
-      where: { agentId },
-      update: { totalPoints: { increment: rule.points } },
-      create: { agentId, totalPoints: rule.points, tier: 'bronze' },
-    });
+    const [points] = await this.db
+      .insert(agentPoints)
+      .values({ agentId, totalPoints: rule.points, tier: 'bronze' })
+      .onConflictDoUpdate({
+        target: agentPoints.agentId,
+        set: { totalPoints: sql`${agentPoints.totalPoints} + ${rule.points}` },
+      })
+      .returning();
+    if (!points) throw new Error('Failed to award points');
 
     const newTier = this.calculateTier(points.totalPoints);
     if (newTier !== points.tier) {
-      await db(this.prisma).agentPoints.update({
-        where: { agentId },
-        data: { tier: newTier },
-      });
+      await this.db.update(agentPoints).set({ tier: newTier }).where(eq(agentPoints.agentId, agentId));
     }
 
     await this.audit.log({
@@ -82,21 +112,21 @@ export class ActivityService {
       entityId: activity.id,
       action: 'POINTS_AWARDED',
       actor,
-      metadata: { ruleKey, points: rule.points, total: points.totalPoints + rule.points },
+      metadata: { ruleKey, points: rule.points, total: points.totalPoints },
     });
 
-    return { activity, totalPoints: points.totalPoints + rule.points, tier: newTier, pointsAwarded: rule.points };
+    return { activity, totalPoints: points.totalPoints, tier: newTier, pointsAwarded: rule.points };
   }
 
   async getLeaderboard(limit = 20) {
-    const agents = await db(this.prisma).agentPoints.findMany({
-      where: { totalPoints: { gt: 0 } },
-      orderBy: { totalPoints: 'desc' },
-      take: limit,
-      include: { agent: true },
+    const agents = await this.db.query.agentPoints.findMany({
+      where: gt(agentPoints.totalPoints, 0),
+      orderBy: desc(agentPoints.totalPoints),
+      limit,
+      with: { agent: true },
     });
 
-    return agents.map((a: any, i: number) => ({
+    return agents.map((a, i: number) => ({
       rank: i + 1,
       agentId: a.agentId,
       agentName: `${a.agent.firstName} ${a.agent.lastName}`,
@@ -107,40 +137,43 @@ export class ActivityService {
   }
 
   async getAgentStats(agentId: string) {
-    const [points, recentActivity, activityByCategory] = await Promise.all([
-      db(this.prisma).agentPoints.findUnique({ where: { agentId } }),
-      db(this.prisma).agentActivity.findMany({
-        where: { agentId },
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-        include: { rule: true },
+    const [points, recentActivity, activityByCategory, rules] = await Promise.all([
+      this.db.select().from(agentPoints).where(eq(agentPoints.agentId, agentId)).then((r) => r[0] ?? null),
+      this.db.query.agentActivities.findMany({
+        where: eq(agentActivities.agentId, agentId),
+        orderBy: desc(agentActivities.createdAt),
+        limit: 10,
+        with: { rule: true },
       }),
-      db(this.prisma).agentActivity.groupBy({
-        by: ['ruleId'],
-        where: { agentId },
-        _sum: { points: true },
-        _count: true,
-      }),
+      this.db
+        .select({
+          ruleId: agentActivities.ruleId,
+          total: sum(agentActivities.points),
+          ruleCount: count(),
+        })
+        .from(agentActivities)
+        .where(eq(agentActivities.agentId, agentId))
+        .groupBy(agentActivities.ruleId),
+      this.db.select().from(activityRules),
     ]);
 
-    const rules = await db(this.prisma).activityRule.findMany();
-    const ruleMap = Object.fromEntries(rules.map((r: any) => [r.id, r]));
+    const ruleMap = Object.fromEntries(rules.map((r) => [r.id, r]));
 
     return {
       totalPoints: points?.totalPoints ?? 0,
       tier: points?.tier ?? 'bronze',
-      recentActivity: recentActivity.map((a: any) => ({
+      recentActivity: recentActivity.map((a) => ({
         id: a.id,
         ruleLabel: a.rule.label,
         points: a.points,
         category: a.rule.category,
         createdAt: a.createdAt,
       })),
-      categoryBreakdown: activityByCategory.map((g: any) => ({
+      categoryBreakdown: activityByCategory.map((g) => ({
         category: ruleMap[g.ruleId]?.category ?? 'unknown',
         label: ruleMap[g.ruleId]?.label ?? 'Unknown',
-        points: g._sum.points ?? 0,
-        count: g._count,
+        points: Number(g.total ?? 0),
+        count: g.ruleCount,
       })),
     };
   }

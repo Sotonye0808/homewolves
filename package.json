@@ -4,32 +4,48 @@
   "private": true,
   "description": "African real estate PropTech platform — multi-sided marketplace, agent CRM, transaction management",
   "scripts": {
-    "dev":       "turbo run dev --filter=./apps/* --filter=./packages/*",
-    "dev:web":   "turbo run dev --filter=@hw/web",
-    "dev:api":   "turbo run dev --filter=@hw/api",
-    "build":     "turbo run build --filter=./apps/* --filter=./packages/*",
+    "dev": "turbo run dev --filter=./apps/* --filter=./packages/*",
+    "dev:web": "turbo run dev --filter=@hw/web",
+    "dev:api": "turbo run dev --filter=@hw/api",
+    "build": "turbo run build --filter=./apps/* --filter=./packages/*",
     "build:web": "turbo run build --filter=@hw/web^...",
     "build:api": "turbo run build --filter=@hw/api^...",
-    "lint":      "turbo run lint --filter=./apps/* --filter=./packages/*",
+    "lint": "turbo run lint --filter=./apps/* --filter=./packages/*",
     "typecheck": "turbo run typecheck --filter=./apps/* --filter=./packages/*",
-    "format":    "prettier --write \"**/*.{ts,tsx,json,css,md}\"",
-    "clean":     "turbo run clean --filter=./apps/* --filter=./packages/*"
+    "test": "turbo run test --filter=@hw/api --filter=@hw/web",
+    "test:e2e": "turbo run e2e --filter=@hw/web",
+    "format": "prettier --write \"**/*.{ts,tsx,json,css,md}\"",
+    "clean": "turbo run clean --filter=./apps/* --filter=./packages/*"
   },
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "devDependencies": {
-    "turbo": "^2.0.0",
-    "typescript": "^5.4.0",
-    "prettier": "^3.2.0",
-    "eslint": "^8.57.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
-    "eslint-config-prettier": "^9.1.0"
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.2.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
   },
   "packageManager": "npm@10.8.0",
   "engines": {
     "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9"
+  },
+  "packages/api": {
+    "dependencies": {
+      "drizzle-orm": "^0.45.2",
+      "postgres": "^3.4.9"
+    },
+    "devDependencies": {
+      "drizzle-kit": "^0.31.10"
+    }
   }
 }

@@ -1,10 +1,12 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { fetchBlogPost } from '@/lib/blog';
 import { HwBadge } from '@/components/ui';
+import DOMPurify from 'dompurify';
 
 export default function BlogPostPage() {
   const params = useParams();
@@ -15,6 +17,32 @@ export default function BlogPostPage() {
     queryFn: () => fetchBlogPost(slug),
     enabled: !!slug,
   });
+
+  const sanitizedContent = useMemo(
+    () => (post?.content ? DOMPurify.sanitize(post.content) : ''),
+    [post?.content],
+  );
+
+  const blogJsonLd = useMemo(() => {
+    if (!post) return null;
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: post.title,
+      description: post.excerpt,
+      datePublished: post.publishedAt,
+      dateModified: post.updatedAt,
+      image: post.coverImage,
+      author: post.author
+        ? { '@type': 'Person', name: `${post.author.firstName} ${post.author.lastName}` }
+        : { '@type': 'Organization', name: 'Homewolves' },
+      publisher: { '@type': 'Organization', name: 'Homewolves' },
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://homewolves.africa'}/blog/${slug}`,
+      },
+    };
+  }, [post, slug]);
 
   if (isLoading) {
     return (
@@ -50,6 +78,9 @@ export default function BlogPostPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-bg-canvas)' }}>
+      {blogJsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogJsonLd) }} />
+      )}
       <div className="max-w-3xl mx-auto px-4 py-12">
         <Link href="/blog" className="inline-flex items-center gap-1 text-sm mb-8 hover:underline" style={{ color: 'var(--color-text-secondary)' }}>
           &larr; Back to Blog
@@ -96,7 +127,7 @@ export default function BlogPostPage() {
           <p className="text-lg leading-relaxed mb-6 font-medium" style={{ color: 'var(--color-text-primary)' }}>
             {post.excerpt}
           </p>
-          <div className="leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: post.content }} />
+          <div className="leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
         </article>
 
         <div className="mt-12 pt-8 border-t" style={{ borderColor: 'var(--color-border-subtle)' }}>

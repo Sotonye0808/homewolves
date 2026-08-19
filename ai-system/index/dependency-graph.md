@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other in the Homewolves NestJS backend. Agents consult this before modifying a module to understand the impact radius. This file is **auto-regenerable** — prefer tool-based import analysis for ground truth, and treat manual entries as supplementary.
@@ -14,9 +14,16 @@
 > **Section summary:** A text diagram showing dependency direction. Arrows point from consumer → dependency.
 
 ```
+Common security infrastructure (global, not module-scoped):
+  RateLimitModule (APP_GUARD → RateLimitGuard) — global, applies to every route
+  GlobalExceptionFilter — wired globally in main.ts
+  ZodValidationPipe — applied per-route in controllers
+  RolesGuard / OptionalJwtGuard / @Roles — applied per-route/controller
+
 AuthModule
   → PrismaModule (database access)
   → NotificationsModule (OTP dispatch)
+  → JwtModule / PassportModule (tokens, strategies)
 
 ListingsModule
   → PrismaModule
@@ -145,3 +152,6 @@ apps/mobile (React Native / Expo)
 - **Types package** → Zero dependencies — pure interfaces, types, and enums
 - **Config package** → Zero runtime dependencies — plain objects and functions
 - **UI components** → `@/components/ui` barrel only — never import shadcn directly
+- **Service specs** (`*.service.spec.ts`) → vitest + `PrismaService` mock (plain `vi.fn()` object cast `as unknown as PrismaService`) — no real DB
+- **Web lib tests** (`lib/*.test.ts`) → vitest + stubbed `fetch` via `vi.stubGlobal`; token from `useAuth` store (zustand) or `hw-auth` localStorage
+- **E2E specs** (`e2e/*.spec.ts`) → Playwright; API stubbed with `page.route`, sessions seeded via `addInitScript` writing `hw-auth`

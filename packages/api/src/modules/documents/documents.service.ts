@@ -1,13 +1,13 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { desc, eq } from 'drizzle-orm';
+import { DrizzleService } from '../../drizzle/drizzle.service';
 import { AuditService } from '../audit/audit.service';
-
-const db = (prisma: PrismaService) => prisma as any;
+import { transactions, transactionDocuments } from '../../drizzle/schema';
 
 @Injectable()
 export class DocumentsService {
   constructor(
-    private prisma: PrismaService,
+    private db: DrizzleService,
     private audit: AuditService,
   ) {}
 
@@ -20,11 +20,12 @@ export class DocumentsService {
     visibility?: string;
     uploadedById: string;
   }, actor: ActorRef) {
-    const transaction = await db(this.prisma).transaction.findUnique({ where: { id: dto.transactionId } });
+    const [transaction] = await this.db.select().from(transactions).where(eq(transactions.id, dto.transactionId));
     if (!transaction) throw new NotFoundException('Transaction not found');
 
-    const doc = await db(this.prisma).transactionDocument.create({
-      data: {
+    const [doc] = await this.db
+      .insert(transactionDocuments)
+      .values({
         transactionId: dto.transactionId,
         name: dto.name,
         type: dto.type,
@@ -33,8 +34,9 @@ export class DocumentsService {
         visibility: dto.visibility ?? 'shared',
         uploadedById: dto.uploadedById,
         uploadedBy: actor.name,
-      },
-    });
+      })
+      .returning();
+    if (!doc) throw new Error('Failed to upload document');
 
     await this.audit.log({
       entityType: 'TransactionDocument',
@@ -48,7 +50,7 @@ export class DocumentsService {
   }
 
   async findByTransaction(transactionId: string, userId: string, role: string) {
-    const transaction = await db(this.prisma).transaction.findUnique({ where: { id: transactionId } });
+    const [transaction] = await this.db.select().from(transactions).where(eq(transactions.id, transactionId));
     if (!transaction) throw new NotFoundException('Transaction not found');
 
     const isAgent = transaction.agentId === userId;
@@ -56,22 +58,22 @@ export class DocumentsService {
     const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
     if (!isAgent && !isBuyer && !isAdmin) throw new ForbiddenException('Not your transaction');
 
-    const docs = await db(this.prisma).transactionDocument.findMany({
-      where: { transactionId },
-      orderBy: { createdAt: 'desc' },
+    const docs = await this.db.query.transactionDocuments.findMany({
+      where: eq(transactionDocuments.transactionId, transactionId),
+      orderBy: desc(transactionDocuments.createdAt),
     });
 
     if (isBuyer) {
-      return docs.filter((d: any) => d.visibility === 'shared' || d.uploadedById === userId);
+      return docs.filter((d) => d.visibility === 'shared' || d.uploadedById === userId);
     }
     return docs;
   }
 
   async findById(id: string, userId: string, role: string) {
-    const doc = await db(this.prisma).transactionDocument.findUnique({ where: { id } });
+    const [doc] = await this.db.select().from(transactionDocuments).where(eq(transactionDocuments.id, id));
     if (!doc) throw new NotFoundException('Document not found');
 
-    const transaction = await db(this.prisma).transaction.findUnique({ where: { id: doc.transactionId } });
+    const [transaction] = await this.db.select().from(transactions).where(eq(transactions.id, doc.transactionId));
     if (!transaction) throw new NotFoundException('Transaction not found');
 
     const isAgent = transaction.agentId === userId;
@@ -83,11 +85,11 @@ export class DocumentsService {
   }
 
   async delete(id: string, userId: string, actor: ActorRef) {
-    const doc = await db(this.prisma).transactionDocument.findUnique({ where: { id } });
+    const [doc] = await this.db.select().from(transactionDocuments).where(eq(transactionDocuments.id, id));
     if (!doc) throw new NotFoundException('Document not found');
     if (doc.uploadedById !== userId) throw new ForbiddenException('Only uploader can delete');
 
-    await db(this.prisma).transactionDocument.delete({ where: { id } });
+    await this.db.delete(transactionDocuments).where(eq(transactionDocuments.id, id));
 
     await this.audit.log({
       entityType: 'TransactionDocument',
@@ -99,16 +101,17 @@ export class DocumentsService {
   }
 
   async updateVisibility(id: string, visibility: string, userId: string, role: string, actor: ActorRef) {
-    const doc = await db(this.prisma).transactionDocument.findUnique({ where: { id } });
+    const [doc] = await this.db.select().from(transactionDocuments).where(eq(transactionDocuments.id, id));
     if (!doc) throw new NotFoundException('Document not found');
 
     const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
     if (doc.uploadedById !== userId && !isAdmin) throw new ForbiddenException('Not authorized');
 
-    const updated = await db(this.prisma).transactionDocument.update({
-      where: { id },
-      data: { visibility },
-    });
+    const [updated] = await this.db
+      .update(transactionDocuments)
+      .set({ visibility })
+      .where(eq(transactionDocuments.id, id))
+      .returning();
 
     await this.audit.log({
       entityType: 'TransactionDocument',
@@ -130,9 +133,6 @@ export class DocumentsService {
   }
 
   async scanResult(id: string, status: string) {
-    await db(this.prisma).transactionDocument.update({
-      where: { id },
-      data: { virusScanStatus: status },
-    });
+    await this.db.update(transactionDocuments).set({ virusScanStatus: status }).where(eq(transactionDocuments.id, id));
   }
 }

@@ -42,18 +42,18 @@ function buildNavItems(user: any) {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, accessToken, logout } = useAuth();
+  const { user, accessToken, hydrated, logout } = useAuth();
   const router = useRouter();
-  const { unreadCount, notifications, isOpen, setIsOpen, markAllRead } = useNotificationBell(user?.id, accessToken ?? undefined);
+  const { unreadCount, notifications, isOpen, setIsOpen, markRead, markAllRead } = useNotificationBell(user?.id, accessToken ?? undefined);
   const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!accessToken) {
+    if (hydrated && !accessToken) {
       router.replace('/auth');
     }
-  }, [accessToken, router]);
+  }, [hydrated, accessToken, router]);
 
-  if (!user || !accessToken) {
+  if (!hydrated || !user || !accessToken) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--color-bg-canvas)' }}>
         <div className="animate-pulse" style={{ color: 'var(--color-text-tertiary)' }}>Loading dashboard...</div>
@@ -235,8 +235,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   notifications.slice(0, 10).map((n: any) => (
                     <div
                       key={n.id}
-                      className="flex items-start gap-3 px-4 py-3 border-b transition-colors cursor-pointer"
+                      className="flex items-start gap-3 px-4 py-3 border-b transition-colors cursor-pointer hover:bg-[var(--color-bg-glass)]"
                       style={{ borderColor: 'var(--color-border-subtle)', ...(!n.read ? { background: 'var(--color-bg-glass)' } : {}) }}
+                      onClick={() => {
+                        if (!n.read) markRead([n.id]);
+                        setIsOpen(false);
+                        router.push('/dashboard/notifications');
+                      }}
                     >
                       <div className="mt-0.5">
                         <div className="w-2 h-2 rounded-full" style={{ background: n.read ? 'transparent' : 'var(--color-brand-accent)' }} />
