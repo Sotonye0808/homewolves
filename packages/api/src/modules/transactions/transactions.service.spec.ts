@@ -50,6 +50,7 @@ describe('TransactionsService', () => {
       activityService as unknown as ActivityService,
       referralsService as unknown as ReferralsService,
       analyticsService as unknown as AnalyticsService,
+      { send: vi.fn().mockResolvedValue({ status: 'simulated' }) } as never,
     );
   });
 

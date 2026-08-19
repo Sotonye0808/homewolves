@@ -6,12 +6,13 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { ActivityModule } from '../activity/activity.module';
 import { ReferralsModule } from '../referrals/referrals.module';
+import { resolveJwtSecret } from '../../common/config/env';
 
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
-      secret: process.env.JWT_SECRET ?? 'homewolves-dev-secret',
+      secret: resolveJwtSecret(),
       signOptions: { expiresIn: '15m' },
     }),
     ActivityModule,

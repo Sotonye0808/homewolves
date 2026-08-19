@@ -4,6 +4,7 @@ import { IntegrationsModule } from './common/integrations/integrations.module';
 import { DrizzleModule } from './drizzle/drizzle.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { PlatformConfigModule } from './modules/platform-config/platform-config.module';
+import { EmailModule } from './modules/email/email.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ListingsModule } from './modules/listings/listing.module';
 import { RecentlyViewedModule } from './modules/recently-viewed/recently-viewed.module';
@@ -29,6 +30,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     DrizzleModule,
     AuditModule.forRoot(),
     PlatformConfigModule,
+    EmailModule,
     AuthModule,
     ListingsModule,
     RecentlyViewedModule,

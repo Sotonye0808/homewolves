@@ -2,57 +2,25 @@
 
 > **Metadata**
 >
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-13
+> - last-updated-by: execute-feature
+> - last-verified-against-code: 2026-08-19
 > - staleness-policy: this file is overwritten every session — always current
 
-> **Overview:** Tracks work that is currently in progress but not yet complete. Written _before_ starting risky multi-step work, cleared on clean completion. This is the first file `resume-session.md` reads on interruption — it is the single source of truth for "what was half-done."
+> **Overview:** Tracks work that is currently in progress but not yet complete. Written _before_ starting risky multi-step work, cleared on clean completion.
 
 ---
 
 ## Current State
 
-**Status:** Clear — audit complete, no work in progress.
+**Status:** CLEARED — Session 9 (`execute-feature`) completed cleanly on 2026-08-19. QA gate fully green (API 135 tests, web 100 tests, 22 E2E journeys, both builds pass), DB migration `0000`+`0001` applied to live Supabase Postgres, docs reconciled. See `checkpoints/session-log.md` → Session 9 for the full record.
 
-**Command Being Executed:**
-(None — Session 7 completed the Prisma→Drizzle migration + `verify-work.md` web audit rectification. See `ai-system/checkpoints/session-log.md` Session 7.)
+**Outstanding user-fill items (not blockers to code):**
+- `SUPABASE_JWT_SECRET` — real Google OAuth exchange (provider creds live in the Supabase dashboard).
+- `RESEND_API_KEY` — real transactional email delivery (unset = simulated log-only, by design).
+- `NEXT_IGNORE_INCORRECT_LOCKFILE=1` — set on build hosts for `next build` (Next 14.2.35 SWC lockfile-patch registry quirk).
+- `DATABASE_URL` must be exported for `npm run db:migrate`/`db:seed` (`drizzle-kit` does not auto-load root `.env`).
 
-**Directive / Task:**
-Prisma→Drizzle ORM migration of `packages/api` and the web audit rectification, both closed out green (typecheck/lint/tests/build across `@hw/api` and `@hw/web`).
-
-**Steps Completed:**
-1. Ported schema, `DrizzleModule`/`DrizzleService`, all services/DTOs/gateway from Prisma to Drizzle query chains
-2. Removed `@prisma/client`/`prisma` deps; deleted `packages/api/prisma/` and `src/prisma/`
-3. Generated initial migration `0000_faithful_moira_mactaggert.sql` (offline)
-4. Rewrote 10 API specs against the new shared Drizzle mock (`src/test/drizzle.mock.ts`); 93 tests pass
-5. Web audit: bento/cards linkable, properties page reads `search`+`category` URL params, footer `next/link`, notification rows clickable, `loading.tsx` added, hero/landing cards use `next/image`
-6. Verification: `@hw/web` typecheck/lint/94 tests/build green; `@hw/api` typecheck/lint/93 tests/build green
-7. Updated ai-system docs (task-queue, session-log, project-decisions, architecture-history)
-
-**Current Step:**
-None — work closed out.
-
-**Files Modified:**
-- `packages/api/src/drizzle/`, `packages/api/drizzle/` (new), `packages/api/src/test/drizzle.mock.ts` (new)
-- All `packages/api/src/modules/*/` services + DTOs + jwt.strategy + notifications.gateway + app.module
-- 10 `*.service.spec.ts` files
-- `apps/web/app/(public)/properties/page.tsx`, `apps/web/components/landing/{category-bento,footer,hero-section,property-card}.tsx`
-- `apps/web/app/(dashboard)/layout.tsx`, `apps/web/hooks/use-notifications.ts`
-- `apps/web/app/(public)/loading.tsx`, `apps/web/app/(dashboard)/loading.tsx` (new)
-- `apps/web/next.config.js`
-
-**Checkpoint Context:**
-Next dev tasks are at the top of `planning/task-queue.md`: [M] SEO, [BUG] blog HTML sanitization, [M] activity-points service wiring, [M] API integration tests, [M] E2E admin journey. The generated Drizzle migration is unapplied until a live Supabase DB is available (`npm run db:migrate` + `db:seed`).
-
-**Last Tool Output / Error:**
-None.
-
----
-
-## Drift Check
-
-**Last verified against repo:** 2026-08-13
-**Any known drift between ai-system docs and actual code:** none from the migration/web audit. `tools/registry.md` seed rows are the template's generic evaluations — re-audit against Homewolves' actual stack (via `audit-sources.md`) before trusting `adopt` verdicts.
+**Next feature:** pick the next incomplete `planning/task-queue.md` backlog item.
 
 ---
 

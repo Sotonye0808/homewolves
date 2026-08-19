@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { eq } from 'drizzle-orm';
 import { DrizzleService } from '../../drizzle/drizzle.service';
 import { users } from '../../drizzle/schema';
+import { resolveJwtSecret } from '../../common/config/env';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -11,7 +12,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET ?? 'homewolves-dev-secret',
+      secretOrKey: resolveJwtSecret(),
     });
   }
 

@@ -288,3 +288,90 @@ Top incomplete item in `planning/task-queue.md` ([M] SEO, [BUG] blog sanitizatio
 - Lint across both packages: 0 errors; only the 3 pre-existing `no-console` warnings in `@hw/api`.
 
 ---
+
+## Session 8 — 2026-08-19 (Google OAuth via Supabase + Resend email infra + admin GUIs)
+
+**Completed:**
+Executed the [XL] feature (Supabase/Drizzle compliance + Google OAuth + Resend email + no-coding admin GUIs) end-to-end. Pipeline: plan-feature -> sign-off -> implementation -> full QA gate green.
+
+- **Google OAuth (API + web):** `users.provider`/`providerId` columns + migration `0001`; `AuthService.exchangeSupabaseToken()` + `POST /api/v1/auth/supabase` (verifies Supabase JWT via `SUPABASE_JWT_SECRET`, find-or-create user, returns HW tokens) + dto + spec; web `@supabase/supabase-js`, `lib/supabase.ts`, auth-page Google button (`actions.ts` `signInWithGoogle`), `/auth/callback` page, `use-auth` `exchangeSupabase` action.
+- **Resend email infra (API):** `emailTemplates` + `emailLogs` tables (migration `0001`); `@Global` `EmailModule`/`EmailService` (DB->fallback template resolution, `{{var}}` rendering, Resend send + log row, simulated log-only fallback when `RESEND_API_KEY` unset); `email.controller.ts` admin CRUD (seed/list/preview/PUT guarded `JWT+ADMIN/SUPER_ADMIN`); zod dto; seeded defaults + `FALLBACK_EMAIL_TEMPLATES` (13 keys) in `packages/config/src/fallbacks.ts` and `apps/web/config/fallbacks.ts`; `main.ts` bootstrap seeds if empty. Wired hooks: OTP (register/login), welcome (complete-profile), referral_signup, transaction created/completed/rejected/cancelled, payment_confirmed, subscription_activated, signature_requested, listing approved/rejected, price-drop.
+- **Admin GUIs (web):** `/dashboard/admin/email-templates` (list, edit, live iframe preview, seed); `/dashboard/admin/blog` (list/publish/unpublish/delete) + `new` + `[id]/edit`; `components/blog/rich-text-editor.tsx` (contenteditable + HTML source mode) + `post-form.tsx`; hooks `use-email-templates.ts`, `use-blog.ts`; lib `email-templates.ts`, extended `blog.ts`/`use-blog.ts` (`published` param). API `blog.controller.ts` supports `published=all` for admin.
+- **Bug fixes during QA:** web vitest forks-worker timeout -> `pool: 'threads'` in vitest.config; jsdom `localStorage` broken under Node v25 -> in-memory Storage polyfill in `vitest.setup.ts`; rich-text-editor never rendered initial HTML (added `dangerouslySetInnerHTML`); post-form slug field stripped typed hyphens per keystroke (store raw, normalize at submit); `createBlogPostSchema` strict-rejected `featured` on create (added to schema + service + web lib type).
+- **QA gate:** API typecheck/lint (0 errors, 1 pre-existing console warning)/111 tests/nest build all green; web typecheck/lint clean, 100 tests pass, next build green. `GlobalExceptionFilter` rewritten to map postgres SQLSTATE codes (23505/23503/22P02) instead of Prisma P-codes.
+
+**Files Modified:**
+- `packages/api/src/modules/email/` (service, defaults, controller, dto, module, spec) — new; `packages/api/src/app.module.ts`, `main.ts` — EmailModule + seed-on-boot
+- `packages/api/src/modules/{auth,transactions,signatures,subscriptions,listings,alerts}/*.service.ts` — email hooks + constructor changes; `auth.controller.ts`, `auth/dto/register.dto.ts`, specs for auth/transactions/listing
+- `packages/api/src/drizzle/schema.ts` + `drizzle/migrations/0001_grey_killmonger.sql` — users provider cols + emailTemplates/emailLogs
+- `packages/api/src/modules/blog/dto/blog-post.dto.ts`, `blog.service.ts`, `blog.controller.ts` — featured on create, published=all
+- `packages/api/src/common/filters/global-exception.filter.ts` — postgres SQLSTATE mapping
+- `packages/config/src/fallbacks.ts`, `apps/web/config/fallbacks.ts` — FALLBACK_EMAIL_TEMPLATES
+- `apps/web/lib/{supabase.ts,email-templates.ts,blog.ts}`, `apps/web/hooks/{use-auth.ts,use-email-templates.ts,use-blog.ts}` — new/extended
+- `apps/web/app/(public)/auth/{page.tsx,actions.ts,callback/page.tsx}` — Google OAuth flow
+- `apps/web/app/(dashboard)/dashboard/admin/{email-templates/page.tsx,blog/...}` — admin GUIs
+- `apps/web/components/blog/{rich-text-editor.tsx,post-form.tsx}` + `*.test.tsx` — editor + form + component tests
+- `apps/web/vitest.config.ts` (threads pool), `apps/web/vitest.setup.ts` (storage polyfill)
+- `apps/web/package.json`, `packages/api/package.json`, `package-lock.json` — `@supabase/supabase-js`, `resend`
+- `.env.example` + `.env` — Resend section
+- `packages/types/src/global.d.ts`, `packages/types/src/entities/email.types.ts` — EmailTemplate global type
+- `ai-system/system-architecture.md`, `ai-system/memory/project-decisions.md` — Prisma-era drift reconciled
+
+**Next Task:**
+Apply migration `0001_grey_killmonger.sql` on a live Supabase DB (`npm run db:migrate` + `npm run db:seed`). Fill `SUPABASE_JWT_SECRET` in `.env` to enable real Google OAuth exchanges (provider creds live in the Supabase dashboard) and `RESEND_API_KEY` for real email delivery. Then resume the next incomplete `planning/task-queue.md` item ([M] SEO, [M] API integration tests, [M] E2E admin journey, ...).
+
+**Assumptions Made:**
+- Email sends are fire-and-forget by design; unset `RESEND_API_KEY` means simulated log-only delivery, never an error.
+- The vitest forks pool timeout is environmental (worker startup on Node v25/Windows); `pool: 'threads'` + storage polyfill make the suite deterministic.
+- Supabase exchange cannot be exercised until `SUPABASE_JWT_SECRET` is set; web fallback message covers it.
+
+**Notes / Blockers:**
+- No live DB in this environment — migrations `0000`/`0001` generated offline and unapplied.
+- Supabase OAuth real exchange blocked until `SUPABASE_JWT_SECRET` is filled by the user.
+- Playwright E2E journeys unchanged (stub the API); not re-run this session — web build/tests green.
+
+---
+
+## Session 9 — 2026-08-19 (Sprint close-out + security hardening + DB migration)
+
+Executed the remaining `task-queue` sprint items + residual security risks + DB migration (`execute-feature` pipeline, plan signed off). QA gate fully green: API 135 tests + typecheck/lint/build; web 100 tests + typecheck/lint + 22 E2E journeys (Playwright, workers=1) + `next build` (with `NEXT_IGNORE_INCORRECT_LOCKFILE=1`).
+
+**Completed:**
+- **SEO (verify-only):** listing detail already has `generateMetadata` + JSON-LD (`properties/[id]/page.tsx`); `app/sitemap.ts` + `robots.ts` already live with valid API params. No code changes needed (blog detail stays a client component — decision).
+- **Activity:** `listing_approved` rule (20 pts) added to `activity.service.ts` `DEFAULT_RULES`; `moderateListing` now awards the owner's points on approve (guarded by `updated?.owner?.role`); `listing.service.spec.ts` updated (approve → award, reject → not called).
+- **DocuSeal webhook HMAC:** `verifyWebhookSignature(rawBody, signature)` in `docuseal.client.ts` (HMAC-SHA256 over `timestamp.body`, 5-min replay window, timing-safe compare, dev bypass when `DOCUSEAL_WEBHOOK_SECRET` unset); wired into `signatures.controller.ts` `POST webhook` (401 on invalid); 7 unit tests in `docuseal.client.spec.ts`; `DOCUSEAL_WEBHOOK_SECRET` added to `.env`/`.env.example`.
+- **JWT secret fail-hard:** new `packages/api/src/common/config/env.ts` — `resolveJwtSecret()` throws when `NODE_ENV=production` and `JWT_SECRET` unset (dev fallback `homewolves-dev-secret` otherwise); used in `jwt.strategy.ts`, `auth.module.ts`, and boot check in `main.ts`.
+- **Rate limiter:** pluggable store via `RATE_LIMIT_STORE` token — `RateLimitStore` interface, `MemoryRateLimitStore` (sliding window, 10k cap), `RedisRateLimitStore` (ioredis sorted-set, lazy connect) with Redis→memory fallback factory in `rate-limit.module.ts`; `RateLimitGuard` rewritten async; 5 store unit tests in `rate-limit.store.spec.ts`.
+- **API integration tests:** `packages/api/src/test/app.e2e.spec.ts` — supertest + `Test.createTestingModule({ imports: [AppModule] })` with `DrizzleService` overridden (shared mock). 12 tests: 401 (no/invalid token on `/activity/stats`), 403 (non-admin `POST /blog`), 201 (admin create), 400 (invalid register/blog payloads + strict unknown keys), 404 (unknown listing/blog slug), 200 (listings feed, blog categories), 429 (over-limit shape). Discovered + fixed two real type bugs along the way (docuseal `header` possibly undefined; redis `exec()` null/`[error,result]` typing).
+- **E2E admin journey:** `apps/web/e2e/admin-journey.spec.ts` — 6 tests covering moderation queue (nav visible, approve empties queue, reject empties queue, non-admin nav hidden) and payment review (confirm/reject empty the list). Fixed a real web bug the suite surfaced: **zustand `persist` hydrates asynchronously** — the dashboard layout's `router.replace('/auth')` could fire before rehydration on slow loads, bouncing logged-in users to `/auth`. Added a `hydrated` flag (`onFinishHydration`) to `use-auth.ts` and gated the redirect + loading state on it.
+- **DB migration:** `npm run db:migrate` applied migrations `0000` + `0001` to the live Supabase Postgres. Gotcha: `drizzle-kit migrate` does not auto-load the root `.env` — must export `DATABASE_URL` (or add `packages/api/.env`).
+- **Next build env quirk documented:** Next 14.2.35's SWC lockfile auto-patch crashes (its `optionalDependencies` pin `@next/swc-*@14.2.33` but the patcher fetches 14.2.35); workaround `NEXT_IGNORE_INCORRECT_LOCKFILE=1`. Verified the build compiles + static-generates 31 pages fine with it.
+
+**Files Modified:**
+- `packages/api/src/common/config/env.ts` — new `resolveJwtSecret()`
+- `packages/api/src/common/integrations/docuseal.client.ts` (+`.spec.ts`) — `verifyWebhookSignature`
+- `packages/api/src/modules/signatures/signatures.controller.ts` — webhook HMAC check (401)
+- `packages/api/src/common/rate-limit/{rate-limit-store.ts,memory-rate-limit.store.ts,redis-rate-limit.store.ts,rate-limit.guard.ts,rate-limit.module.ts,rate-limit.store.spec.ts}` — pluggable store + Redis fallback
+- `packages/api/src/modules/activity/activity.service.ts` — `listing_approved` rule
+- `packages/api/src/modules/listings/listing.service.ts` (+`.spec.ts`) — award on approve
+- `packages/api/src/modules/auth/{jwt.strategy.ts,auth.module.ts}`, `src/main.ts` — `resolveJwtSecret()`
+- `packages/api/src/test/app.e2e.spec.ts` — new supertest integration suite
+- `apps/web/hooks/use-auth.ts`, `apps/web/app/(dashboard)/layout.tsx` — hydration-gated auth redirect
+- `apps/web/e2e/admin-journey.spec.ts` — new (6 tests)
+- `.env.example` + `.env` — `DOCUSEAL_WEBHOOK_SECRET`
+- Docs: `task-queue.md`, `project-decisions.md`, `system-architecture.md`, `project-context.md` (Prisma drift fixed), `in-progress.md` (cleared)
+
+**Next Task:**
+Fill `SUPABASE_JWT_SECRET` + `RESEND_API_KEY` in `.env` to enable real Google OAuth + email delivery, then resume the next incomplete `planning/task-queue.md` backlog item.
+
+**Assumptions Made:**
+- `npm run db:seed` still optional (migrations applied; seeding not run this session).
+- DocuSeal dev bypass (verify returns true when secret unset) matches the Paystack dev-bypass convention.
+- Playwright suite must be run with `--workers=1` locally (parallel workers race the dev server on Windows; 22/22 green serially).
+
+**Notes / Blockers:**
+- Supabase OAuth real exchange blocked until `SUPABASE_JWT_SECRET` is filled by the user; real email until `RESEND_API_KEY`.
+- `next build` needs `NEXT_IGNORE_INCORRECT_LOCKFILE=1` in this environment (Next 14.2.35 SWC lockfile-patch registry bug; unrelated to code).
+- `db:migrate`/`db:seed` need `DATABASE_URL` exported (root `.env` is not auto-loaded by `drizzle-kit`).
+
+---

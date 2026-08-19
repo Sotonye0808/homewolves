@@ -42,18 +42,18 @@ function buildNavItems(user: any) {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, accessToken, logout } = useAuth();
+  const { user, accessToken, hydrated, logout } = useAuth();
   const router = useRouter();
   const { unreadCount, notifications, isOpen, setIsOpen, markRead, markAllRead } = useNotificationBell(user?.id, accessToken ?? undefined);
   const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!accessToken) {
+    if (hydrated && !accessToken) {
       router.replace('/auth');
     }
-  }, [accessToken, router]);
+  }, [hydrated, accessToken, router]);
 
-  if (!user || !accessToken) {
+  if (!hydrated || !user || !accessToken) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--color-bg-canvas)' }}>
         <div className="animate-pulse" style={{ color: 'var(--color-text-tertiary)' }}>Loading dashboard...</div>

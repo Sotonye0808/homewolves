@@ -3,6 +3,7 @@ import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import { DrizzleService } from '../../drizzle/drizzle.service';
 import { AuditService } from '../audit/audit.service';
 import { PaystackClient } from '../../common/integrations/paystack.client';
+import { EmailService } from '../email/email.service';
 import { subscriptionPlans, subscriptions, users } from '../../drizzle/schema';
 
 @Injectable()
@@ -11,6 +12,7 @@ export class SubscriptionsService {
     private db: DrizzleService,
     private audit: AuditService,
     private paystack: PaystackClient,
+    private emailService: EmailService,
   ) {}
 
   get paymentsConfigured(): boolean {
@@ -135,6 +137,16 @@ export class SubscriptionsService {
       actor: { id: 'system', role: 'SYSTEM', name: 'Paystack Webhook' },
       metadata: { planName: updatedWithPlan.plan?.name, paystackRef },
     });
+
+    const [subscriber] = await this.db.select().from(users).where(eq(users.id, sub.userId));
+    if (subscriber?.email) {
+      void this.emailService.send(subscriber.email, 'subscription_activated', {
+        firstName: subscriber.firstName ?? 'there',
+        planName: updatedWithPlan.plan?.name ?? '',
+        subscriptionId: sub.id,
+        billingPeriod: `${updatedWithPlan.currentPeriodStart?.toISOString() ?? ''} — ${updatedWithPlan.currentPeriodEnd?.toISOString() ?? ''}`,
+      });
+    }
 
     return updatedWithPlan;
   }

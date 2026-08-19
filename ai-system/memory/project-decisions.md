@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-13
+> - last-verified-against-code: 2026-08-19
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions. Agents consult this before proposing changes to avoid contradicting prior reasoning. Uses supersedes/superseded-by links so contradictory entries are explicitly resolved rather than both appearing equally valid.
@@ -302,5 +302,170 @@ The cards were `role="button"`+`tabIndex=0` with no click handler — a dead int
 **Implications:**
 - The `new_dev` pill currently applies no category filter (its `queryParam` is `type`, not `category`; the properties page has no type-filter plumbing) — it highlights the chip and shows all listings. A future type-filter pass can wire it.
 - The properties page initializes `search` and `activePill` from URL query params via `window.location.search` in state initializers (avoids `useSearchParams` Suspense coupling) and treats unknown `category` values as `all`.
+
+---
+
+## Google OAuth via Supabase Auth (Google-only)
+
+**Decision:** Google is the sole OAuth provider, routed through Supabase Auth. The browser flow: `supabase.auth.signInWithOAuth()` → `/auth/callback#access_token=…` → `POST /api/v1/auth/supabase` with the Supabase access token → `AuthService.exchangeSupabaseToken()` verifies the Supabase JWT via `SUPABASE_JWT_SECRET`, find-or-creates the user, returns HW JWTs.
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 8)
+**Supersedes:** Any future multi-provider OAuth shortcut
+**Superseded by:** None
+
+**Reason:**
+The Google provider client ID/secret must live in the Supabase dashboard, not `.env` (Supabase-managed). The user decided the OAuth transport/verification should use Supabase (environment already provisioned) rather than a hand-rolled Google OAuth endpoint.
+
+**Alternatives Considered:**
+- **Google OAuth2 directly (ID token verification):** More moving parts (client secret in env, refresh-token management) and duplicates what Supabase already manages.
+- **next-auth:** Another dependency + session model to reconcile with the existing zustand `hw-auth` store.
+
+**Implications:**
+- `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` needed in `.env` for the web client; `SUPABASE_JWT_SECRET` needed for token verification at the exchange endpoint. Without it, the exchange returns an error and the web callback shows a fallback message.
+- `users` gained `provider`/`providerId` columns (migration `0001`).
+- `use-auth.ts` gained the `exchangeSupabase` action and persists the session in the existing `hw-auth` zustand store.
+
+---
+
+## Config-driven Resend email infrastructure (DB-backed, admin-editable)
+
+**Decision:** Transactional emails are config/metadata-driven end-to-end: `emailTemplates` table holds subject/body/active per template key; `EmailService` (in the `@Global` EmailModule) resolves DB row → `FALLBACK_EMAIL_TEMPLATES` in `packages/config/src/fallbacks.ts`, renders `{{var}}` placeholders, sends via Resend, and writes an `emailLogs` row. When `RESEND_API_KEY` is unset, sends are simulated (logged as `simulated`) and never block the caller. Admins edit templates at `/dashboard/admin/email-templates`.
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 8)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+Matches the platform's metadata-driven principle (like PlatformConfig): admins change email copy without deploys, fallbacks keep the system functional offline/without the DB, and email outages can never break a business flow.
+
+**Alternatives Considered:**
+- **Hardcoded template strings in services:** Not admin-editable; would drift from the config-driven convention.
+- **Third-party email UI (e.g., Resend hosted templates):** Splits copy control out of the platform; the user wants an in-house admin GUI.
+
+**Implications:**
+- `EmailModule` is `@Global()`; feature services only add `private emailService: EmailService` to their constructor (no module imports).
+- `EmailTemplate` type is global via `packages/types/src/global.d.ts` (both API and web tsconfigs include it); API does not depend on `@hw/config`.
+- Template keys in use: `otp_code`, `welcome`, `transaction_created`, `transaction_completed`, `transaction_rejected`, `transaction_cancelled`, `payment_confirmed`, `subscription_activated`, `signature_requested`, `listing_approved`, `listing_rejected`, `referral_signup`, `price_drop` (all seeded in `email-templates.defaults.ts`).
+- `RESEND_FROM_EMAIL`/`RESEND_FROM_NAME` in `.env` configure the sender.
+
+---
+
+## Blog create flow accepts `featured` (parity with update)
+
+**Decision:** `createBlogPostSchema` accepts an optional `featured` boolean (matching `updateBlogPostSchema`), `BlogService.create` persists it, and the web `createBlogPost` lib type includes it. The admin new-post form already submits `featured`.
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 8)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The admin post form always submits `featured`; the strict zod schema rejected the unknown key on create (only update accepted it). This aligns the create contract with the UI.
+
+**Implications:**
+- New blog posts can be marked featured from the first save.
+- `lib/blog.ts` `createBlogPost` accepts `featured?: boolean`.
+
+---
+
+## DocuSeal webhook verified with HMAC (matching Paystack)
+
+**Decision:** The DocuSeal signatures webhook (`POST /api/v1/signatures/webhook`) verifies the `X-Docuseal-Signature` header: value format `[timestamp].[signature]`, hex HMAC-SHA256 of `${timestamp}.${rawBody}` keyed by `DOCUSEAL_WEBHOOK_SECRET` (`whsec_…`), 5-minute replay tolerance, timing-safe compare. When `DOCUSEAL_WEBHOOK_SECRET` is unset, verification passes (dev bypass) — matching the Paystack webhook's existing dev-bypass convention.
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 9)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+DocuSeal webhook carried no signature check, so a forged POST could advance signature/transaction state. Paystack already verified HMAC; DocuSeal documents the same pattern. The dev bypass keeps local dev (no secret) working exactly like Paystack.
+
+**Implications:**
+- `docuseal.client.ts` exposes `verifyWebhookSignature(rawBody, signature)`; controller returns 401 `UnauthorizedException` on invalid/stale/malformed signatures.
+- `DOCUSEAL_WEBHOOK_SECRET` documented in `.env.example`; unset = skip verification (log it in prod deployment checklist).
+
+---
+
+## `JWT_SECRET` fails hard in production (dev fallback only outside prod)
+
+**Decision:** One shared `resolveJwtSecret()` in `packages/api/src/common/config/env.ts`: returns `process.env.JWT_SECRET` when set, else `homewolves-dev-secret`, and **throws** when `NODE_ENV=production` and `JWT_SECRET` is unset. `jwt.strategy.ts`, `auth.module.ts`, and a `main.ts` boot check all use it.
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 9)
+**Supersedes:** The implicit per-file `process.env.JWT_SECRET ?? 'homewolves-dev-secret'` fallbacks
+**Superseded by:** None
+
+**Reason:**
+The dev fallback silently deployed would sign every token with a public secret. Failing fast in production prevents a misconfigured deploy; dev/test keep working with the deterministic fallback (vitest runs with `NODE_ENV=test`).
+
+**Implications:**
+- Production boot aborts (throw) if `JWT_SECRET` unset — caught in `main.ts`.
+- Test/CI unaffected (fallback active outside `production`).
+
+---
+
+## Redis-backed rate limiter with in-memory fallback
+
+**Decision:** The global rate-limit guard now injects a pluggable store via the `RATE_LIMIT_STORE` token. Factory in `rate-limit.module.ts` selects `RedisRateLimitStore` (ioredis sorted-set sliding window) when `REDIS_URL` is set and connects, otherwise `MemoryRateLimitStore` (sliding window, 10k bucket cap) with a warning. Both implement `RateLimitStore.hit(key, limit, ttlMs) -> {allowed, count}`.
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 9)
+**Supersedes:** The single in-memory `Map` sliding window inside `RateLimitGuard`
+**Superseded by:** None
+
+**Reason:**
+The in-memory limiter is per-instance, so a multi-instance deploy multiplies the effective limit. Redis makes limits shared and consistent; falling back to memory when Redis is absent keeps local dev and single-instance deploys working without infra.
+
+**Implications:**
+- `REDIS_URL` set + reachable → Redis store (graceful; a bad Redis URL logs a warning and falls back).
+- `RateLimitGuard` is now async; semantics unchanged (120/min default, 10/min auth).
+- Unit coverage via `rate-limit.store.spec.ts` (memory store) + integration 429 test.
+
+---
+
+## Web auth redirect gated on zustand hydration
+
+**Decision:** `use-auth.ts` (zustand `persist`) gained a non-persisted `hydrated` flag set via `useAuth.persist.onFinishHydration`. The dashboard layout only runs `router.replace('/auth')` and only renders the dashboard when `hydrated && accessToken`, otherwise it shows the loading state.
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 9)
+**Supersedes:** The layout's unconditional `if (!accessToken) router.replace('/auth')` on mount
+**Superseded by:** None
+
+**Reason:**
+zustand v4 `persist` rehydrates **asynchronously** (a promise chain), so on slow loads the mount-time `useEffect` could observe `accessToken === null` before hydration finished and bounce an already-logged-in user to `/auth`. The E2E admin-journey suite caught this as a flaky auth redirect.
+
+**Implications:**
+- The redirect and the "Loading dashboard..." gate are now driven by `hydrated`; no flash-to-auth for logged-in users.
+- Same pattern should be reused by any future mount-time guard on persisted zustand state.
+
+---
+
+## SEO verified already present; blog detail stays a client component
+
+**Decision:** No SEO code changes this sprint — listing detail already has `generateMetadata` + JSON-LD, and `app/sitemap.ts` + `robots.ts` already exist. The blog detail page remains a client component with client-side JSON-LD (no server `generateMetadata`); converting it to a server component is out of scope for MVP.
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 9)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The "SEO" sprint item was already implemented (verify-only). Blog detail's client-render JSON-LD is acceptable for MVP; a server-component conversion is a separate perf task. Listings `take` is capped at 50 in the controller, so sitemap lists at most 50 listings — accepted for MVP.
+
+**Implications:**
+- Sitemap covers listings (`?take=500&status=ACTIVE`) + blog (`?published=true&limit=500`); controllers clamp `take` to 50 — sitemap completeness bounded by that.
+- Blog detail JSON-LD is emitted client-side only.
+
+---
+
+## Next.js SWC lockfile patch requires `NEXT_IGNORE_INCORRECT_LOCKFILE=1` (env quirk)
+
+**Decision:** Documented (not code-fixed) environmental workaround: `next build` in this workspace warns "Found lockfile missing swc dependencies, patching…" and then crashes the patch step because Next 14.2.35's `optionalDependencies` pin `@next/swc-*@14.2.33` while `patch-incorrect-lockfile.js` fetches registry metadata for version 14.2.35 (missing). Setting `NEXT_IGNORE_INCORRECT_LOCKFILE=1` makes the build skip the patch and succeed (compilation + static generation unaffected).
+**Date:** 2026-08-19
+**Made by:** Implementer (Session 9)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The prior session's `npm install` pruned the non-current-platform `@next/swc-*` entries from `package-lock.json`; Next's auto-patch then tries to re-add them at the wrong version and crashes. Not a code or build-output issue.
+
+**Implications:**
+- CI/build hosts must set `NEXT_IGNORE_INCORRECT_LOCKFILE=1` (or ensure the lockfile carries all 9 `@next/swc-*` entries).
+- The two present entries (`swc-linux-x64-gnu`, `swc-win32-x64-msvc` @14.2.33) are correct for this machine.
 
 ---

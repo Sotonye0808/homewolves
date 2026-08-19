@@ -10,11 +10,13 @@ import {
   LoginDto,
   CompleteProfileDto,
   RefreshTokenDto,
+  SupabaseLoginDto,
   registerSchema,
   verifyOtpSchema,
   loginSchema,
   completeProfileSchema,
   refreshTokenSchema,
+  supabaseLoginSchema,
 } from './dto/register.dto';
 
 @Controller('auth')
@@ -49,6 +51,12 @@ export class AuthController {
   @Throttle(AUTH_THROTTLE)
   refresh(@Body(new ZodValidationPipe(refreshTokenSchema)) dto: RefreshTokenDto) {
     return this.authService.refreshToken(dto.refreshToken);
+  }
+
+  @Post('supabase')
+  @Throttle(AUTH_THROTTLE)
+  supabase(@Body(new ZodValidationPipe(supabaseLoginSchema)) dto: SupabaseLoginDto) {
+    return this.authService.exchangeSupabaseToken(dto);
   }
 
   @Post('logout')

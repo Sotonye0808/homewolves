@@ -45,3 +45,12 @@ export const refreshTokenSchema = z
   })
   .strict();
 export type RefreshTokenDto = z.infer<typeof refreshTokenSchema>;
+
+export const supabaseLoginSchema = z
+  .object({
+    accessToken: z.string().trim().min(1),
+    referralCode: z.string().trim().max(20).optional(),
+    role: z.enum(['BUYER', 'AGENT', 'DEVELOPER', 'HOMEOWNER']).optional(),
+  })
+  .strict();
+export type SupabaseLoginDto = z.infer<typeof supabaseLoginSchema>;

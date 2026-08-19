@@ -119,10 +119,13 @@ export const users = pgTable('User', {
   preferences: jsonb('preferences').notNull().default(sql`'{}'::jsonb`),
   referralCode: text('referralCode').unique(),
   referredById: text('referredById'),
+  provider: text('provider'),
+  providerId: text('providerId'),
   createdAt: createdAt('createdAt'),
   updatedAt: updatedAt('updatedAt'),
 }, (t) => [
   index('User_role_idx').on(t.role),
+  index('User_providerId_idx').on(t.providerId),
 ]);
 
 export const listings = pgTable('Listing', {
@@ -336,6 +339,35 @@ export const notifications = pgTable('Notification', {
 }, (t) => [
   index('Notification_userId_read_idx').on(t.userId, t.read),
   index('Notification_createdAt_idx').on(t.createdAt),
+]);
+
+export const emailTemplates = pgTable('EmailTemplate', {
+  id: cuid('id'),
+  key: text('key').notNull().unique(),
+  name: text('name').notNull(),
+  subject: text('subject').notNull(),
+  htmlBody: text('htmlBody').notNull(),
+  textBody: text('textBody'),
+  fromEmail: text('fromEmail'),
+  active: boolean('active').notNull().default(true),
+  updatedAt: updatedAt('updatedAt'),
+}, (t) => [
+  index('EmailTemplate_key_idx').on(t.key),
+]);
+
+export const emailLogs = pgTable('EmailLog', {
+  id: cuid('id'),
+  toEmail: text('toEmail').notNull(),
+  templateKey: text('templateKey').notNull(),
+  subject: text('subject').notNull(),
+  status: text('status').notNull().default('sent'),
+  providerMessageId: text('providerMessageId'),
+  error: text('error'),
+  metadata: jsonb('metadata'),
+  createdAt: createdAt('createdAt'),
+}, (t) => [
+  index('EmailLog_toEmail_idx').on(t.toEmail),
+  index('EmailLog_createdAt_idx').on(t.createdAt),
 ]);
 
 export const messages = pgTable('Message', {

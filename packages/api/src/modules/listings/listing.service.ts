@@ -5,6 +5,7 @@ import { AuditService } from '../audit/audit.service';
 import { AlertsService } from '../alerts/alerts.service';
 import { ActivityService } from '../activity/activity.service';
 import { AnalyticsService } from '../analytics/analytics.service';
+import { EmailService } from '../email/email.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto, UpdateListingStatusDto } from './dto/update-listing.dto';
 import { listings, media, featuredPlacements } from '../../drizzle/schema';
@@ -16,6 +17,7 @@ export class ListingService {
     private audit: AuditService,
     private activityService: ActivityService,
     private analyticsService: AnalyticsService,
+    private emailService: EmailService,
     @Optional() @Inject(AlertsService) private alertsService?: AlertsService,
   ) {}
 
@@ -208,6 +210,27 @@ export class ListingService {
       actor,
       metadata: { from: listing.status, to: newStatus },
     });
+
+    if (action === 'approve' && updated?.owner?.role) {
+      void this.activityService.awardForUser(
+        updated.ownerId,
+        updated.owner.role,
+        'listing_approved',
+        actor,
+        { listingId: id, title: updated.title ?? '' },
+      );
+    }
+
+    if (updated?.owner?.email) {
+      const templateKey = action === 'approve' ? 'listing_approved' : 'listing_rejected';
+      void this.emailService.send(updated.owner.email, templateKey, {
+        firstName: updated.owner.firstName ?? 'there',
+        listingTitle: updated.title ?? '',
+        listingId: updated.id,
+        amount: updated.price ? String(Number(updated.price)) : '',
+        currency: updated.currency ?? 'NGN',
+      });
+    }
 
     return updated;
   }

@@ -5,6 +5,7 @@ import { AuditService } from '../audit/audit.service';
 import { ActivityService } from '../activity/activity.service';
 import { ReferralsService } from '../referrals/referrals.service';
 import { AnalyticsService } from '../analytics/analytics.service';
+import { EmailService } from '../email/email.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { AdvanceTransactionDto } from './dto/advance-transaction.dto';
 import { RejectTransactionDto } from './dto/reject-transaction.dto';
@@ -38,6 +39,7 @@ export class TransactionsService {
     private activityService: ActivityService,
     private referralsService: ReferralsService,
     private analyticsService: AnalyticsService,
+    private emailService: EmailService,
   ) {}
 
   async create(dto: CreateTransactionDto, agentId: string, actor: ActorRef) {
@@ -75,6 +77,25 @@ export class TransactionsService {
       actor,
       metadata: { listingId: dto.listingId, buyerId: dto.buyerId, type: dto.type },
     });
+
+    if (full?.buyer?.email) {
+      void this.emailService.send(full.buyer.email, 'transaction_created', {
+        firstName: full.buyer.firstName ?? 'there',
+        listingTitle: full.listing?.title ?? '',
+        transactionId: transaction.id,
+        amount: full.listing ? String(Number(full.listing.price ?? 0)) : '',
+        currency: full.listing?.currency ?? 'NGN',
+      });
+    }
+    if (full?.agent?.email) {
+      void this.emailService.send(full.agent.email, 'transaction_created', {
+        firstName: full.agent.firstName ?? 'there',
+        listingTitle: full.listing?.title ?? '',
+        transactionId: transaction.id,
+        amount: full.listing ? String(Number(full.listing.price ?? 0)) : '',
+        currency: full.listing?.currency ?? 'NGN',
+      });
+    }
 
     this.activityService
       .awardForUser(agentId, actor.role, 'transaction_created', actor, { transactionId: transaction.id, listingId: dto.listingId })
@@ -202,7 +223,63 @@ export class TransactionsService {
       metadata: { fromStep: stepIndex, toStep: nextStep, stepLabel: steps[stepIndex]?.label },
     });
 
+    if (updated?.status === 'COMPLETED') {
+      this.sendTransactionCompletedEmail(updated);
+    }
+
     return updated;
+  }
+
+  private sendTransactionCompletedEmail(updated: {
+    id: string;
+    listing?: { title: string | null; price?: string | number | null; currency?: string | null };
+    buyer?: { id: string; email: string | null; firstName?: string | null };
+    agent?: { id: string; email: string | null; firstName?: string | null };
+  }) {
+    const templateVars = {
+      firstName: '',
+      listingTitle: updated.listing?.title ?? '',
+      transactionId: updated.id,
+      amount: updated.listing ? String(Number(updated.listing.price ?? 0)) : '',
+      currency: updated.listing?.currency ?? 'NGN',
+    };
+    if (updated.buyer?.email) {
+      void this.emailService.send(updated.buyer.email, 'transaction_completed', {
+        ...templateVars,
+        firstName: updated.buyer.firstName ?? 'there',
+      });
+    }
+    if (updated.agent?.email) {
+      void this.emailService.send(updated.agent.email, 'transaction_completed', {
+        ...templateVars,
+        firstName: updated.agent.firstName ?? 'there',
+      });
+    }
+  }
+
+  private sendTransactionStatusEmail(
+    updated: {
+      id: string;
+      listing?: { title: string | null; price?: string | number | null; currency?: string | null };
+      buyer?: { id: string; email: string | null; firstName?: string | null };
+      agent?: { id: string; email: string | null; firstName?: string | null };
+    },
+    templateKey: 'transaction_rejected' | 'transaction_cancelled',
+    reason?: string,
+  ) {
+    const base = {
+      listingTitle: updated.listing?.title ?? '',
+      transactionId: updated.id,
+      amount: updated.listing ? String(Number(updated.listing.price ?? 0)) : '',
+      currency: updated.listing?.currency ?? 'NGN',
+    };
+    const vars = reason ? { ...base, reason } : base;
+    if (updated.buyer?.email) {
+      void this.emailService.send(updated.buyer.email, templateKey, { ...vars, firstName: updated.buyer.firstName ?? 'there' });
+    }
+    if (updated.agent?.email) {
+      void this.emailService.send(updated.agent.email, templateKey, { ...vars, firstName: updated.agent.firstName ?? 'there' });
+    }
   }
 
   private async complete(transaction: { id: string; agentId: string; buyerId: string; listingId: string }, actor: ActorRef) {
@@ -224,6 +301,10 @@ export class TransactionsService {
       action: 'TRANSACTION_COMPLETED',
       actor,
     });
+
+    if (updated?.status === 'COMPLETED') {
+      this.sendTransactionCompletedEmail(updated);
+    }
 
     if (updated?.listing) {
       await this.db.update(listings).set({ status: 'SOLD' }).where(eq(listings.id, updated.listingId));
@@ -312,6 +393,10 @@ export class TransactionsService {
       metadata: { reason: dto.reason },
     });
 
+    if (updated) {
+      this.sendTransactionStatusEmail(updated, 'transaction_rejected', dto.reason);
+    }
+
     return updated;
   }
 
@@ -344,6 +429,10 @@ export class TransactionsService {
       actor,
       metadata: { reason: 'Cancelled by participant' },
     });
+
+    if (updated) {
+      this.sendTransactionStatusEmail(updated, 'transaction_cancelled');
+    }
 
     return updated;
   }
@@ -402,6 +491,27 @@ export class TransactionsService {
       actor,
       metadata: { status: dto.status },
     });
+
+    if (dto.status === 'confirmed' && updated?.transactionId) {
+      const tx = await this.db.query.transactions.findFirst({
+        where: eq(transactions.id, updated.transactionId),
+        with: { listing: { with: { media: true } }, buyer: true, agent: true },
+      });
+      if (tx) {
+        const vars = {
+          listingTitle: tx.listing?.title ?? '',
+          transactionId: tx.id,
+          amount: String(Number(updated.amount ?? 0)),
+          currency: updated.currency ?? 'NGN',
+        };
+        if (tx.buyer?.email) {
+          void this.emailService.send(tx.buyer.email, 'payment_confirmed', { ...vars, firstName: tx.buyer.firstName ?? 'there' });
+        }
+        if (tx.agent?.email) {
+          void this.emailService.send(tx.agent.email, 'payment_confirmed', { ...vars, firstName: tx.agent.firstName ?? 'there' });
+        }
+      }
+    }
 
     return updated;
   }

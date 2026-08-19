@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Upload } from 'lucide-react';
+import { signInWithGoogle } from './actions';
 
 type AuthStep = 'email' | 'otp' | 'profile' | 'agent-id';
 
@@ -22,9 +23,17 @@ export default function AuthPage() {
   const [selectedRole, setSelectedRole] = useState('BUYER');
   const [otpTimer, setOtpTimer] = useState(120);
   const [referralCode] = useState(readReferralCode);
+  const [oauthError, setOauthError] = useState('');
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const { register, verifyOtp, completeProfile, isLoading, error, clearError } = useAuth();
+
+  const handleGoogleSignIn = async () => {
+    clearError();
+    setOauthError('');
+    const result = await signInWithGoogle();
+    if (!result.ok) setOauthError(result.message);
+  };
 
   useEffect(() => {
     if (step === 'otp' && otpTimer > 0) {
@@ -212,7 +221,12 @@ export default function AuthPage() {
                 <div className="flex-1 h-px bg-border" />
               </div>
 
-              <button className="btn-outline w-full flex items-center justify-center gap-2">
+              {oauthError && <p className="text-sm text-error mb-3 text-center">{oauthError}</p>}
+
+              <button
+                onClick={handleGoogleSignIn}
+                className="btn-outline w-full flex items-center justify-center gap-2"
+              >
                 <svg viewBox="0 0 48 48" className="w-5 h-5">
                   <path
                     fill="#EA4335"

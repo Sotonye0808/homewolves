@@ -33,7 +33,7 @@ export class BlogController {
     @Query('limit') limit?: string,
   ) {
     return this.blogService.findAll({
-      published: published != null ? published === 'true' : true,
+      published: published === 'all' ? undefined : published != null ? published === 'true' : true,
       category,
       tag,
       featured: featured != null ? featured === 'true' : undefined,

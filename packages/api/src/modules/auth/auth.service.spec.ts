@@ -14,7 +14,7 @@ describe('AuthService', () => {
   let audit: { log: MockFn };
   let activityService: { awardForUser: MockFn };
   let referralsService: { ensureCodeForNewUser: MockFn };
-  let jwtService: { sign: MockFn };
+  let jwtService: { sign: MockFn; verifyAsync: MockFn };
 
   const user = {
     id: 'u-1',
@@ -32,13 +32,14 @@ describe('AuthService', () => {
     audit = { log: vi.fn().mockResolvedValue(undefined) };
     activityService = { awardForUser: vi.fn().mockResolvedValue(null) };
     referralsService = { ensureCodeForNewUser: vi.fn().mockResolvedValue('CODE1234') };
-    jwtService = { sign: vi.fn().mockReturnValue('access-token') };
+    jwtService = { sign: vi.fn().mockReturnValue('access-token'), verifyAsync: vi.fn() };
     service = new AuthService(
       mocks.db,
       jwtService as never,
       audit as unknown as AuditService,
       activityService as unknown as ActivityService,
       referralsService as unknown as ReferralsService,
+      { send: vi.fn().mockResolvedValue({ status: 'simulated' }) } as never,
     );
   });
 
@@ -177,6 +178,98 @@ describe('AuthService', () => {
           referralCode: 'NOPE123',
         }),
       ).rejects.toThrow('Invalid referral code');
+    });
+  });
+
+  describe('exchangeSupabaseToken', () => {
+    const basePayload = {
+      sub: 'sb-1',
+      email: 'ada@b.com',
+      user_metadata: { full_name: 'Ada Okon', avatar_url: 'https://x/a.png' },
+    };
+
+    it('rejects when SUPABASE_JWT_SECRET is not configured', async () => {
+      vi.stubEnv('SUPABASE_JWT_SECRET', '');
+      await expect(service.exchangeSupabaseToken({ accessToken: 'tok' })).rejects.toThrow('Supabase auth is not configured');
+      vi.unstubAllEnvs();
+    });
+
+    it('rejects an invalid token', async () => {
+      vi.stubEnv('SUPABASE_JWT_SECRET', 'secret');
+      jwtService.verifyAsync.mockRejectedValueOnce(new Error('bad'));
+      await expect(service.exchangeSupabaseToken({ accessToken: 'tok' })).rejects.toThrow('Invalid or expired Supabase session');
+      vi.unstubAllEnvs();
+    });
+
+    it('rejects a session missing email', async () => {
+      vi.stubEnv('SUPABASE_JWT_SECRET', 'secret');
+      jwtService.verifyAsync.mockResolvedValueOnce({ sub: 'sb-1' });
+      await expect(service.exchangeSupabaseToken({ accessToken: 'tok' })).rejects.toThrow('Supabase session is missing identity');
+      vi.unstubAllEnvs();
+    });
+
+    it('creates a new user from Supabase metadata and returns tokens', async () => {
+      vi.stubEnv('SUPABASE_JWT_SECRET', 'secret');
+      jwtService.verifyAsync.mockResolvedValueOnce(basePayload);
+
+      mocks.select
+        .mockReturnValueOnce(createChain([])) // by providerId
+        .mockReturnValueOnce(createChain([])); // by email
+
+      const insertValues: Array<Record<string, unknown>> = [];
+      mocks.insert.mockReturnValue(
+        createChain([{ ...user, id: 'u-sb', email: 'ada@b.com', providerId: 'supabase:sb-1', referralCode: 'CODE1234' }], (method, args) => {
+          if (method === 'values') insertValues.push(args[0] as Record<string, unknown>);
+        }),
+      );
+
+      const result = await service.exchangeSupabaseToken({ accessToken: 'tok', referralCode: undefined });
+
+      expect(insertValues[0]).toMatchObject({
+        provider: 'supabase',
+        providerId: 'supabase:sb-1',
+        firstName: 'Ada',
+        lastName: 'Okon',
+        verified: true,
+        referralCode: 'CODE1234',
+      });
+      expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'OAUTH_LOGIN' }));
+      expect(activityService.awardForUser).toHaveBeenCalledWith('u-sb', 'BUYER', 'daily_login', expect.anything());
+      expect(result.accessToken).toBe('access-token');
+      vi.unstubAllEnvs();
+    });
+
+    it('returns tokens for an existing linked providerId user', async () => {
+      vi.stubEnv('SUPABASE_JWT_SECRET', 'secret');
+      jwtService.verifyAsync.mockResolvedValueOnce(basePayload);
+
+      mocks.select.mockReturnValue(createChain([{ ...user, id: 'u-sb', providerId: 'supabase:sb-1' }]));
+
+      const result = await service.exchangeSupabaseToken({ accessToken: 'tok' });
+      expect(result.accessToken).toBe('access-token');
+      expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'OAUTH_LOGIN' }));
+      vi.unstubAllEnvs();
+    });
+
+    it('links an existing email account to the Supabase identity', async () => {
+      vi.stubEnv('SUPABASE_JWT_SECRET', 'secret');
+      jwtService.verifyAsync.mockResolvedValueOnce(basePayload);
+
+      mocks.select
+        .mockReturnValueOnce(createChain([])) // by providerId
+        .mockReturnValueOnce(createChain([{ ...user, id: 'u-existing' }]));
+
+      const updateSet: Array<Record<string, unknown>> = [];
+      mocks.update.mockReturnValue(
+        createChain([{ ...user, id: 'u-existing', providerId: 'supabase:sb-1' }], (method, args) => {
+          if (method === 'set') updateSet.push(args[0] as Record<string, unknown>);
+        }),
+      );
+
+      const result = await service.exchangeSupabaseToken({ accessToken: 'tok' });
+      expect(updateSet[0]).toMatchObject({ provider: 'supabase', providerId: 'supabase:sb-1', verified: true });
+      expect(result.accessToken).toBe('access-token');
+      vi.unstubAllEnvs();
     });
   });
 

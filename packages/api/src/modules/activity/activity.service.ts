@@ -8,6 +8,7 @@ const AGENT_ROLES = ['AGENT', 'DEVELOPER', 'HOMEOWNER'];
 
 const DEFAULT_RULES = [
   { key: 'listing_created', label: 'Listing Created', points: 10, category: 'listing' },
+  { key: 'listing_approved', label: 'Listing Approved', points: 20, category: 'listing' },
   { key: 'listing_sold', label: 'Listing Sold', points: 100, category: 'deal' },
   { key: 'client_added', label: 'Client Added', points: 5, category: 'crm' },
   { key: 'inspection_scheduled', label: 'Inspection Scheduled', points: 3, category: 'crm' },

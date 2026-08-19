@@ -47,6 +47,7 @@ describe('ListingService', () => {
       audit as unknown as AuditService,
       activityService as unknown as ActivityService,
       analyticsService as unknown as AnalyticsService,
+      { send: vi.fn().mockResolvedValue({ status: 'simulated' }) } as never,
       alertsService as unknown as AlertsService,
     );
   });
@@ -152,17 +153,28 @@ describe('ListingService', () => {
   });
 
   describe('moderateListing', () => {
-    it('approves a pending listing to ACTIVE', async () => {
+    it('approves a pending listing to ACTIVE and awards listing_approved points', async () => {
       mocks.select.mockReturnValue(createChain([{ ...listing, status: 'PENDING' }]));
       mocks.update.mockReturnValue(createChain([]));
-      mocks.table('listings').findFirst.mockResolvedValue({ ...listing, status: 'ACTIVE' });
+      mocks.table('listings').findFirst.mockResolvedValue({
+        ...listing,
+        status: 'ACTIVE',
+        owner: { id: 'agent-1', role: 'AGENT', email: 'agent@homewolves.africa', firstName: 'Ada' },
+      });
 
       await service.moderateListing('l-1', 'approve', actor);
 
       expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'LISTING_APPROVED' }));
+      expect(activityService.awardForUser).toHaveBeenCalledWith(
+        'agent-1',
+        'AGENT',
+        'listing_approved',
+        actor,
+        expect.objectContaining({ listingId: 'l-1' }),
+      );
     });
 
-    it('rejects to DRAFT', async () => {
+    it('rejects to DRAFT without awarding points', async () => {
       mocks.select.mockReturnValue(createChain([{ ...listing, status: 'PENDING' }]));
       mocks.update.mockReturnValue(createChain([]));
       mocks.table('listings').findFirst.mockResolvedValue({ ...listing, status: 'DRAFT' });
@@ -171,6 +183,7 @@ describe('ListingService', () => {
 
       expect(mocks.update).toHaveBeenCalledWith(listings);
       expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'LISTING_REJECTED' }));
+      expect(activityService.awardForUser).not.toHaveBeenCalled();
     });
   });
 

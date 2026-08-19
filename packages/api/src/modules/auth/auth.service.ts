@@ -6,6 +6,7 @@ import { UserRole, users, referrals } from '../../drizzle/schema';
 import { AuditService } from '../audit/audit.service';
 import { ActivityService } from '../activity/activity.service';
 import { ReferralsService } from '../referrals/referrals.service';
+import { EmailService } from '../email/email.service';
 import { RegisterDto, VerifyOtpDto, LoginDto, CompleteProfileDto } from './dto/register.dto';
 import * as crypto from 'crypto';
 
@@ -22,6 +23,7 @@ export class AuthService {
     private audit: AuditService,
     private activityService: ActivityService,
     private referralsService: ReferralsService,
+    private emailService: EmailService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -31,8 +33,11 @@ export class AuthService {
     const otp = this.generateOtp();
     this.otpStore.set(dto.email, { code: otp, expiresAt: Date.now() + 10 * 60 * 1000 });
 
-    // Stub: in production, send OTP via Resend (email) + Termii (SMS)
-    console.log(`[OTP] ${otp} for ${dto.email}`);
+    void this.emailService.send(dto.email, 'otp_code', {
+      firstName: dto.firstName ?? 'there',
+      otp,
+      expiresInMinutes: 10,
+    });
 
     return { message: 'OTP sent', otp };
   }
@@ -71,7 +76,11 @@ export class AuthService {
     const otp = this.generateOtp();
     this.otpStore.set(dto.email, { code: otp, expiresAt: Date.now() + 10 * 60 * 1000 });
 
-    console.log(`[OTP] ${otp} for ${dto.email}`);
+    void this.emailService.send(dto.email, 'otp_code', {
+      firstName: user.firstName,
+      otp,
+      expiresInMinutes: 10,
+    });
 
     return { message: 'OTP sent', otp };
   }
@@ -113,6 +122,11 @@ export class AuthService {
 
     if (!user) throw new Error('Failed to create user');
 
+    void this.emailService.send(user.email, 'welcome', {
+      firstName: user.firstName,
+      siteUrl: process.env.WEB_URL ?? 'https://homewolves.africa',
+    });
+
     await this.audit.log({
       entityType: 'User',
       entityId: user.id,
@@ -149,6 +163,14 @@ export class AuthService {
       actor: { id: user.id, role: user.role, name: `${user.firstName} ${user.lastName}` },
       metadata: { referrerId: referrer.id, code: code.trim().toUpperCase() },
     });
+
+    if (referrer.email) {
+      void this.emailService.send(referrer.email, 'referral_signup', {
+        firstName: referrer.firstName ?? 'there',
+        referredName: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email,
+        referralCode: code.trim().toUpperCase(),
+      });
+    }
   }
 
   async refreshToken(refreshToken: string) {
@@ -168,6 +190,94 @@ export class AuthService {
     for (const [token, data] of this.refreshStore.entries()) {
       if (data.userId === userId) this.refreshStore.delete(token);
     }
+  }
+
+  /**
+   * Exchanges a Supabase Auth access token (from Google OAuth via Supabase
+   * GoTrue) for Homewolves JWT tokens. The token is verified against
+   * `SUPABASE_JWT_SECRET`; the user is found or created by `providerId`.
+   */
+  async exchangeSupabaseToken(dto: { accessToken: string; referralCode?: string; role?: string }) {
+    if (!process.env.SUPABASE_JWT_SECRET) {
+      throw new UnauthorizedException('Supabase auth is not configured');
+    }
+
+    let payload: Record<string, unknown>;
+    try {
+      payload = await this.jwtService.verifyAsync(dto.accessToken, {
+        secret: process.env.SUPABASE_JWT_SECRET,
+      });
+    } catch {
+      throw new UnauthorizedException('Invalid or expired Supabase session');
+    }
+
+    const sub = payload.sub as string | undefined;
+    const email = payload.email as string | undefined;
+    const metadata = (payload.user_metadata ?? payload.app_metadata ?? {}) as Record<string, unknown>;
+    if (typeof sub !== 'string' || typeof email !== 'string') {
+      throw new UnauthorizedException('Supabase session is missing identity');
+    }
+    const verifiedSub: string = sub;
+    const verifiedEmail: string = email;
+
+    const providerId = `supabase:${verifiedSub}`;
+
+    let user: UserRow | null | undefined = (
+      await this.db.select().from(users).where(eq(users.providerId, providerId))
+    )[0];
+
+    if (!user) {
+      // Link an existing email account, otherwise create a new one.
+      [user] = await this.db.select().from(users).where(eq(users.email, verifiedEmail));
+      if (user) {
+        [user] = await this.db
+          .update(users)
+          .set({ provider: 'supabase', providerId, verified: true, avatar: user.avatar ?? (metadata.avatar_url as string | undefined) ?? null })
+          .where(eq(users.id, user.id))
+          .returning();
+      } else {
+        const fullName = (metadata.full_name as string) ?? (metadata.name as string) ?? verifiedEmail;
+        const [firstName, ...rest] = fullName.trim().split(/\s+/);
+        const lastName = rest.join(' ') || '—';
+        const role = (dto.role ?? 'BUYER') as (typeof users.$inferInsert)['role'];
+        const referralCode = await this.referralsService.ensureCodeForNewUser();
+        const insertValues: typeof users.$inferInsert = {
+          email: verifiedEmail,
+          firstName: firstName ?? 'User',
+          lastName,
+          role,
+          verified: true,
+          provider: 'supabase',
+          providerId,
+          avatar: metadata.avatar_url as string | undefined,
+          referralCode,
+        };
+        [user] = await this.db
+          .insert(users)
+          .values(insertValues)
+          .returning();
+
+        if (dto.referralCode) {
+          await this.applyReferralOnSignup(user!, dto.referralCode);
+        }
+      }
+    }
+
+    if (!user) throw new Error('Failed to resolve Supabase user');
+
+    await this.audit.log({
+      entityType: 'User',
+      entityId: user.id,
+      action: 'OAUTH_LOGIN',
+      actor: { id: user.id, role: user.role, name: `${user.firstName} ${user.lastName}` },
+      metadata: { provider: 'supabase', subject: sub },
+    });
+
+    this.activityService
+      .awardForUser(user.id, user.role, 'daily_login', { id: user.id, role: user.role, name: `${user.firstName} ${user.lastName}` })
+      .catch(() => {});
+
+    return this.generateTokens(user);
   }
 
   private generateTokens(user: UserRow) {

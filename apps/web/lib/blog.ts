@@ -25,6 +25,7 @@ export async function fetchBlogPosts(params?: {
   category?: string;
   tag?: string;
   featured?: boolean;
+  published?: string;
   page?: number;
   limit?: number;
 }) {
@@ -32,6 +33,7 @@ export async function fetchBlogPosts(params?: {
   if (params?.category) qs.set('category', params.category);
   if (params?.tag) qs.set('tag', params.tag);
   if (params?.featured != null) qs.set('featured', String(params.featured));
+  if (params?.published != null) qs.set('published', params.published);
   if (params?.page) qs.set('page', String(params.page));
   if (params?.limit) qs.set('limit', String(params.limit));
   const q = qs.toString();
@@ -58,6 +60,7 @@ export async function createBlogPost(data: {
   categories?: string[];
   tags?: string[];
   published?: boolean;
+  featured?: boolean;
 }) {
   const r = await fetch(API, {
     method: 'POST',

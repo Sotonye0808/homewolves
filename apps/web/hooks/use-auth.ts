@@ -18,6 +18,7 @@ interface AuthUser {
 interface AuthState {
   user: AuthUser | null;
   accessToken: string | null;
+  hydrated: boolean;
   isLoading: boolean;
   error: string | null;
 
@@ -32,6 +33,7 @@ interface AuthState {
     referralCode?: string;
   }) => Promise<void>;
   login: (email: string) => Promise<{ otp: string }>;
+  exchangeSupabase: (accessToken: string, opts?: { referralCode?: string; role?: string }) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
 }
@@ -41,6 +43,7 @@ export const useAuth = create<AuthState>()(
     (set, get) => ({
       user: null,
       accessToken: null,
+      hydrated: false,
       isLoading: false,
       error: null,
 
@@ -138,6 +141,31 @@ export const useAuth = create<AuthState>()(
         }
       },
 
+      exchangeSupabase: async (accessToken, opts) => {
+        set({ isLoading: true, error: null });
+        try {
+          const res = await fetch(`${API_BASE}/auth/supabase`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accessToken, ...opts }),
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message ?? 'OAuth sign-in failed');
+          }
+          const data = await res.json();
+          set({
+            accessToken: data.accessToken,
+            user: data.user,
+          });
+        } catch (e: any) {
+          set({ error: e.message, isLoading: false });
+          throw e;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
       logout: async () => {
         const { accessToken } = get();
         try {
@@ -162,3 +190,6 @@ export const useAuth = create<AuthState>()(
     },
   ),
 );
+
+useAuth.persist.onFinishHydration(() => useAuth.setState({ hydrated: true }));
+if (useAuth.persist.hasHydrated()) useAuth.setState({ hydrated: true });

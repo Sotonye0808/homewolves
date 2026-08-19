@@ -15,6 +15,7 @@ export const createBlogPostSchema = z
     categories: z.array(z.string().trim().min(1).max(50)).max(20).optional(),
     tags: z.array(z.string().trim().min(1).max(50)).max(30).optional(),
     published: z.boolean().optional(),
+    featured: z.boolean().optional(),
   })
   .strict();
 export type CreateBlogPostDto = z.infer<typeof createBlogPostSchema>;

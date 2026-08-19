@@ -54,7 +54,7 @@ Current state: `apps/web` and `packages/api` fully scaffolded and building. All 
 |----------|--------|
 | Next.js 14 App Router for web | SSR/SSG for SEO, RSC for performance |
 | NestJS for backend | OOP-native, decorators, modular, DI — aligns with domain model architecture |
-| Prisma ORM | Type-safe schema, migrations, powerful relation queries |
+| Drizzle ORM (was Prisma) | Type-safe query builder + offline-generatable migrations; replaced Prisma 2026-08-13 |
 | REST for API | Public-facing API consumed by web + mobile clients |
 | PostgreSQL 16 + JSONB | JSONB for metadata fields without schema migration |
 | shadcn/ui wrappers (Hw* pattern) | Single point of change for design tokens; prevents direct Radix imports |
@@ -87,9 +87,11 @@ Current state: `apps/web` and `packages/api` fully scaffolded and building. All 
 | Termii | SMS delivery (OTP, notifications) | API key (.env) |
 | Twilio | SMS fallback | API key (.env) |
 | Resend | Transactional email | API key (.env) |
+| DocuSeal | E-signatures | API key + webhook HMAC secret (.env) |
+| Redis | Cache + rate-limit store (multi-instance) | URL (.env) |
 | WhatsApp Business API | Messaging fallback | API token |
 | Paystack | Payment processing, subscriptions | Secret key (.env) |
 | Cloudflare R2 / AWS S3 | File and image storage | Access keys (.env) |
 | Sentry | Error tracking, performance monitoring | DSN (.env) |
-| Google OAuth | Social authentication | OAuth client ID (.env) |
+| Google OAuth (via Supabase Auth) | Social authentication | Provider creds in Supabase dashboard; `SUPABASE_JWT_SECRET` (.env) verifies tokens |
 | Apple OAuth | Social authentication | OAuth client ID (.env) |

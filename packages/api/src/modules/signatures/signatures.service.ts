@@ -3,6 +3,7 @@ import { desc, eq } from 'drizzle-orm';
 import { DrizzleService } from '../../drizzle/drizzle.service';
 import { AuditService } from '../audit/audit.service';
 import { DocuSealClient } from '../../common/integrations/docuseal.client';
+import { EmailService } from '../email/email.service';
 import { transactions, signatureRequests } from '../../drizzle/schema';
 
 interface TransactionStep {
@@ -21,6 +22,7 @@ export class SignaturesService {
     private db: DrizzleService,
     private audit: AuditService,
     private docuseal: DocuSealClient,
+    private emailService: EmailService,
   ) {}
 
   get providerConfigured(): boolean {
@@ -78,6 +80,14 @@ export class SignaturesService {
       action: 'SIGNATURE_REQUESTED',
       actor,
       metadata: { transactionId: dto.transactionId, signerEmail: dto.signerEmail, providerStatus },
+    });
+
+    void this.emailService.send(dto.signerEmail, 'signature_requested', {
+      firstName: dto.signerName.split(' ')[0] || 'there',
+      signerName: dto.signerName,
+      signUrl: request.embedUrl ?? `${process.env.WEB_URL ?? 'https://homewolves.africa'}/messages`,
+      documentId: dto.documentId ?? '',
+      transactionId: dto.transactionId,
     });
 
     return { ...request, providerStatus };
@@ -138,6 +148,25 @@ export class SignaturesService {
               status: stepIdx + 1 >= steps.length ? 'COMPLETED' : 'IN_PROGRESS',
             })
             .where(eq(transactions.id, transaction.id));
+
+          if (stepIdx + 1 >= steps.length) {
+            const full = await this.db.query.transactions.findFirst({
+              where: eq(transactions.id, transaction.id),
+              with: { listing: true, buyer: true, agent: true },
+            });
+            const vars = {
+              listingTitle: full?.listing?.title ?? '',
+              transactionId: transaction.id,
+              amount: full?.listing ? String(Number(full.listing.price ?? 0)) : '',
+              currency: full?.listing?.currency ?? 'NGN',
+            };
+            if (full?.buyer?.email) {
+              void this.emailService.send(full.buyer.email, 'transaction_completed', { ...vars, firstName: full.buyer.firstName ?? 'there' });
+            }
+            if (full?.agent?.email) {
+              void this.emailService.send(full.agent.email, 'transaction_completed', { ...vars, firstName: full.agent.firstName ?? 'there' });
+            }
+          }
         }
       }
 

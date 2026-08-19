@@ -22,6 +22,7 @@ export class BlogService {
     categories?: string[];
     tags?: string[];
     published?: boolean;
+    featured?: boolean;
   }, actor: ActorRef) {
     const [post] = await this.db
       .insert(blogPosts)
@@ -35,6 +36,7 @@ export class BlogService {
         categories: dto.categories ?? [],
         tags: dto.tags ?? [],
         published: dto.published ?? false,
+        featured: dto.featured ?? false,
         publishedAt: dto.published ? new Date() : null,
       })
       .returning();

@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { eq, sql } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { DrizzleService } from '../../drizzle/drizzle.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { EmailService } from '../email/email.service';
 import { listings, savedCollections, recentlyViewed, users } from '../../drizzle/schema';
 
 @Injectable()
@@ -11,6 +12,7 @@ export class AlertsService {
     private db: DrizzleService,
     private notificationsService: NotificationsService,
     private notificationsGateway: NotificationsGateway,
+    private emailService: EmailService,
   ) {}
 
   async checkPriceDrop(listingId: string, oldPrice: number, newPrice: number) {
@@ -28,6 +30,14 @@ export class AlertsService {
     for (const s of savedBy) if (s.userId) userIds.add(s.userId);
     for (const r of recentlyViewedBy) if (r.userId) userIds.add(r.userId);
 
+    let watchers: { id: string; email: string | null; firstName: string | null }[] = [];
+    if (userIds.size > 0) {
+      watchers = await this.db
+        .select({ id: users.id, email: users.email, firstName: users.firstName })
+        .from(users)
+        .where(inArray(users.id, [...userIds]));
+    }
+
     for (const userId of userIds) {
       await this.notificationsService.createAndDispatch(
         {
@@ -39,6 +49,18 @@ export class AlertsService {
         },
         (uid, n) => this.notificationsGateway.sendNotification(uid, n),
       );
+    }
+
+    for (const watcher of watchers) {
+      if (!watcher.email) continue;
+      void this.emailService.send(watcher.email, 'price_drop', {
+        firstName: watcher.firstName ?? 'there',
+        listingTitle: listing.title ?? '',
+        listingId,
+        oldPrice: String(oldPrice),
+        newPrice: String(newPrice),
+        dropPercent: `${dropPercent}%`,
+      });
     }
   }
 

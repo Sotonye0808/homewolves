@@ -31,18 +31,27 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         code = typeof body.code === 'string' ? body.code : 'HTTP_ERROR';
         if (body.errors != null) errors = body.errors;
       }
-    } else if (this.isPrismaError(exception)) {
-      const prismaError = exception as PrismaError;
-      if (prismaError.code === 'P2002') {
-        status = HttpStatus.CONFLICT;
-        message = 'A record with the same unique value already exists';
-        code = 'UNIQUE_CONSTRAINT';
-      } else if (prismaError.code === 'P2025') {
-        status = HttpStatus.NOT_FOUND;
-        message = 'Record not found';
-        code = 'NOT_FOUND';
-      } else {
-        this.logger.error(prismaError.message);
+    } else if (this.isDatabaseError(exception)) {
+      const dbError = exception as DatabaseError;
+      switch (dbError.code) {
+        case '23505':
+          status = HttpStatus.CONFLICT;
+          message = 'A record with the same unique value already exists';
+          code = 'UNIQUE_CONSTRAINT';
+          break;
+        case '23503':
+          status = HttpStatus.BAD_REQUEST;
+          message = 'Referenced record does not exist';
+          code = 'FOREIGN_KEY_CONSTRAINT';
+          break;
+        case '22P02':
+        case '22003':
+          status = HttpStatus.BAD_REQUEST;
+          message = 'Invalid input value';
+          code = 'INVALID_INPUT';
+          break;
+        default:
+          this.logger.error(dbError.message);
       }
     } else {
       this.logger.error(exception instanceof Error ? exception.stack ?? exception.message : String(exception));
@@ -53,18 +62,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     response.status(status).json(body);
   }
 
-  private isPrismaError(err: unknown): err is PrismaError {
+  private isDatabaseError(err: unknown): err is DatabaseError {
     return (
       typeof err === 'object' &&
       err !== null &&
       'code' in err &&
-      typeof (err as PrismaError).code === 'string' &&
-      typeof (err as PrismaError).message === 'string'
+      typeof (err as DatabaseError).code === 'string' &&
+      typeof (err as DatabaseError).message === 'string'
     );
   }
 }
 
-interface PrismaError {
+interface DatabaseError {
   code: string;
   message: string;
 }

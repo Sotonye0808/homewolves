@@ -1,4 +1,5 @@
 import { Injectable, Logger, BadGatewayException } from '@nestjs/common';
+import * as crypto from 'crypto';
 
 export interface DocuSealSigner {
   email: string;
@@ -25,8 +26,9 @@ export interface DocuSealSubmissionResult {
  * Configuration is driven entirely by environment variables:
  *  - `DOCUSEAL_API_URL` — base URL of the DocuSeal instance
  *  - `DOCUSEAL_API_KEY` — API key for the DocuSeal instance
+ *  - `DOCUSEAL_WEBHOOK_SECRET` — HMAC secret used to verify inbound webhooks
  *
- * When either is absent the client is disabled (`isConfigured === false`).
+ * When either API var is absent the client is disabled (`isConfigured === false`).
  * Callers must branch on `isConfigured` and fall back to the local
  * signature-request flow so the platform degrades gracefully.
  */
@@ -35,6 +37,7 @@ export class DocuSealClient {
   private readonly logger = new Logger(DocuSealClient.name);
   private readonly apiUrl = (process.env.DOCUSEAL_API_URL ?? '').replace(/\/$/, '');
   private readonly apiKey = process.env.DOCUSEAL_API_KEY ?? '';
+  private readonly webhookSecret = process.env.DOCUSEAL_WEBHOOK_SECRET ?? '';
 
   get isConfigured(): boolean {
     return Boolean(this.apiUrl && this.apiKey);
@@ -101,5 +104,33 @@ export class DocuSealClient {
 
     const json = await this.request<{ id: string; status: string }>(`/api/v1/submissions/${encodeURIComponent(submissionId)}`);
     return { id: json.id, status: json.status };
+  }
+
+  /**
+   * Verifies a DocuSeal webhook `X-Docuseal-Signature` header against the raw
+   * request body.
+   *
+   * DocuSeal signs every webhook as `[timestamp].[signature]` where the
+   * signature is the hex HMAC-SHA256 of `${timestamp}.${rawBody}` using the
+   * webhook secret (`whsec_…`). Requests older than 5 minutes are rejected to
+   * block replay attacks. When `DOCUSEAL_WEBHOOK_SECRET` is unset the signature
+   * is not enforced (dev mode) — callers should log this state.
+   */
+  verifyWebhookSignature(rawBody: string, signature?: string | string[]): boolean {
+    if (!this.webhookSecret) return true;
+    if (!signature) return false;
+
+    const header = Array.isArray(signature) ? signature[0] : signature;
+    if (!header) return false;
+    const [timestamp, sig] = header.split('.', 2);
+    if (!timestamp || !sig) return false;
+
+    const age = Math.abs(Math.floor(Date.now() / 1000) - Number(timestamp));
+    if (Number.isNaN(age) || age > 300) return false;
+
+    const expected = crypto.createHmac('sha256', this.webhookSecret).update(`${timestamp}.${rawBody}`).digest('hex');
+    const a = Buffer.from(expected, 'hex');
+    const b = Buffer.from(sig, 'hex');
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
   }
 }

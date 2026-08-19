@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Param, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, UseGuards, Req, UnauthorizedException, Logger } from '@nestjs/common';
 import { SignaturesService } from './signatures.service';
 import { JwtGuard } from '../auth/jwt.guard';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { AuthenticatedRequest, toActor } from '../../common/types/request.types';
+import { DocuSealClient } from '../../common/integrations/docuseal.client';
 import { z } from 'zod';
 
 const createRequestSchema = z
@@ -24,7 +25,12 @@ const webhookSchema = z
 
 @Controller('signatures')
 export class SignaturesController {
-  constructor(private signaturesService: SignaturesService) {}
+  private readonly logger = new Logger(SignaturesController.name);
+
+  constructor(
+    private signaturesService: SignaturesService,
+    private docuseal: DocuSealClient,
+  ) {}
 
   @Post()
   @UseGuards(JwtGuard)
@@ -72,7 +78,18 @@ export class SignaturesController {
   }
 
   @Post('webhook')
-  async webhook(@Body(new ZodValidationPipe(webhookSchema)) body: { external_id: string; status: string }) {
+  async webhook(
+    @Body(new ZodValidationPipe(webhookSchema)) body: { external_id: string; status: string },
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const rawBody = req.rawBody?.toString() ?? JSON.stringify(body);
+    const signature = req.headers?.['x-docuseal-signature'];
+
+    if (!this.docuseal.verifyWebhookSignature(rawBody, signature)) {
+      this.logger.warn('Rejected DocuSeal webhook with invalid signature');
+      throw new UnauthorizedException('Invalid webhook signature');
+    }
+
     return this.signaturesService.webhookCompleted(body.external_id, body.status);
   }
 }
