@@ -191,5 +191,9 @@ export const useAuth = create<AuthState>()(
   ),
 );
 
-useAuth.persist.onFinishHydration(() => useAuth.setState({ hydrated: true }));
-if (useAuth.persist.hasHydrated()) useAuth.setState({ hydrated: true });
+if (useAuth.persist) {
+  useAuth.persist.onFinishHydration(() => useAuth.setState({ hydrated: true }));
+  if (useAuth.persist.hasHydrated()) useAuth.setState({ hydrated: true });
+} else {
+  useAuth.setState({ hydrated: true });
+}
