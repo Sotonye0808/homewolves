@@ -2,8 +2,8 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-19
-> - last-synced: 2026-08-19 (Session 9 — sprint close-out + security hardening + DB migration applied)
+> - last-verified-against-code: 2026-09-02
+> - last-synced: 2026-09-02 (Session 10 — hardening: routing/icons/SEO/env parity)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session. Sprint 1–3 are complete; the current focus is hardening, Backlog items, and the next scheduled phase.
@@ -34,12 +34,13 @@ Tags help agents self-select whether a task needs the full `execute-feature.md` 
 | [M] | Regenerate Prisma client so new models (Client, Note, Rating, Inspection, ActivityRule, AgentActivity, AgentPoints, BlogPost) are typed instead of `(this.prisma as any)` | [x] |
 | [M] | Security pass — audit all REST routes for guards, rate limiting, input validation | [x] |
 | [L] | Testing setup — unit tests for core services, component tests, E2E Playwright journeys | [x] |
-| [M] | SEO — `generateMetadata()` on listing pages, sitemap.xml, robots.txt, JSON-LD schema | [ ] |
+| [M] | SEO — `generateMetadata()` on listing pages, sitemap.xml, robots.txt, JSON-LD schema | [x] |
 | [M] | Error handling — verify GlobalExceptionFilter coverage, error boundaries on all pages | [x] |
 | [BUG] | Sanitize blog post HTML rendering (`dangerouslySetInnerHTML`) before production | [x] |
-| [M] | Wire activity points into service-layer hooks for automatic awarding | [ ] |
-| [M] | API integration tests — supertest route-level tests (validation, auth guards, 404s) | [ ] |
-| [M] | E2E admin journey — approve/reject a listing, review payment evidence | [ ] |
+| [M] | Wire activity points into service-layer hooks for automatic awarding | [x] |
+| [M] | API integration tests — supertest route-level tests (validation, auth guards, 404s) | [x] |
+| [M] | E2E admin journey — approve/reject a listing, review payment evidence | [x] |
+| [M] | Hardening — routing/icons/SEO/env parity (Session 10: icon consolidation to lucide-react, layout metadata hardening, sitemap/robots base fix, next/image migration, .env.example parity) | [x] |
 | [XL] | Prisma→Drizzle ORM migration (`packages/api`) — schema, services, mock-based specs, initial migration | [x] |
 | [M] | Web audit rectification — clickable bento/cards, URL search+category params, Link nav, loading.tsx, next/image | [x] |
 | [XL] | Supabase/Drizzle compliance + Google OAuth + Resend email infrastructure + admin GUIs (email templates + blog CRUD) | [x] |
@@ -89,6 +90,7 @@ Tags help agents self-select whether a task needs the full `execute-feature.md` 
 | Web audit rectification — bento/cards linkable, properties page reads `search`+`category` URL params, footer `next/link`, dashboard notification rows clickable, `loading.tsx` added, hero/landing cards use `next/image` | [x] |
 | Supabase/Drizzle compliance + Google OAuth + Resend email infrastructure + admin GUIs — users provider cols, `POST /auth/supabase` exchange, `@Global` EmailModule (DB-backed templates + fallbacks + logs), 13 email hook points, `/dashboard/admin/email-templates` + `/dashboard/admin/blog` GUIs, 111 API + 100 web tests green | [x] |
 | Sprint close-out + security hardening (SEO verify, activity-point hooks, supertest integration tests, E2E admin journey, DocuSeal webhook HMAC, JWT secret fail-hard, Redis rate limiter w/ fallback, web auth hydration fix, DB migration applied) | [x] |
+| Hardening (routing/icons/SEO/env parity) — layout metadataBase/openGraph/twitter/canonical/viewport, sitemap take clamped to 50, .env.example aligned to real .env (homewolves.com), dashboard nav/icons + property detail + properties feed + blog/not-found/error migrated to lucide-react + next/image | [x] |
 
 ---
 

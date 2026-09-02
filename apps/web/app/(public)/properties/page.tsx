@@ -6,6 +6,8 @@ import { useFilterPills } from '@/hooks/use-platform-config';
 import { incrementView } from '@/lib/listings';
 import { MobileBar } from '@/components/landing/mobile-bar';
 import Link from 'next/link';
+import Image from 'next/image';
+import { Search, LayoutGrid, List, Map, Heart, Share2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 type ViewMode = 'grid' | 'list' | 'map';
@@ -168,7 +170,7 @@ export default function PropertiesPage() {
           className="w-10 h-10 rounded-full flex items-center justify-center"
           style={{ color: 'var(--color-text-secondary)' }}
         >
-          🔍
+          <Search className="w-5 h-5" />
         </Link>
       </header>
 
@@ -193,7 +195,7 @@ export default function PropertiesPage() {
             }}
           >
             <span className="shrink-0" style={{ color: 'var(--color-text-muted)' }}>
-              🔍
+              <Search className="w-4 h-4" />
             </span>
             <input
               type="search"
@@ -222,7 +224,7 @@ export default function PropertiesPage() {
                     viewMode === mode ? 'var(--color-text-inverse)' : 'var(--color-text-muted)',
                 }}
               >
-                {mode === 'grid' ? '▦' : mode === 'list' ? '☰' : '🗺'}
+                {mode === 'grid' ? <LayoutGrid className="w-4 h-4" /> : mode === 'list' ? <List className="w-4 h-4" /> : <Map className="w-4 h-4" />}
               </button>
             ))}
           </div>
@@ -392,7 +394,7 @@ export default function PropertiesPage() {
             className="rounded-xl p-16 text-center"
             style={{ background: 'var(--color-bg-elevated)' }}
           >
-            <div className="text-4xl mb-3">🗺</div>
+            <div className="flex justify-center mb-3" style={{ color: 'var(--color-text-muted)' }}><Map className="w-10 h-10" /></div>
             <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
               Map view coming soon
             </p>
@@ -433,7 +435,7 @@ export default function PropertiesPage() {
         {/* Empty state */}
         {!isFetching && listings.length === 0 && (
           <div className="text-center py-16">
-            <div className="text-4xl mb-3">🔍</div>
+            <div className="flex justify-center mb-3" style={{ color: 'var(--color-text-muted)' }}><Search className="w-10 h-10" /></div>
             <p className="text-base font-medium" style={{ color: 'var(--color-text-secondary)' }}>
               No properties found
             </p>
@@ -473,18 +475,19 @@ function PropertyCard({ listing, onClick }: { listing: any; onClick: () => void 
         }}
       >
         {primaryMedia?.url ? (
-          <img
+          <Image
             src={primaryMedia.url}
             alt={listing.title}
-            className="w-full h-full object-cover transition-transform duration-400 hover:scale-105"
-            loading="lazy"
+            fill
+            className="object-cover transition-transform duration-400 hover:scale-105"
+            sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
           />
         ) : (
           <div
-            className="w-full h-full flex items-center justify-center text-3xl"
+            className="w-full h-full flex items-center justify-center"
             style={{ background: 'var(--color-border-subtle)' }}
           >
-            🏠
+            <Map className="w-8 h-8" style={{ color: 'var(--color-text-muted)' }} />
           </div>
         )}
         <div className="absolute bottom-2 right-2 flex gap-1">
@@ -493,21 +496,21 @@ function PropertyCard({ listing, onClick }: { listing: any; onClick: () => void 
               e.stopPropagation();
               setSaved(!saved);
             }}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
+            className="w-8 h-8 rounded-full flex items-center justify-center"
             style={{
               background: 'var(--color-bg-glass)',
               backdropFilter: 'var(--glass-blur-subtle)',
               border: '1px solid var(--color-border-glass)',
-              color: saved ? 'var(--color-danger)' : 'var(--color-text-inverse)',
+              color: saved ? 'var(--color-error)' : 'var(--color-text-inverse)',
             }}
           >
-            {saved ? '❤' : '♡'}
+            <Heart className="w-4 h-4" fill={saved ? 'currentColor' : 'none'} />
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
             }}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
+            className="w-8 h-8 rounded-full flex items-center justify-center"
             style={{
               background: 'var(--color-bg-glass)',
               backdropFilter: 'var(--glass-blur-subtle)',
@@ -515,7 +518,7 @@ function PropertyCard({ listing, onClick }: { listing: any; onClick: () => void 
               color: 'var(--color-text-inverse)',
             }}
           >
-            ↗
+            <Share2 className="w-4 h-4" />
           </button>
         </div>
         {/* Glass metadata strip */}
@@ -641,14 +644,15 @@ function PropertyCardHorizontal({ listing, onClick }: { listing: any; onClick: (
         style={{ aspectRatio: '4/3', overflow: 'hidden', background: 'var(--color-border-subtle)' }}
       >
         {primaryMedia?.url ? (
-          <img
+          <Image
             src={primaryMedia.url}
             alt={listing.title}
-            className="w-full h-full object-cover"
-            loading="lazy"
+            fill
+            className="object-cover"
+            sizes="280px"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-3xl">🏠</div>
+          <div className="w-full h-full flex items-center justify-center"><Map className="w-8 h-8" style={{ color: 'var(--color-text-muted)' }} /></div>
         )}
         <div
           className="absolute bottom-0 left-0 right-0 px-2 py-1"
