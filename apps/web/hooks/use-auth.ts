@@ -187,13 +187,26 @@ export const useAuth = create<AuthState>()(
     {
       name: 'hw-auth',
       partialize: (state) => ({ user: state.user, accessToken: state.accessToken }),
+      onRehydrateStorage: () => (_state, error) => {
+        if (!error) {
+          useAuth.setState({ hydrated: true });
+        }
+      },
+      // Skip hydration on server — prevents SSR mismatch and avoids localStorage access
+      skipHydration: false,
     },
   ),
 );
 
-if (useAuth.persist) {
-  useAuth.persist.onFinishHydration(() => useAuth.setState({ hydrated: true }));
-  if (useAuth.persist.hasHydrated()) useAuth.setState({ hydrated: true });
-} else {
-  useAuth.setState({ hydrated: true });
+// Client-only hydration flag — handles SSR where persist is unavailable
+// and ensures hasHydrated() synchronous case is covered without throwing during prerender
+if (typeof window !== 'undefined') {
+  // Zustand persist may already be hydrated synchronously (e.g. localStorage available)
+  // Guard with optional chaining so server-side prerender (persist is undefined) never throws
+  const persist = (useAuth as unknown as { persist?: { hasHydrated: () => boolean; onFinishHydration: (cb: () => void) => void } }).persist;
+  if (persist?.hasHydrated()) {
+    useAuth.setState({ hydrated: true });
+  } else {
+    persist?.onFinishHydration(() => useAuth.setState({ hydrated: true }));
+  }
 }
