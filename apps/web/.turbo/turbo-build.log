@@ -5,76 +5,32 @@
   ▲ Next.js 14.2.35
 
    Creating an optimized production build ...
- ⚠ Found lockfile missing swc dependencies, patching...
-npm error code ENOWORKSPACES
-npm error This command does not support workspaces.
-npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-09-02T13_52_15_766Z-debug-0.log
- ⨯ Failed to patch lockfile, please try uninstalling and reinstalling next in this workspace
-TypeError: Cannot read properties of undefined (reading 'os')
-    at fetchPkgInfo (C:\Users\Harvesters WebDev\Downloads\web-dev\homewolves\node_modules\next\dist\lib\patch-incorrect-lockfile.js:73:25)
-    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async Promise.all (index 6)
-    at async patchIncorrectLockfile (C:\Users\Harvesters WebDev\Downloads\web-dev\homewolves\node_modules\next\dist\lib\patch-incorrect-lockfile.js:162:26)
- ⚠ Found lockfile missing swc dependencies, patching...
-npm error code ENOWORKSPACES
-npm error This command does not support workspaces.
-npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-09-02T13_52_28_984Z-debug-0.log
- ⚠ Found lockfile missing swc dependencies, patching...
-npm error code ENOWORKSPACES
-npm error This command does not support workspaces.
-npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-09-02T13_52_33_315Z-debug-0.log
- ⨯ Failed to patch lockfile, please try uninstalling and reinstalling next in this workspace
-TypeError: Cannot read properties of undefined (reading 'os')
-    at fetchPkgInfo (C:\Users\Harvesters WebDev\Downloads\web-dev\homewolves\node_modules\next\dist\lib\patch-incorrect-lockfile.js:73:25)
-    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async Promise.all (index 5)
-    at async patchIncorrectLockfile (C:\Users\Harvesters WebDev\Downloads\web-dev\homewolves\node_modules\next\dist\lib\patch-incorrect-lockfile.js:162:26)
+ ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch
+ ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch
+ ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch
  ✓ Compiled successfully
    Linting and checking validity of types ...
    Collecting page data ...
- ⚠ Found lockfile missing swc dependencies, patching...
-npm error code ENOWORKSPACES
-npm error This command does not support workspaces.
-npm error A complete log of this run can be found in: C:\Users\Harvesters WebDev\npm-cache\_logs\2026-09-02T13_53_16_779Z-debug-0.log
+ ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch
    Generating static pages (0/31) ...
-(node:25500) Warning: `--localstorage-file` was provided without a valid path
-(Use `node --trace-warnings ...` to show where the warning was created)
-(node:36792) Warning: `--localstorage-file` was provided without a valid path
-(Use `node --trace-warnings ...` to show where the warning was created)
-(node:15476) Warning: `--localstorage-file` was provided without a valid path
-(Use `node --trace-warnings ...` to show where the warning was created)
-(node:19932) Warning: `--localstorage-file` was provided without a valid path
-(Use `node --trace-warnings ...` to show where the warning was created)
    Generating static pages (7/31) 
-(node:22024) Warning: `--localstorage-file` was provided without a valid path
-(Use `node --trace-warnings ...` to show where the warning was created)
    Generating static pages (15/31) 
-(node:32452) Warning: `--localstorage-file` was provided without a valid path
-(Use `node --trace-warnings ...` to show where the warning was created)
-(node:35324) Warning: `--localstorage-file` was provided without a valid path
-(Use `node --trace-warnings ...` to show where the warning was created)
    Generating static pages (23/31) 
  ✓ Generating static pages (31/31)
    Finalizing page optimization ...
    Collecting build traces ...
- ⨯ Failed to patch lockfile, please try uninstalling and reinstalling next in this workspace
-TypeError: Cannot read properties of undefined (reading 'os')
-    at fetchPkgInfo (C:\Users\Harvesters WebDev\Downloads\web-dev\homewolves\node_modules\next\dist\lib\patch-incorrect-lockfile.js:73:25)
-    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async Promise.all (index 6)
-    at async patchIncorrectLockfile (C:\Users\Harvesters WebDev\Downloads\web-dev\homewolves\node_modules\next\dist\lib\patch-incorrect-lockfile.js:162:26)
 
 Route (app)                              Size     First Load JS
 ┌ ○ /                                    3.99 kB         113 kB
 ├ ○ /_not-found                          174 B          87.5 kB
 ├ ○ /about                               174 B          87.5 kB
 ├ ○ /auth                                69.8 kB         160 kB
-├ ○ /auth/callback                       2.47 kB        92.3 kB
+├ ○ /auth/callback                       2.51 kB        92.3 kB
 ├ ○ /blog                                2.59 kB         108 kB
 ├ ƒ /blog/[slug]                         13.9 kB         132 kB
 ├ ○ /contact                             174 B          87.5 kB
 ├ ○ /dashboard                           4.9 kB          116 kB
-├ ○ /dashboard/admin                     5.39 kB         114 kB
+├ ○ /dashboard/admin                     5.42 kB         114 kB
 ├ ○ /dashboard/admin/blog                1.78 kB         113 kB
 ├ ƒ /dashboard/admin/blog/[id]/edit      3.02 kB         106 kB
 ├ ○ /dashboard/admin/blog/new            2.8 kB          105 kB
@@ -83,15 +39,15 @@ Route (app)                              Size     First Load JS
 ├ ○ /dashboard/admin/payments            4.6 kB          109 kB
 ├ ○ /dashboard/agent/clients             1.92 kB         105 kB
 ├ ƒ /dashboard/agent/clients/[id]        3.97 kB         115 kB
-├ ○ /dashboard/agent/listings            4.36 kB         113 kB
+├ ○ /dashboard/agent/listings            4.39 kB         113 kB
 ├ ○ /dashboard/agent/listings/new        6.19 kB         108 kB
-├ ○ /dashboard/agent/transactions        4.17 kB         122 kB
+├ ○ /dashboard/agent/transactions        4.2 kB          122 kB
 ├ ƒ /dashboard/agent/transactions/[id]   8.69 kB         115 kB
-├ ○ /dashboard/client                    6.01 kB         130 kB
-├ ○ /dashboard/notifications             4.7 kB          117 kB
+├ ○ /dashboard/client                    6.04 kB         130 kB
+├ ○ /dashboard/notifications             4.72 kB         117 kB
 ├ ○ /faq                                 174 B          87.5 kB
-├ ○ /messages                            5.11 kB         117 kB
-├ ○ /pricing                             5.72 kB         105 kB
+├ ○ /messages                            5.15 kB         117 kB
+├ ○ /pricing                             5.75 kB         105 kB
 ├ ○ /privacy                             174 B          87.5 kB
 ├ ○ /properties                          8.81 kB         125 kB
 ├ ƒ /properties/[id]                     10.3 kB         124 kB

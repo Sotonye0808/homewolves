@@ -1,10 +1,50 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env.*local"],
+  "globalPassThroughEnv": [
+    "DATABASE_URL",
+    "DATABASE_PASSWORD",
+    "JWT_SECRET",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_JWT_SECRET",
+    "PORT",
+    "WEB_URL",
+    "NEXT_PUBLIC_SITE_URL",
+    "NEXT_PUBLIC_API_URL",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+    "PAYSTACK_SECRET_KEY",
+    "PAYSTACK_CALLBACK_URL",
+    "DOCUSEAL_API_URL",
+    "DOCUSEAL_API_KEY",
+    "REDIS_URL",
+    "RESEND_API_KEY",
+    "RESEND_FROM_EMAIL",
+    "RESEND_FROM_NAME",
+    "DOCUSEAL_WEBHOOK_SECRET"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "dist/**", ".expo/**"]
+      "outputs": [".next/**", "!.next/cache/**", "apps/web/.next/**", "dist/**", ".expo/**"],
+      "env": [
+        "NEXT_PUBLIC_*",
+        "DATABASE_URL",
+        "DATABASE_PASSWORD",
+        "JWT_SECRET",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "SUPABASE_JWT_SECRET",
+        "WEB_URL",
+        "PAYSTACK_SECRET_KEY",
+        "PAYSTACK_CALLBACK_URL",
+        "DOCUSEAL_API_URL",
+        "DOCUSEAL_API_KEY",
+        "REDIS_URL",
+        "RESEND_API_KEY",
+        "RESEND_FROM_EMAIL",
+        "RESEND_FROM_NAME",
+        "DOCUSEAL_WEBHOOK_SECRET"
+      ]
     },
     "dev": {
       "cache": false,
