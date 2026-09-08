@@ -1,10 +1,11 @@
 import Link from 'next/link';
+import { SearchX } from 'lucide-react';
 
 export default function NotFound() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--color-bg-canvas)' }}>
       <div className="max-w-md w-full text-center">
-        <div className="text-5xl mb-4">🔍</div>
+        <div className="flex justify-center mb-4" style={{ color: 'var(--color-text-muted)' }}><SearchX className="w-12 h-12" /></div>
         <h1 className="text-2xl font-semibold mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-primary)' }}>
           Page not found
         </h1>

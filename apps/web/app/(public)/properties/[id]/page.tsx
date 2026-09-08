@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import PropertyDetailClient from '@/components/listings/PropertyDetailClient';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://homewolves.com';
 
 async function fetchListing(id: string) {
   try {
@@ -43,7 +44,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       title: meta,
       description: listing.description?.slice(0, 160),
       type: 'website',
-      url: `https://homewolves.africa/properties/${params.id}`,
+      url: `${SITE_URL}/properties/${params.id}`,
       ...(image ? { images: [{ url: image, alt: listing.title }] } : {}),
     },
     twitter: {
@@ -70,7 +71,7 @@ function jsonLd(listing: any) {
       price: listing.price,
       priceCurrency: listing.currency ?? 'NGN',
       availability: listing.status === 'ACTIVE' ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      url: `https://homewolves.africa/properties/${listing.id}`,
+      url: `${SITE_URL}/properties/${listing.id}`,
     },
     ...(location?.address || location?.city
       ? {

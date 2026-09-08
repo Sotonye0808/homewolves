@@ -9,12 +9,13 @@ import { BlogSection } from '@/components/landing/blog-section';
 import { Footer } from '@/components/landing/footer';
 import { MobileBar } from '@/components/landing/mobile-bar';
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://homewolves.com';
 const orgJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'Homewolves',
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://homewolves.africa',
-  logo: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://homewolves.africa'}/logo.png`,
+  url: SITE_URL,
+  logo: `${SITE_URL}/logo.png`,
   description: 'African real estate operating system — discover, verify, and transact real estate across Africa.',
   sameAs: [],
 };

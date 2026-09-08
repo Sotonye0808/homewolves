@@ -469,3 +469,41 @@ The prior session's `npm install` pruned the non-current-platform `@next/swc-*` 
 - The two present entries (`swc-linux-x64-gnu`, `swc-win32-x64-msvc` @14.2.33) are correct for this machine.
 
 ---
+
+## Icon system consolidation to lucide-react + next/image optimization (Session 10)
+
+**Decision:** Consolidate all UI icons to `lucide-react` (the project's icon library per design-system §15) and migrate critical user-media `<img>` to `next/image`. Replace isolated hand-drawn `<svg>` and emoji-as-icon usage in PropertyDetailClient, properties feed, dashboard layout, blog/not-found/error, and pricing checkmarks.
+**Date:** 2026-09-02
+**Made by:** Implementer (Session 10 hardening)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+Engineering principle §15 prohibits ad-hoc SVG/emoji icons. `lucide-react` was already a dependency and used in 8 files; inline SVG and emoji drifted in via rapid feature work. `next/image` improves LCP and CLS vs raw `<img>` for gallery/feed/similar/cover images.
+
+**Alternatives Considered:**
+- Keep emoji/SVG — rejected: violates §15, inconsistent a11y, no design-token control.
+- Introduce @phosphor-icons/react as second library — rejected: duplicates lucide, extra bundle.
+
+**Implications:**
+- New UI must import icons from `lucide-react`; isolated `<svg>` and emoji icons are lint-flagged via verification-rules §15.
+- Remote images require `next.config.js` `remotePatterns` entries (now includes `**.supabase.co`, `res.cloudinary.com`).
+
+---
+
+## Canonical site URL and env parity (Session 10)
+
+**Decision:** Canonical `NEXT_PUBLIC_SITE_URL` is `https://homewolves.com` (real `.env`), not `https://homewolves.africa`. `.env.example`, `apps/web/app/layout.tsx` (`metadataBase`/`openGraph`/`twitter`/`canonical`), `sitemap.ts`/`robots.ts` and JSON-LD URLs now default to `homewolves.com`. Sitemap `take` clamped to 50 (controller max).
+**Date:** 2026-09-02
+**Made by:** Implementer (Session 10)
+**Supersedes:** The `homewolves.africa` default in earlier sessions/docs
+**Superseded by:** None
+
+**Reason:**
+Real `.env` already uses `homewolves.com` (Supabase live keys, Resend sender `hello@mail.homewolves.com`). Docs and fallbacks drifted to `.africa` and produced mismatched OG/sitemap URLs. Clamping `take` to 50 prevents silent API limit.
+
+**Implications:**
+- `.env.example` now mirrors real `.env` structure (Supabase URL/publishable/JWT, Resend, Paystack, DocuSeal, Redis, `NEXT_IGNORE_INCORRECT_LOCKFILE`).
+- SEO URLs (og, jsonLd, sitemap, robots) derive from `NEXT_PUBLIC_SITE_URL` at runtime; unset → `homewolves.com`.
+
+---

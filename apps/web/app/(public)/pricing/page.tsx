@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Check } from 'lucide-react';
 import { usePlans, useInitiateCheckout, useMySubscription } from '@/hooks/use-subscriptions';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
@@ -196,7 +197,7 @@ export default function PricingPage() {
                   <div className="space-y-3">
                     {(plan.features ?? []).map((feat: string, i: number) => (
                       <div key={i} className="flex items-start gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                        <span className="text-emerald-500 mt-0.5">✓</span>
+                        <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
                         {feat}
                       </div>
                     ))}

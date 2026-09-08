@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { Search, Moon, Share2, Heart, Home, BedDouble, Bath, Maximize2, Calendar, Map, Check, Zap, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useListing, useListings } from '@/hooks/use-listings';
 import { useCheckSaved, useToggleSave, useRecentViews } from '@/hooks/use-interactions';
 import { useAuth } from '@/hooks/use-auth';
@@ -52,7 +54,7 @@ export default function PropertyDetailClient({ initialListing }: { initialListin
   if (!listing) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3" style={{ background: 'var(--color-bg-base)' }}>
-        <div className="text-4xl">🔍</div>
+        <Search className="w-10 h-10" style={{ color: 'var(--color-text-muted)' }} />
         <p className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>Property not found</p>
         <Link href="/properties" className="btn-primary text-sm">Browse properties</Link>
       </div>
@@ -73,21 +75,21 @@ export default function PropertyDetailClient({ initialListing }: { initialListin
         }}
       >
         <button onClick={() => router.push('/properties')} className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-          ← Back to properties
+          <ArrowLeft className="w-4 h-4" /> Back to properties
         </button>
         <Link href="/" className="font-bold" style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', color: 'var(--color-brand-primary)' }}>
           Homewolves
         </Link>
         <div className="flex items-center gap-3">
-          <button className="w-10 h-10 rounded-full flex items-center justify-center text-xl" style={{ color: 'var(--color-text-secondary)' }} aria-label="Toggle theme">🌙</button>
-          <button className="w-10 h-10 rounded-full flex items-center justify-center text-xl" style={{ color: 'var(--color-text-secondary)' }} aria-label="Share">↗</button>
+          <button className="w-10 h-10 rounded-full flex items-center justify-center" style={{ color: 'var(--color-text-secondary)' }} aria-label="Toggle theme"><Moon className="w-5 h-5" /></button>
+          <button className="w-10 h-10 rounded-full flex items-center justify-center" style={{ color: 'var(--color-text-secondary)' }} aria-label="Share"><Share2 className="w-5 h-5" /></button>
           <button
             onClick={handleToggleSave}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-xl transition-colors"
-            style={{ color: saved ? 'var(--color-danger)' : 'var(--color-text-secondary)' }}
+            className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+            style={{ color: saved ? 'var(--color-error)' : 'var(--color-text-secondary)' }}
             aria-label="Save"
           >
-            {saved ? '❤' : '♡'}
+            <Heart className="w-5 h-5" fill={saved ? 'currentColor' : 'none'} />
           </button>
         </div>
       </nav>
@@ -100,14 +102,14 @@ export default function PropertyDetailClient({ initialListing }: { initialListin
           background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 100%)',
         }}
       >
-        <button onClick={() => router.back()} className="w-10 h-10 rounded-full flex items-center justify-center text-xl" style={{ background: 'var(--color-bg-glass-dark)', backdropFilter: 'var(--glass-blur)', color: 'var(--color-text-inverse)' }} aria-label="Back">
-          ←
+        <button onClick={() => router.back()} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--color-bg-glass-dark)', backdropFilter: 'var(--glass-blur)', color: 'var(--color-text-inverse)' }} aria-label="Back">
+          <ArrowLeft className="w-5 h-5" />
         </button>
         <span className="text-sm font-semibold truncate max-w-[200px]" style={{ color: 'var(--color-text-inverse)', textShadow: '0 1px 4px rgba(0,0,0,0.3)' }}>
           {listing.title}
         </span>
-        <button className="w-10 h-10 rounded-full flex items-center justify-center text-xl" style={{ background: 'var(--color-bg-glass-dark)', backdropFilter: 'var(--glass-blur)', color: 'var(--color-text-inverse)' }} aria-label="Share">
-          ↗
+        <button className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--color-bg-glass-dark)', backdropFilter: 'var(--glass-blur)', color: 'var(--color-text-inverse)' }} aria-label="Share">
+          <Share2 className="w-5 h-5" />
         </button>
       </header>
 
@@ -115,10 +117,10 @@ export default function PropertyDetailClient({ initialListing }: { initialListin
       <section className="gallery" aria-label="Property images">
         <div className="relative w-full" style={{ aspectRatio: '4/3', overflow: 'hidden' }}>
           {currentImage?.url ? (
-            <img src={currentImage.url} alt={listing.title} className="w-full h-full object-cover" />
+            <Image src={currentImage.url} alt={listing.title} fill className="object-cover" sizes="(min-width: 1024px) 60vw, 100vw" priority />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-5xl" style={{ background: 'var(--color-brand-primary)' }}>
-              🏠
+            <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--color-brand-primary)', color: 'white' }}>
+              <Home className="w-12 h-12" />
             </div>
           )}
 
@@ -126,19 +128,19 @@ export default function PropertyDetailClient({ initialListing }: { initialListin
             <>
               <button
                 onClick={() => setGalleryIdx((p) => (p - 1 + media.length) % media.length)}
-                className="gallery-nav-btn prev absolute top-1/2 -translate-y-1/2 left-3 z-10 w-10 h-10 rounded-full flex items-center justify-center text-xl"
+                className="gallery-nav-btn prev absolute top-1/2 -translate-y-1/2 left-3 z-10 w-10 h-10 rounded-full flex items-center justify-center"
                 style={{ background: 'var(--color-bg-glass)', backdropFilter: 'var(--glass-blur)', border: '1px solid var(--color-border-glass)', color: 'var(--color-text-inverse)' }}
                 aria-label="Previous image"
               >
-                ‹
+                <ChevronLeft className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setGalleryIdx((p) => (p + 1) % media.length)}
-                className="gallery-nav-btn next absolute top-1/2 -translate-y-1/2 right-3 z-10 w-10 h-10 rounded-full flex items-center justify-center text-xl"
+                className="gallery-nav-btn next absolute top-1/2 -translate-y-1/2 right-3 z-10 w-10 h-10 rounded-full flex items-center justify-center"
                 style={{ background: 'var(--color-bg-glass)', backdropFilter: 'var(--glass-blur)', border: '1px solid var(--color-border-glass)', color: 'var(--color-text-inverse)' }}
                 aria-label="Next image"
               >
-                ›
+                <ChevronRight className="w-5 h-5" />
               </button>
 
               {/* Dots — mobile */}
@@ -173,7 +175,7 @@ export default function PropertyDetailClient({ initialListing }: { initialListin
               <button
                 key={i}
                 onClick={() => setGalleryIdx(i)}
-                className="shrink-0 rounded overflow-hidden transition-all cursor-pointer"
+                className="relative shrink-0 rounded overflow-hidden transition-all cursor-pointer"
                 style={{
                   width: '80px',
                   aspectRatio: '16/9',
@@ -182,9 +184,9 @@ export default function PropertyDetailClient({ initialListing }: { initialListin
                 }}
               >
                 {m.url ? (
-                  <img src={m.url} alt="" className="w-full h-full object-cover" />
+                  <Image src={m.url} alt="" fill className="object-cover" sizes="80px" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-lg" style={{ background: 'var(--color-border-subtle)' }}>🏠</div>
+                  <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--color-border-subtle)' }}><Home className="w-5 h-5" /></div>
                 )}
               </button>
             ))}
@@ -207,11 +209,11 @@ export default function PropertyDetailClient({ initialListing }: { initialListin
           <span style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', fontWeight: 400, color: 'var(--color-text-muted)' }}>/{listing.category === 'RENT' ? 'yr' : ''}</span>
         </div>
         <div className="flex-1 flex justify-end gap-2">
-          <button onClick={handleToggleSave} className="w-10 h-10 rounded-full flex items-center justify-center text-lg" style={{ background: saved ? 'var(--color-danger)' : 'var(--color-bg-glass)', backdropFilter: 'var(--glass-blur-subtle)', border: '1px solid var(--color-border-glass)', color: saved ? 'white' : 'var(--color-text-primary)' }}>
-            {saved ? '❤' : '♡'}
+          <button onClick={handleToggleSave} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: saved ? 'var(--color-error)' : 'var(--color-bg-glass)', backdropFilter: 'var(--glass-blur-subtle)', border: '1px solid var(--color-border-glass)', color: saved ? 'white' : 'var(--color-text-primary)' }}>
+            <Heart className="w-5 h-5" fill={saved ? 'currentColor' : 'none'} />
           </button>
-          <button className="w-10 h-10 rounded-full flex items-center justify-center text-lg" style={{ background: 'var(--color-bg-glass)', backdropFilter: 'var(--glass-blur-subtle)', border: '1px solid var(--color-border-glass)', color: 'var(--color-text-primary)' }}>
-            ↗
+          <button className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--color-bg-glass)', backdropFilter: 'var(--glass-blur-subtle)', border: '1px solid var(--color-border-glass)', color: 'var(--color-text-primary)' }}>
+            <Share2 className="w-5 h-5" />
           </button>
           <button className="px-4 py-2 rounded-full text-xs font-semibold" style={{ background: 'var(--color-brand-accent)', color: 'var(--color-text-inverse)', boxShadow: 'var(--shadow-sm)' }}>
             Chat Agent
@@ -249,11 +251,11 @@ export default function PropertyDetailClient({ initialListing }: { initialListin
                 <span style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-base)', fontWeight: 400, color: 'var(--color-text-muted)' }}> / {listing.category === 'RENT' ? 'yr' : 'sale'}</span>
               </div>
               <div className="flex items-center gap-3">
-                <button onClick={handleToggleSave} className="w-11 h-11 rounded-full flex items-center justify-center text-xl" style={{ color: saved ? 'var(--color-danger)' : 'var(--color-text-secondary)' }}>
-                  {saved ? '❤' : '♡'}
+                <button onClick={handleToggleSave} className="w-11 h-11 rounded-full flex items-center justify-center" style={{ color: saved ? 'var(--color-error)' : 'var(--color-text-secondary)' }}>
+                  <Heart className="w-5 h-5" fill={saved ? 'currentColor' : 'none'} />
                 </button>
-                <button className="w-11 h-11 rounded-full flex items-center justify-center text-xl" style={{ color: 'var(--color-text-secondary)' }}>
-                  ↗
+                <button className="w-11 h-11 rounded-full flex items-center justify-center" style={{ color: 'var(--color-text-secondary)' }}>
+                  <Share2 className="w-5 h-5" />
                 </button>
                 <button className="px-6 py-3 rounded-full text-sm font-semibold" style={{ background: 'var(--color-bg-glass)', backdropFilter: 'var(--glass-blur-subtle)', border: '1px solid var(--color-border-glass)', color: 'var(--color-text-primary)' }}>
                   Schedule Inspection
@@ -269,28 +271,31 @@ export default function PropertyDetailClient({ initialListing }: { initialListin
               className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold"
               style={{ background: 'var(--color-warning-bg)', color: 'var(--color-warning)' }}
             >
-              <span className="text-lg shrink-0">✓</span>
+              <Check className="w-5 h-5 shrink-0" />
               This property has been pre-verified. Schedule a viewing to confirm details.
             </div>
 
             {/* ─── §4.3 Zone 3 — Property Meta Row ─── */}
             <div className="flex gap-4 flex-wrap py-4">
               {[
-                { icon: '🛏', label: 'Bedrooms', value: listing.metadata?.beds ?? '—' },
-                { icon: '🛁', label: 'Bathrooms', value: listing.metadata?.baths ?? '—' },
-                { icon: '▦', label: 'Size', value: listing.metadata?.size ? `${listing.metadata.size} sqm` : '—' },
-                { icon: '🏠', label: 'Type', value: listing.propertyType },
-                { icon: '📅', label: 'Listed', value: new Date(listing.createdAt).toLocaleDateString() },
-              ].map((m, i) => (
+                { icon: BedDouble, label: 'Bedrooms', value: listing.metadata?.beds ?? '—' },
+                { icon: Bath, label: 'Bathrooms', value: listing.metadata?.baths ?? '—' },
+                { icon: Maximize2, label: 'Size', value: listing.metadata?.size ? `${listing.metadata.size} sqm` : '—' },
+                { icon: Home, label: 'Type', value: listing.propertyType },
+                { icon: Calendar, label: 'Listed', value: new Date(listing.createdAt).toLocaleDateString() },
+              ].map((m, i) => {
+                const Icon = m.icon;
+                return (
                 <div key={i} className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg" style={{ background: 'var(--color-border-subtle)' }}>
-                    {m.icon}
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--color-border-subtle)' }}>
+                    <Icon className="w-5 h-5" />
                   </div>
                   <div>
                     <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{m.value}</span> {m.label}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* ─── §4.3 Zone 5 — Description ─── */}
@@ -330,7 +335,7 @@ export default function PropertyDetailClient({ initialListing }: { initialListin
                       className="flex flex-col items-center gap-1 p-3 text-center rounded-xl transition-shadow"
                       style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-subtle)' }}
                     >
-                      <span className="text-2xl">•</span>
+                       <Check className="w-5 h-5" style={{ color: 'var(--color-success)' }} />
                       <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{id}</span>
                     </div>
                   ))}
@@ -359,7 +364,7 @@ export default function PropertyDetailClient({ initialListing }: { initialListin
                 style={{ aspectRatio: '16/9', background: 'linear-gradient(135deg, #E8EDF2 0%, #D5DEE8 100%)' }}
               >
                 <div className="text-center" style={{ color: 'var(--color-text-muted)' }}>
-                  <div className="text-4xl mb-2">🗺</div>
+                  <div className="flex justify-center mb-2"><Map className="w-10 h-10" /></div>
                   <p className="text-sm">Map integration</p>
                   <p className="text-xs mt-1">Powered by Mapbox / Google Maps</p>
                 </div>
@@ -377,11 +382,11 @@ export default function PropertyDetailClient({ initialListing }: { initialListin
                     className="shrink-0 rounded-xl overflow-hidden transition-all cursor-pointer"
                     style={{ width: '240px', background: 'var(--color-bg-elevated)', boxShadow: 'var(--shadow-card)' }}
                   >
-                    <div className="w-full" style={{ aspectRatio: '16/9', overflow: 'hidden', background: 'var(--color-border-subtle)' }}>
-                      {s.media?.[0]?.url ? (
-                        <img src={s.media[0].url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    <div className="relative w-full" style={{ aspectRatio: '16/9', overflow: 'hidden', background: 'var(--color-border-subtle)' }}>
+                        {s.media?.[0]?.url ? (
+                        <Image src={s.media[0].url} alt="" fill className="object-cover" sizes="240px" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-2xl">🏠</div>
+                        <div className="w-full h-full flex items-center justify-center"><Home className="w-6 h-6" /></div>
                       )}
                     </div>
                     <div className="p-2.5">
@@ -410,11 +415,11 @@ export default function PropertyDetailClient({ initialListing }: { initialListin
                       className="shrink-0 rounded-xl overflow-hidden transition-all cursor-pointer"
                       style={{ width: '240px', background: 'var(--color-bg-elevated)', boxShadow: 'var(--shadow-card)' }}
                     >
-                      <div className="w-full" style={{ aspectRatio: '16/9', overflow: 'hidden', background: 'var(--color-border-subtle)' }}>
+                      <div className="relative w-full" style={{ aspectRatio: '16/9', overflow: 'hidden', background: 'var(--color-border-subtle)' }}>
                         {s.media?.[0]?.url ? (
-                          <img src={s.media[0].url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                          <Image src={s.media[0].url} alt="" fill className="object-cover" sizes="240px" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-2xl">🏠</div>
+                          <div className="w-full h-full flex items-center justify-center"><Home className="w-6 h-6" /></div>
                         )}
                       </div>
                       <div className="p-2.5">
@@ -464,16 +469,16 @@ export default function PropertyDetailClient({ initialListing }: { initialListin
                   </p>
                   <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Licensed Agent</p>
                 </div>
-                <div className="text-sm" style={{ color: 'var(--color-brand-accent)', letterSpacing: '2px' }}>
-                  ★★★★★
+                <div className="flex" style={{ color: 'var(--color-brand-accent)' }}>
+                  {Array.from({ length: 5 }).map((_, i) => (<span key={i} className="text-sm">★</span>))}
                 </div>
               </div>
               <div className="flex gap-2 flex-wrap">
-                <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ background: 'var(--color-success-bg)', color: 'var(--color-success)' }}>
-                  ⚡ Responds quickly
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold" style={{ background: 'var(--color-success-bg)', color: 'var(--color-success)' }}>
+                  <Zap className="w-3 h-3" /> Responds quickly
                 </span>
-                <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ background: 'var(--color-info-bg)', color: 'var(--color-info)' }}>
-                  ✓ Verified Agent
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold" style={{ background: 'var(--color-info-bg)', color: 'var(--color-info)' }}>
+                  <Check className="w-3 h-3" /> Verified Agent
                 </span>
               </div>
               <div className="flex gap-3">
@@ -530,7 +535,7 @@ export default function PropertyDetailClient({ initialListing }: { initialListin
                           boxShadow: active ? '0 0 0 4px rgba(5,150,105,0.2)' : 'none',
                         }}
                       >
-                        {completed ? '✓' : i + 1}
+                        {completed ? <Check className="w-3 h-3" /> : i + 1}
                       </div>
                       <span
                         className="text-[9px] text-center leading-tight"

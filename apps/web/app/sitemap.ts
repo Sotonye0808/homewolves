@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://homewolves.africa';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://homewolves.com';
 
 const staticRoutes: MetadataRoute.Sitemap = [
   { url: `${BASE_URL}/`, changeFrequency: 'weekly', priority: 1 },
@@ -18,8 +18,8 @@ const staticRoutes: MetadataRoute.Sitemap = [
 async function fetchDynamic() {
   try {
     const [listingsRes, postsRes] = await Promise.all([
-      fetch(`${API_BASE}/listings?take=500&status=ACTIVE`),
-      fetch(`${API_BASE}/blog?published=true&limit=500`),
+      fetch(`${API_BASE}/listings?take=50&status=ACTIVE`),
+      fetch(`${API_BASE}/blog?published=true&limit=50`),
     ]);
     const [listings, posts] = await Promise.all([listingsRes.json(), postsRes.json()]);
 

@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { fetchBlogPost } from '@/lib/blog';
 import { HwBadge } from '@/components/ui';
+import { FileText } from 'lucide-react';
+import Image from 'next/image';
 import DOMPurify from 'dompurify';
 
 export default function BlogPostPage() {
@@ -39,7 +41,7 @@ export default function BlogPostPage() {
       publisher: { '@type': 'Organization', name: 'Homewolves' },
       mainEntityOfPage: {
         '@type': 'WebPage',
-        '@id': `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://homewolves.africa'}/blog/${slug}`,
+        '@id': `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://homewolves.com'}/blog/${slug}`,
       },
     };
   }, [post, slug]);
@@ -68,7 +70,7 @@ export default function BlogPostPage() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg-canvas)' }}>
         <div className="text-center">
-          <p className="text-4xl mb-4">📝</p>
+          <div className="flex justify-center mb-4" style={{ color: 'var(--color-text-muted)' }}><FileText className="w-10 h-10" /></div>
           <h1 className="text-xl font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>Post not found</h1>
           <Link href="/blog" className="text-sm font-medium" style={{ color: 'var(--color-brand-accent)' }}>&larr; Back to blog</Link>
         </div>
@@ -115,8 +117,8 @@ export default function BlogPostPage() {
         </div>
 
         {post.coverImage && (
-          <div className="aspect-video rounded-xl overflow-hidden mb-10">
-            <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover" />
+          <div className="relative aspect-video rounded-xl overflow-hidden mb-10">
+            <Image src={post.coverImage} alt={post.title} fill className="object-cover" sizes="(min-width: 768px) 768px, 100vw" />
           </div>
         )}
 
