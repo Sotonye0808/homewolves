@@ -2,7 +2,6 @@
   "$schema": "https://json.schemastore.org/vercel.json",
   "framework": "nextjs",
   "buildCommand": "npx turbo run build --filter=@hw/web...",
-  "outputDirectory": "apps/web/.next",
   "installCommand": "npm install",
   "devCommand": "next dev",
   "functions": {

@@ -19,6 +19,10 @@ const nextConfig = {
       { protocol: 'http', hostname: 'www.homewolves.com' },
       { protocol: 'https', hostname: '**.homewolves.com' },
       { protocol: 'http', hostname: '**.homewolves.com' },
+      { protocol: 'https', hostname: 'api.homewolves.africa' },
+      { protocol: 'http', hostname: 'api.homewolves.africa' },
+      { protocol: 'https', hostname: '**.homewolves.africa' },
+      { protocol: 'http', hostname: '**.homewolves.africa' },
       { protocol: 'https', hostname: '**.vercel.app' },
       { protocol: 'http', hostname: '**.vercel.app' },
       { protocol: 'https', hostname: 'localhost' },
@@ -30,6 +34,17 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.picsum.photos' },
       { protocol: 'http', hostname: '**.picsum.photos' },
     ],
+    unoptimized: false,
+  },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+        ],
+      },
+    ];
   },
 };
 
